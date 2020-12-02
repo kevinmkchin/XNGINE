@@ -9,14 +9,17 @@ const GLint WIDTH = 1280, HEIGHT = 720;
 class Game
 {
 public:
+	// Game start
 	int run();
 private:
-	int init();
-	void loop();
-	void clean_up();
-	void process_events();
-	void update(float dt);
-	void render();
+	// Game flow
+	bool init();			// Create window, set up OpenGL context, initialize SDL and GLEW
+	void loop();			// Game loop with fixed timestep - Input, Logic, Render
+	void clean_up();		// Clear memory and shut down
+	// Game loop
+	void process_events();	// Process input events
+	void update(float dt);	// Tick game logic
+	void render();			// Process graphics and render them to the screen
 private:
 	bool is_running = true;
 	SDL_Window* window = nullptr;
@@ -26,25 +29,24 @@ private:
 
 int Game::run()
 {
-	int init_val = init();
-	if (init_val != 0) { return init_val; }
+	if (init() == false) return 1;
 	loop();
 	clean_up();
 
 	return 0;
 }
 
-int Game::init()
+bool Game::init()
 {
 	// Initialize SDL
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
 	{
 		printf("SDL failed to initialize.");
-		return 1;
+		return false;
 	}
 	// OpenGL Context Attributes
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3); // version
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3); // version
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3); // version major
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3); // version minor
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE); // core means not backward compatible. not using deprecated code.
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG); // allow forward compatibility
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1); // double buffering is on by default, but let's just call this anyway
@@ -61,19 +63,19 @@ int Game::init()
 	)) == nullptr)
 	{
 		printf("SDL window failed to create.");
-		return 1;
+		return false;
 	}
 
 	// Set context for SDL to use. Let SDL know that this window is the window that the OpenGL context should be tied to; everything that is drawn should be drawn to this window.
 	if ((opengl_context = SDL_GL_CreateContext(window)) == nullptr)
 	{
-		printf("Failed to create SDL GL Context.");
-		return 1;
+		printf("Failed to create OpenGL Context with SDL.");
+		return false;
 	}
 
-	/*	This makes our Buffer Swap (SDL_GL_SwapWindow) synchronized with the monitor's vertical refresh - basically vsync; 0 = immediate, 1 = vsync, -1 = adaptive vsync.
-	Remark: If application requests adaptive vsync and the system does not support it, this function will fail and return -1.
-	In such a case, you should probably retry the call with 1 for the interval. */
+	/**	This makes our Buffer Swap (SDL_GL_SwapWindow) synchronized with the monitor's vertical refresh - basically vsync; 0 = immediate, 1 = vsync, -1 = adaptive vsync.
+		Remark: If application requests adaptive vsync and the system does not support it, this function will fail and return -1.
+		In such a case, you should probably retry the call with 1 for the interval. */
 	if (SDL_GL_SetSwapInterval(-1) == -1)
 	{
 		SDL_GL_SetSwapInterval(1);
@@ -85,10 +87,10 @@ int Game::init()
 	{
 		printf("GLEW failed to initialize.");
 		clean_up();
-		return 1;
+		return false;
 	}
 
-	/*  Get the size of window's underlying drawable in pixels (for use with glViewport).
+	/** Get the size of window's underlying drawable in pixels (for use with glViewport).
 		Remark: This may differ from SDL_GetWindowSize() if we're rendering to a high-DPI drawable, i.e. the window was created with SDL_WINDOW_ALLOW_HIGHDPI
 		on a platform with high-DPI support (Apple calls this "Retina"), and not disabled by the SDL_HINT_VIDEO_HIGHDPI_DISABLED hint. */
 	SDL_GL_GetDrawableSize(window, &buffer_width, &buffer_height);
@@ -96,7 +98,7 @@ int Game::init()
 	// Setup Viewport
 	glViewport(0, 0, buffer_width, buffer_height);
 
-	return 0;
+	return true;
 }
 
 void Game::clean_up()
@@ -173,7 +175,7 @@ void Game::update(float dt)
 void Game::render()
 {
 	// Clear opengl context's buffer
-	glClearColor(0.39f, 0.582f, 0.926f, 1.f);
+	glClearColor(0.39f, 0.582f, 0.926f, 1.f); // cornflower blue
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	/* Swap our buffer to display the current contents of buffer on screen. This is used with double-buffered OpenGL contexts, which are the default. */
