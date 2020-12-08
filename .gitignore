@@ -1,5 +1,4 @@
-Debug/
-Release/
+bin/
 
 # VS User-specific files
 *.rsuser
