@@ -1,10 +1,134 @@
 #include <stdio.h>
+#include <string.h>
 
 #include <gl/glew.h>
 #include <SDL.h>
 #undef main
 
 const GLint WIDTH = 1280, HEIGHT = 720;
+
+// VAO VBO shader IDs
+GLuint VAO, VBO, shader_program_id;
+
+// Vertex Shader
+static const char* vertex_shader = 
+"														\n\
+#version 330 core										\n\
+layout (location = 0) in vec3 pos;						\n\
+void main()												\n\
+{														\n\
+	gl_Position = vec4(0.4 * pos.x, 0.4 * pos.y, pos.z, 1.0);		\n\
+}														\n\
+";
+
+// Fragment Shader
+static const char* frag_shader =
+"														\n\
+#version 330 core										\n\
+out vec4 colour;										\n\
+void main()												\n\
+{														\n\
+	colour = vec4(0.0, 0.0, 1.0, 1.0);					\n\
+}														\n\
+";
+
+void AddShader(GLuint program_id, const char* shader_code, GLenum shader_type)
+{
+	GLuint the_shader = glCreateShader(shader_type); // Create an empty shader of given type and get id
+
+	const GLchar* the_code[1];
+	the_code[0] = shader_code;
+
+	GLint code_length[1];
+	code_length[0] = strlen(shader_code); // from string.h
+
+	glShaderSource(the_shader, 1, the_code, code_length); // Fill the empty shader with the shader code
+	glCompileShader(the_shader); // Compile the shader source
+
+	// Error check
+	GLint result = 0;
+	GLchar eLog[1024] = { };
+	glGetShaderiv(the_shader, GL_COMPILE_STATUS, &result); // Make sure the shader compiled correctly
+	if (!result)
+	{
+		glGetProgramInfoLog(the_shader, sizeof(eLog), nullptr, eLog);
+		printf("Error compiling the %d shader: '%s' \n", shader_type, eLog);
+		return;
+	}
+
+	// Attach to program
+	glAttachShader(program_id, the_shader);
+
+	return;
+}
+
+void CompileShaders()
+{
+	shader_program_id = glCreateProgram(); // Creates the shader program and returns the id
+	if (!shader_program_id)
+	{
+		printf("Failed to create shader program.\n");
+		return;
+	}
+
+	// Compile and attach the shaders
+	AddShader(shader_program_id, vertex_shader, GL_VERTEX_SHADER);
+	AddShader(shader_program_id, frag_shader, GL_FRAGMENT_SHADER);
+
+	// Error checking in shader code
+	// Pretty important because intellisense isn't going to check shader code
+	GLint result = 0;
+	GLchar eLog[1024] = { };
+	glLinkProgram(shader_program_id); // Actually create the exectuable shader program on the graphics card
+	glGetProgramiv(shader_program_id, GL_LINK_STATUS, &result); // Make sure the program was created
+	if (!result)
+	{
+		glGetProgramInfoLog(shader_program_id, sizeof(eLog), nullptr, eLog);
+		printf("Error linking program: '%s' \n", eLog);
+		return;
+	}
+	// Validate the program will work
+	glValidateProgram(shader_program_id); 
+	glGetProgramiv(shader_program_id, GL_VALIDATE_STATUS, &result);
+	if (!result)
+	{
+		glGetProgramInfoLog(shader_program_id, sizeof(eLog), nullptr, eLog);
+		printf("Error validating program: '%s' \n", eLog);
+		return;
+	}
+}
+
+void CreateTriangle()
+{
+	GLfloat vertices[] = {
+		-1.f, -1.f, 0.f,
+		1.f, -1.f, 0.f,
+		0.f, 1.f, 0.f
+	};
+
+	glGenVertexArrays(1, &VAO); // Defining some space in the GPU for a vertex array and giving you the vao ID
+	glBindVertexArray(VAO); // Binding a VAO means we are currently operating on that VAO
+		// Indentation is to indicate that we are now working within the bound VAO
+		glGenBuffers(1, &VBO); // Creating a buffer object inside the bound VAO and returning the ID
+		glBindBuffer(GL_ARRAY_BUFFER, VBO); // Bind VBO to operate on that VBO
+			/* Connect the vertices data to the actual gl array buffer for this VBO. We need to pass in the size of the data we are passing as well. 
+			GL_STATIC_DRAW (as opposed to GL_DYNAMIC_DRAW) means we won't be changing these data values in the array. */
+			glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 9, vertices, GL_STATIC_DRAW);
+			/* Index is location in VAO of the attribute we are creating this pointer for. 
+			Size is number of values we are passing in (e.g. size is 3 if x y z).
+			Normalized is normalizing the values.
+			Stride is the number of values to skip after getting the values we need.
+				for example, you could have vertices and colors in the same array
+				[ Ax, Ay, Az,  Ar, Ag, Ab,  Bx, By, Bz,  Br, Bg, Bb ]
+					use          stride        use          stride
+				In this case, the stride would be 3 because we need to skip 3 values (the color values) to reach the next vertex data.
+			Apparently the last parameter is the offset? */
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+			glEnableVertexAttribArray(0); // Enabling location in VAO for the attribute
+		glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind the VBO
+	glBindVertexArray(0); // Unbind the VAO;
+
+}
 
 class Game
 {
@@ -30,6 +154,10 @@ private:
 int Game::run()
 {
 	if (init() == false) return 1;
+
+	CreateTriangle();
+	CompileShaders();
+
 	loop();
 	clean_up();
 
@@ -177,6 +305,15 @@ void Game::render()
 	// Clear opengl context's buffer
 	glClearColor(0.39f, 0.582f, 0.926f, 1.f); // cornflower blue
 	glClear(GL_COLOR_BUFFER_BIT);
+
+	glUseProgram(shader_program_id); // Telling opengl to start using given shader program. 
+	// You can switch out shaders so you can draw different objects or scenes with different shader programs.
+		glBindVertexArray(VAO);
+			/* Count is how many points we want to draw (a single triangle would have 3 points, a chair would have way more).
+			Normally, you would store how many points there are for an object for each object. */
+			glDrawArrays(GL_TRIANGLES, 0, 3);
+		glBindVertexArray(0);
+	glUseProgram(0);
 
 	/* Swap our buffer to display the current contents of buffer on screen. This is used with double-buffered OpenGL contexts, which are the default. */
 	SDL_GL_SwapWindow(window);
