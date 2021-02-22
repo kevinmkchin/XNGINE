@@ -10,7 +10,6 @@
 #include <glm/gtc/type_ptr.hpp>
 
 const GLint WIDTH = 1280, HEIGHT = 720;
-const float to_radians = 3.14159265f / 180.f; // in_degrees * to_radians = in_radians
 
 // VAO VBO shader IDs
 GLuint VAO, VBO, shader_program_id, uniform_model;
@@ -20,8 +19,6 @@ bool direction = true;
 float tri_offset = 0.0f;
 float tri_max_offset = 0.7f;
 float tri_increment = 0.005f;
-
-float curr_angle_degs = 0.f;
 
 // Vertex Shader
 // I think matrix_model in this case is a transform matrix
@@ -34,7 +31,7 @@ uniform mat4 matrix_model;								\n\
 														\n\
 void main()												\n\
 {														\n\
-	gl_Position = matrix_model * vec4(pos, 1.0);		\n\
+	gl_Position = matrix_model * vec4(0.4 * pos.x, 0.4 * pos.y, pos.z, 1.0);		\n\
 }														\n\
 ";
 
@@ -328,8 +325,6 @@ void Game::update(float dt)
 	{
 		direction = !direction;
 	}
-
-	curr_angle_degs += 0.5f;
 }
 
 void Game::render()
@@ -342,14 +337,7 @@ void Game::render()
 	// You can switch out shaders so you can draw different objects or scenes with different shader programs.
 
 		glm::mat4 matrix_model = glm::mat4(1.f); // Creates a Identity Matrix in R^4
-		// order matters!
-		// imagine that, in order to go from local/object space to world space, we translate the object away from it's local origin. 
-		// this translation is essentially the object's position in the world. 
-		// Think of every object, when created, is AT the world's origin, but we need to move it away from the world's origin to their
-		// actual location in the world.
-		//matrix_model = glm::translate(matrix_model, glm::vec3(tri_offset, tri_offset, 0.f));
-		//matrix_model = glm::rotate(matrix_model, curr_angle_degs * to_radians, glm::vec3(0.f, 0.f, 1.f)); // rotate around z axis
-		matrix_model = glm::scale(matrix_model, glm::vec3(tri_offset, tri_offset, 1.f)); // scale in each axis by the respective values of the vector
+		matrix_model = glm::translate(matrix_model, glm::vec3(tri_offset, tri_offset, 0.f));
 
 		// Set uniform variable of shader
 		glUniformMatrix4fv(uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model)); // need to use value_ptr bcs the matrix is not in format that is required
