@@ -4,7 +4,6 @@
 
 #include <gl/glew.h>
 #include <SDL.h>
-#undef main
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -418,7 +417,7 @@ void Game::render()
 	SDL_GL_SwapWindow(window);
 }
 
-int main()
+int main(int argc, char* argv[]) // Our main entry point MUST be in this form when using SDL
 {
 	Game game;
 	return game.run();
