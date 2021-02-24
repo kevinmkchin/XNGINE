@@ -3,8 +3,10 @@
 #include <cmath>
 #include <vector>
 
+#include <Windows.h>
 #include <gl/glew.h>
 #include <SDL.h>
+#include <SDL_syswm.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -17,14 +19,6 @@ const int32 WIDTH = 1280, HEIGHT = 720;
 
 std::vector<Mesh*> meshes;
 std::vector<Shader*> shaders;
-
-// Just testing uniform variable
-bool direction = true;
-float tri_offset = 0.0f;
-float tri_max_offset = 0.7f;
-float tri_increment = 0.005f;
-
-float curr_angle_degs = 0.f;
 
 static const char* vertex_shader_path = "shaders/default.vert";
 static const char* frag_shader_path = "shaders/default.frag";
@@ -69,8 +63,9 @@ private:
 private:
 	bool is_running = true;
 	SDL_Window* window = nullptr;
-	SDL_GLContext opengl_context;
+	SDL_GLContext opengl_context = nullptr;
 	int buffer_width, buffer_height;
+	HWND whandle = nullptr;	// Win32 API Window Handle
 	glm::mat4 matrix_projection;
 };
 
@@ -129,6 +124,50 @@ bool Game::init()
 		printf("SDL window failed to create.");
 		return false;
 	}
+
+	/** GRABBING WINDOW INFORMATION - https://wiki.libsdl.org/SDL_GetWindowWMInfo
+	*	Remarks: You must include SDL_syswm.h for the declaration of SDL_SysWMinfo. The info structure must 
+		be initialized with the SDL version, and is then filled in with information about the given window, 
+		as shown in the Code Example. */
+	SDL_SysWMinfo sys_windows_info;
+	SDL_VERSION(&sys_windows_info.version);
+	if (SDL_GetWindowWMInfo(window, &sys_windows_info)) { /* the call returns true on success */
+  /* success */
+		const char* subsystem = "an unknown system!";
+		switch (sys_windows_info.subsystem) {
+			case SDL_SYSWM_UNKNOWN:   break;
+			case SDL_SYSWM_WINDOWS:   subsystem = "Microsoft Windows(TM)";  break;
+			case SDL_SYSWM_X11:       subsystem = "X Window System";        break;
+#if SDL_VERSION_ATLEAST(2, 0, 3)
+			case SDL_SYSWM_WINRT:     subsystem = "WinRT";                  break;
+#endif
+			case SDL_SYSWM_DIRECTFB:  subsystem = "DirectFB";               break;
+			case SDL_SYSWM_COCOA:     subsystem = "Apple OS X";             break;
+			case SDL_SYSWM_UIKIT:     subsystem = "UIKit";                  break;
+#if SDL_VERSION_ATLEAST(2, 0, 2)
+			case SDL_SYSWM_WAYLAND:   subsystem = "Wayland";                break;
+			case SDL_SYSWM_MIR:       subsystem = "Mir";                    break;
+#endif
+#if SDL_VERSION_ATLEAST(2, 0, 4)
+			case SDL_SYSWM_ANDROID:   subsystem = "Android";                break;
+#endif
+#if SDL_VERSION_ATLEAST(2, 0, 5)
+			case SDL_SYSWM_VIVANTE:   subsystem = "Vivante";                break;
+#endif
+		}
+
+		SDL_Log("This program is running SDL version %d.%d.%d on %s",
+			(int)sys_windows_info.version.major,
+			(int)sys_windows_info.version.minor,
+			(int)sys_windows_info.version.patch,
+			subsystem);
+	}
+	else {
+		/* call failed */
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Couldn't get window information: %s", SDL_GetError());
+	}
+	// Grab HWND from window info
+	whandle = sys_windows_info.info.win.window;
 
 	// Set context for SDL to use. Let SDL know that this window is the window that the OpenGL context should be tied to; everything that is drawn should be drawn to this window.
 	if ((opengl_context = SDL_GL_CreateContext(window)) == nullptr)
@@ -236,21 +275,7 @@ void Game::process_events()
 // Delta time is in seconds
 void Game::update(float dt)
 {
-	if (direction)
-	{
-		tri_offset += tri_increment;
-	}
-	else
-	{
-		tri_offset -= tri_increment;
-	}
 
-	if (abs(tri_offset) >= tri_max_offset)
-	{
-		direction = !direction;
-	}
-
-	curr_angle_degs += 0.5f;
 }
 
 void Game::render()
@@ -267,14 +292,14 @@ void Game::render()
 		// this translation is essentially the object's position in the world. 
 		// Think of every object, when created, is AT the world's origin, but we need to move it away from the world's origin to their
 		// actual location in the world.
-		matrix_model = glm::translate(matrix_model, glm::vec3(tri_offset, 0.5f, -1.3f));
+		matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.5f, -1.3f));
 		matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f)); // scale in each axis by the respective values of the vector
 		glUniformMatrix4fv(shaders[0]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model)); // need to use value_ptr bcs the matrix is not in format that is required
 		glUniformMatrix4fv(shaders[0]->get_matrix_projection_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_projection));
 		meshes[0]->render_mesh();
 
 		matrix_model = glm::mat4(1.f);
-		matrix_model = glm::translate(matrix_model, glm::vec3(-tri_offset, -0.5f, -1.3f));
+		matrix_model = glm::translate(matrix_model, glm::vec3(0.f, -0.5f, -1.3f));
 		matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f));
 		glUniformMatrix4fv(shaders[0]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model));
 		meshes[1]->render_mesh();
