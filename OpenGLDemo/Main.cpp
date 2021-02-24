@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <cmath>
+#include <vector>
 
 #include <gl/glew.h>
 #include <SDL.h>
@@ -8,20 +9,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-typedef uint8_t uint8;
-typedef uint16_t uint16;
-typedef uint32_t uint32;
-typedef uint64_t uint64;
-typedef int8_t int8;
-typedef int16_t int16;
-typedef int32_t int32;
-typedef int64_t int64;
+#include "mkc.h"
+#include "Mesh.h"
 
 const int32 WIDTH = 1280, HEIGHT = 720;
-const float to_radians = 3.14159265f / 180.f; // in_degrees * to_radians = in_radians
 
-uint32 VAO, VBO,	// VAO VBO shader IDs
-IBO,				// IBO is index buffer object
+std::vector<Mesh*> meshes;
+
+uint32 
 shader_program_id, 
 uniform_model,		// location id for uniform variable will be stored in this uint32
 uniform_projection; // location id for uniform variable will be stored in this uint32
@@ -68,7 +63,7 @@ void main()												\n\
 }														\n\
 ";
 
-void AddShader(GLuint program_id, const char* shader_code, GLenum shader_type)
+void add_shader(GLuint program_id, const char* shader_code, GLenum shader_type)
 {
 	GLuint the_shader = glCreateShader(shader_type); // Create an empty shader of given type and get id
 
@@ -98,7 +93,7 @@ void AddShader(GLuint program_id, const char* shader_code, GLenum shader_type)
 	return;
 }
 
-void CompileShaders()
+void compile_shaders()
 {
 	shader_program_id = glCreateProgram(); // Creates the shader program and returns the id
 	if (!shader_program_id)
@@ -108,8 +103,8 @@ void CompileShaders()
 	}
 
 	// Compile and attach the shaders
-	AddShader(shader_program_id, vertex_shader, GL_VERTEX_SHADER);
-	AddShader(shader_program_id, frag_shader, GL_FRAGMENT_SHADER);
+	add_shader(shader_program_id, vertex_shader, GL_VERTEX_SHADER);
+	add_shader(shader_program_id, frag_shader, GL_FRAGMENT_SHADER);
 
 	// Error checking in shader code
 	// Pretty important because intellisense isn't going to check shader code
@@ -137,9 +132,8 @@ void CompileShaders()
 	uniform_projection = glGetUniformLocation(shader_program_id, "matrix_projection");
 }
 
-void CreateTriangle()
+void create_triangle()
 {
-	// for indexed drawing
 	uint32 indices[12] = { 
 		0, 3, 1,
 		1, 3, 2,
@@ -147,42 +141,19 @@ void CreateTriangle()
 		0, 1, 2
 	};
 
-	GLfloat vertices[] = {
+	GLfloat vertices[12] = {
 		-1.f, -1.f, 0.f,
 		0.f, -1.f, 1.f,
 		1.f, -1.f, 0.f,
 		0.f, 1.f, 0.f
 	};
 
-	glGenVertexArrays(1, &VAO); // Defining some space in the GPU for a vertex array and giving you the vao ID
-	glBindVertexArray(VAO); // Binding a VAO means we are currently operating on that VAO
-		// Indentation is to indicate that we are now working within the bound VAO
-		glGenBuffers(1, &VBO); // Creating a buffer object inside the bound VAO and returning the ID
-		glBindBuffer(GL_ARRAY_BUFFER, VBO); // Bind VBO to operate on that VBO
-			/* Connect the vertices data to the actual gl array buffer for this VBO. We need to pass in the size of the data we are passing as well. 
-			GL_STATIC_DRAW (as opposed to GL_DYNAMIC_DRAW) means we won't be changing these data values in the array. */
-			glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 12, vertices, GL_STATIC_DRAW); // NOTE: 12 instead of 9 now because 12 elements in vertices
-			/* Index is location in VAO of the attribute we are creating this pointer for. 
-			Size is number of values we are passing in (e.g. size is 3 if x y z).
-			Normalized is normalizing the values.
-			Stride is the number of values to skip after getting the values we need.
-				for example, you could have vertices and colors in the same array
-				[ Ax, Ay, Az,  Ar, Ag, Ab,  Bx, By, Bz,  Br, Bg, Bb ]
-					use          stride        use          stride
-				In this case, the stride would be 3 because we need to skip 3 values (the color values) to reach the next vertex data.
-			Apparently the last parameter is the offset? */
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-			glEnableVertexAttribArray(0); // Enabling location in VAO for the attribute
-		glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind the VBO
-
-		// Index Buffer Object
-		glGenBuffers(1, &IBO);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, 4 * 12, indices, GL_STATIC_DRAW); // 4 bytes (for uint32) * 12 elements in indices
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	glBindVertexArray(0); // Unbind the VAO;
-
+	Mesh* tri = new Mesh();
+	tri->create_mesh(vertices, indices, 12, 12);
+	meshes.push_back(tri);
+	tri = new Mesh();
+	tri->create_mesh(vertices, indices, 12, 12);
+	meshes.push_back(tri);
 }
 
 class Game
@@ -210,8 +181,8 @@ int Game::run()
 {
 	if (init() == false) return 1;
 
-	CreateTriangle();
-	CompileShaders();
+	create_triangle();
+	compile_shaders();
 
 	/** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)
 		The model matrix, right now, is in Game::render because we want to be able to update the object's transform on tick. However, ideally, the 
@@ -236,6 +207,7 @@ bool Game::init()
 		printf("SDL failed to initialize.");
 		return false;
 	}
+
 	// OpenGL Context Attributes
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3); // version major
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3); // version minor
@@ -396,21 +368,18 @@ void Game::render()
 		// this translation is essentially the object's position in the world. 
 		// Think of every object, when created, is AT the world's origin, but we need to move it away from the world's origin to their
 		// actual location in the world.
-		matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.f, -2.f));
-		matrix_model = glm::rotate(matrix_model, curr_angle_degs * to_radians, glm::vec3(0.f, 1.f, 0.f)); // rotate around y axis
-		matrix_model = glm::scale(matrix_model, glm::vec3(0.4f, 0.4f, 1.f)); // scale in each axis by the respective values of the vector
-
-		// Set uniform variable of shader
+		matrix_model = glm::translate(matrix_model, glm::vec3(tri_offset, 0.5f, -2.f));
+		matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f)); // scale in each axis by the respective values of the vector
 		glUniformMatrix4fv(uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model)); // need to use value_ptr bcs the matrix is not in format that is required
 		glUniformMatrix4fv(uniform_projection, 1, GL_FALSE, glm::value_ptr(matrix_projection));
+		meshes[0]->render_mesh();
 
-		glBindVertexArray(VAO);
+		matrix_model = glm::mat4(1.f);
+		matrix_model = glm::translate(matrix_model, glm::vec3(-tri_offset, -0.5f, -2.f));
+		matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f));
+		glUniformMatrix4fv(uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
+		meshes[1]->render_mesh();
 
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-				glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, nullptr); // 12 is number of elements, last param could be pointer to indices but no need cuz IBO already bound
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-		glBindVertexArray(0);
 	glUseProgram(0);
 
 	/* Swap our buffer to display the current contents of buffer on screen. This is used with double-buffered OpenGL contexts, which are the default. */
