@@ -11,15 +11,12 @@
 
 #include "mkc.h"
 #include "Mesh.h"
+#include "Shader.h"
 
 const int32 WIDTH = 1280, HEIGHT = 720;
 
 std::vector<Mesh*> meshes;
-
-uint32 
-shader_program_id, 
-uniform_model,		// location id for uniform variable will be stored in this uint32
-uniform_projection; // location id for uniform variable will be stored in this uint32
+std::vector<Shader*> shaders;
 
 // Just testing uniform variable
 bool direction = true;
@@ -29,110 +26,10 @@ float tri_increment = 0.005f;
 
 float curr_angle_degs = 0.f;
 
-// Vertex Shader
-// I think matrix_model in this case is a transform matrix
-static const char* vertex_shader = 
-"														\n\
-#version 330 core										\n\
-layout (location = 0) in vec3 pos;						\n\
-														\n\
-out vec4 vertex_colour;									\n\
-														\n\
-uniform mat4 matrix_model;								\n\
-uniform mat4 matrix_projection;							\n\
-														\n\
-void main()												\n\
-{														\n\
-	gl_Position = matrix_projection * matrix_model * vec4(pos, 1.0);		\n\
-	vertex_colour = vec4(clamp(pos, 0.f, 1.f), 1.f);	\n\
-}														\n\
-";
+static const char* vertex_shader_path = "shaders/default.vert";
+static const char* frag_shader_path = "shaders/default.frag";
 
-// Fragment Shader
-static const char* frag_shader =
-"														\n\
-#version 330 core										\n\
-														\n\
-in vec4 vertex_colour;									\n\
-														\n\
-out vec4 colour;										\n\
-														\n\
-void main()												\n\
-{														\n\
-	colour = vertex_colour;								\n\
-}														\n\
-";
-
-void add_shader(GLuint program_id, const char* shader_code, GLenum shader_type)
-{
-	GLuint the_shader = glCreateShader(shader_type); // Create an empty shader of given type and get id
-
-	const GLchar* the_code[1];
-	the_code[0] = shader_code;
-
-	GLint code_length[1];
-	code_length[0] = strlen(shader_code); // from string.h
-
-	glShaderSource(the_shader, 1, the_code, code_length); // Fill the empty shader with the shader code
-	glCompileShader(the_shader); // Compile the shader source
-
-	// Error check
-	GLint result = 0;
-	GLchar eLog[1024] = { };
-	glGetShaderiv(the_shader, GL_COMPILE_STATUS, &result); // Make sure the shader compiled correctly
-	if (!result)
-	{
-		glGetProgramInfoLog(the_shader, sizeof(eLog), nullptr, eLog);
-		printf("Error compiling the %d shader: '%s' \n", shader_type, eLog);
-		return;
-	}
-
-	// Attach to program
-	glAttachShader(program_id, the_shader);
-
-	return;
-}
-
-void compile_shaders()
-{
-	shader_program_id = glCreateProgram(); // Creates the shader program and returns the id
-	if (!shader_program_id)
-	{
-		printf("Failed to create shader program.\n");
-		return;
-	}
-
-	// Compile and attach the shaders
-	add_shader(shader_program_id, vertex_shader, GL_VERTEX_SHADER);
-	add_shader(shader_program_id, frag_shader, GL_FRAGMENT_SHADER);
-
-	// Error checking in shader code
-	// Pretty important because intellisense isn't going to check shader code
-	GLint result = 0;
-	GLchar eLog[1024] = { };
-	glLinkProgram(shader_program_id); // Actually create the exectuable shader program on the graphics card
-	glGetProgramiv(shader_program_id, GL_LINK_STATUS, &result); // Make sure the program was created
-	if (!result)
-	{
-		glGetProgramInfoLog(shader_program_id, sizeof(eLog), nullptr, eLog);
-		printf("Error linking program: '%s' \n", eLog);
-		return;
-	}
-	// Validate the program will work
-	glValidateProgram(shader_program_id); 
-	glGetProgramiv(shader_program_id, GL_VALIDATE_STATUS, &result);
-	if (!result)
-	{
-		glGetProgramInfoLog(shader_program_id, sizeof(eLog), nullptr, eLog);
-		printf("Error validating program: '%s' \n", eLog);
-		return;
-	}
-
-	uniform_model = glGetUniformLocation(shader_program_id, "matrix_model");
-	uniform_projection = glGetUniformLocation(shader_program_id, "matrix_projection");
-}
-
-void create_triangle()
+void create_triangles()
 {
 	uint32 indices[12] = { 
 		0, 3, 1,
@@ -181,8 +78,11 @@ int Game::run()
 {
 	if (init() == false) return 1;
 
-	create_triangle();
-	compile_shaders();
+	create_triangles();
+
+	Shader* shader_ptr = new Shader();
+	shader_ptr->create_from_files(vertex_shader_path, frag_shader_path);
+	shaders.push_back(shader_ptr);
 
 	/** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)
 		The model matrix, right now, is in Game::render because we want to be able to update the object's transform on tick. However, ideally, the 
@@ -356,11 +256,10 @@ void Game::update(float dt)
 void Game::render()
 {
 	// Clear opengl context's buffer
-	glClearColor(0.39f, 0.582f, 0.926f, 1.f); // cornflower blue
+	//glClearColor(0.39f, 0.582f, 0.926f, 1.f); // cornflower blue
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glUseProgram(shader_program_id); // Telling opengl to start using given shader program. 
-	// You can switch out shaders so you can draw different objects or scenes with different shader programs.
+	shaders[0]->use_shader();
 
 		glm::mat4 matrix_model = glm::mat4(1.f); // Creates a Identity Matrix in R^4
 		// order matters!
@@ -368,16 +267,16 @@ void Game::render()
 		// this translation is essentially the object's position in the world. 
 		// Think of every object, when created, is AT the world's origin, but we need to move it away from the world's origin to their
 		// actual location in the world.
-		matrix_model = glm::translate(matrix_model, glm::vec3(tri_offset, 0.5f, -2.f));
+		matrix_model = glm::translate(matrix_model, glm::vec3(tri_offset, 0.5f, -1.3f));
 		matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f)); // scale in each axis by the respective values of the vector
-		glUniformMatrix4fv(uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model)); // need to use value_ptr bcs the matrix is not in format that is required
-		glUniformMatrix4fv(uniform_projection, 1, GL_FALSE, glm::value_ptr(matrix_projection));
+		glUniformMatrix4fv(shaders[0]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model)); // need to use value_ptr bcs the matrix is not in format that is required
+		glUniformMatrix4fv(shaders[0]->get_matrix_projection_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_projection));
 		meshes[0]->render_mesh();
 
 		matrix_model = glm::mat4(1.f);
-		matrix_model = glm::translate(matrix_model, glm::vec3(-tri_offset, -0.5f, -2.f));
+		matrix_model = glm::translate(matrix_model, glm::vec3(-tri_offset, -0.5f, -1.3f));
 		matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f));
-		glUniformMatrix4fv(uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
+		glUniformMatrix4fv(shaders[0]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model));
 		meshes[1]->render_mesh();
 
 	glUseProgram(0);

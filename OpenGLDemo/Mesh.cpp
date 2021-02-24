@@ -55,6 +55,7 @@ void Mesh::render_mesh()
 {
 	if (index_count == 0) // Early out if index_count == 0, nothing to draw
 	{
+		// TODO log a warning
 		return;
 	}
 
