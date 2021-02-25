@@ -11,33 +11,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-//#define STB_TRUETYPE_IMPLEMENTATION
-//#include "stb_truetype.h"
-//
-//unsigned char ttf_buffer[1 << 25];
-//void draw_text() 
-//{
-//	FILE* fhandle;
-//	fopen_s(&fhandle, "c:/windows/fonts/times.ttf", "rb");
-//	fread(ttf_buffer, 1, 1 << 20, fhandle);
-//
-//	stbtt_fontinfo font;
-//	stbtt_InitFont(&font, ttf_buffer, stbtt_GetFontOffsetForIndex(ttf_buffer, 0));
-//
-//	int width, height = 0;
-//	unsigned char* bitmap = stbtt_GetCodepointBitmap(&font, 0, stbtt_ScaleForPixelHeight(&font, 128.f),
-//		'g', &width, &height, 0, 0);
-//
-//	int i, j;
-//	for (j = 0; j < height; ++j) {
-//		for (i = 0; i < width; ++i)
-//			putchar(" .:ioVM@"[bitmap[j * width + i] >> 5]);
-//		putchar('\n');
-//	}
-//
-//	stbtt_FreeBitmap(bitmap, 0);
-//}
-
 #include "mkc.h"
 #include "Mesh.h"
 #include "Shader.h"
@@ -77,26 +50,24 @@ void create_triangles()
 class Game
 {
 public:
-	// Game start
-	int run();
+	int8 run();					// Game start
 private:
-	// Game flow
-	bool init();			// Create window, set up OpenGL context, initialize SDL and GLEW
-	void loop();			// Game loop with fixed timestep - Input, Logic, Render
+	bool init();				// Create window, set up OpenGL context, initialize SDL and GLEW
+	void loop();				// Game loop with fixed timestep - Input, Logic, Render
 		void process_events();	// Process input events
 		void update(float dt);	// Tick game logic
 		void render();			// Process graphics and render them to the screen
-	void clean_up();		// Clear memory and shut down
+	void clean_up();			// Clear memory and shut down
 private:
 	bool is_running = true;
 	SDL_Window* window = nullptr;
 	SDL_GLContext opengl_context = nullptr;
-	int buffer_width, buffer_height;
+	uint32 buffer_width, buffer_height;
 	HWND whandle = nullptr;	// Win32 API Window Handle
 	glm::mat4 matrix_projection;
 };
 
-int Game::run()
+int8 Game::run()
 {
 	if (init() == false) return 1;
 
@@ -158,8 +129,8 @@ bool Game::init()
 		as shown in the Code Example. */
 	SDL_SysWMinfo sys_windows_info;
 	SDL_VERSION(&sys_windows_info.version);
-	if (SDL_GetWindowWMInfo(window, &sys_windows_info)) { /* the call returns true on success */
-  /* success */
+	if (SDL_GetWindowWMInfo(window, &sys_windows_info)) 
+	{
 		const char* subsystem = "an unknown system!";
 		switch (sys_windows_info.subsystem) {
 			case SDL_SYSWM_UNKNOWN:   break;
@@ -183,14 +154,14 @@ bool Game::init()
 #endif
 		}
 
-		SDL_Log("This program is running SDL version %d.%d.%d on %s",
-			(int)sys_windows_info.version.major,
-			(int)sys_windows_info.version.minor,
-			(int)sys_windows_info.version.patch,
+		SDL_Log("This program is running SDL version %u.%u.%u on %s",
+			sys_windows_info.version.major,
+			sys_windows_info.version.minor,
+			sys_windows_info.version.patch,
 			subsystem);
 	}
-	else {
-		/* call failed */
+	else 
+	{
 		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Couldn't get window information: %s", SDL_GetError());
 	}
 	// Grab HWND from window info
@@ -226,7 +197,7 @@ bool Game::init()
 	/** Get the size of window's underlying drawable in pixels (for use with glViewport).
 		Remark: This may differ from SDL_GetWindowSize() if we're rendering to a high-DPI drawable, i.e. the window was created with SDL_WINDOW_ALLOW_HIGHDPI
 		on a platform with high-DPI support (Apple calls this "Retina"), and not disabled by the SDL_HINT_VIDEO_HIGHDPI_DISABLED hint. */
-	SDL_GL_GetDrawableSize(window, &buffer_width, &buffer_height);
+	SDL_GL_GetDrawableSize(window, (int*)&buffer_width, (int*)&buffer_height);
 
 	// Setup Viewport
 	glViewport(0, 0, buffer_width, buffer_height);
@@ -282,19 +253,19 @@ void Game::process_events()
 	{
 		switch (event.type)
 		{
-		case SDL_QUIT:
-		{
-			is_running = false;
-			break;
-		}
-		case SDL_KEYDOWN:
-		{
-			if (event.key.keysym.sym == SDLK_ESCAPE)
+			case SDL_QUIT:
 			{
 				is_running = false;
-				break;
+			} break;
+
+			case SDL_KEYDOWN:
+			{
+				if (event.key.keysym.sym == SDLK_ESCAPE)
+				{
+					is_running = false;
+					break;
+				} 
 			}
-		}
 		}
 	}
 }
@@ -308,17 +279,12 @@ void Game::update(float dt)
 void Game::render()
 {
 	// Clear opengl context's buffer
-	//glClearColor(0.39f, 0.582f, 0.926f, 1.f); // cornflower blue
+	//glClearColor(0.39f, 0.582f, 0.926f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	shaders[0]->use_shader();
 
-		glm::mat4 matrix_model = glm::mat4(1.f); // Creates a Identity Matrix in R^4
-		// order matters!
-		// imagine that, in order to go from local/object space to world space, we translate the object away from it's local origin. 
-		// this translation is essentially the object's position in the world. 
-		// Think of every object, when created, is AT the world's origin, but we need to move it away from the world's origin to their
-		// actual location in the world.
+		glm::mat4 matrix_model = glm::mat4(1.f);
 		matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.5f, -1.3f));
 		matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f)); // scale in each axis by the respective values of the vector
 		glUniformMatrix4fv(shaders[0]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model)); // need to use value_ptr bcs the matrix is not in format that is required
