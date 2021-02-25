@@ -1,5 +1,5 @@
-# opengl-sdl-cpp
-3D graphics implementation with OpenGL and SDL in C++
+# opengl-3d-renderer
+3D graphics render engine using OpenGL in C++
 
 [GLEW](http://glew.sourceforge.net/) for interfacing with OpenGL.
 [SDL](https://www.libsdl.org/) for the Win32API and OpenGL Context. 
