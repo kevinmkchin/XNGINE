@@ -11,6 +11,33 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+//#define STB_TRUETYPE_IMPLEMENTATION
+//#include "stb_truetype.h"
+//
+//unsigned char ttf_buffer[1 << 25];
+//void draw_text() 
+//{
+//	FILE* fhandle;
+//	fopen_s(&fhandle, "c:/windows/fonts/times.ttf", "rb");
+//	fread(ttf_buffer, 1, 1 << 20, fhandle);
+//
+//	stbtt_fontinfo font;
+//	stbtt_InitFont(&font, ttf_buffer, stbtt_GetFontOffsetForIndex(ttf_buffer, 0));
+//
+//	int width, height = 0;
+//	unsigned char* bitmap = stbtt_GetCodepointBitmap(&font, 0, stbtt_ScaleForPixelHeight(&font, 128.f),
+//		'g', &width, &height, 0, 0);
+//
+//	int i, j;
+//	for (j = 0; j < height; ++j) {
+//		for (i = 0; i < width; ++i)
+//			putchar(" .:ioVM@"[bitmap[j * width + i] >> 5]);
+//		putchar('\n');
+//	}
+//
+//	stbtt_FreeBitmap(bitmap, 0);
+//}
+
 #include "mkc.h"
 #include "Mesh.h"
 #include "Shader.h"
