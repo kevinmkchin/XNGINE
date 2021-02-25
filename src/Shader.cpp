@@ -131,7 +131,7 @@ void Shader::add_shader(uint32 program_id, const char* shader_code, GLenum shade
 	the_code[0] = shader_code;
 
 	GLint code_length[1];
-	code_length[0] = strlen(shader_code); // from string.h
+	code_length[0] = (GLint) strlen(shader_code); // from string.h
 
 	glShaderSource(id_shader, 1, the_code, code_length); // Fill the empty shader with the shader code
 	glCompileShader(id_shader); // Compile the shader source
