@@ -11,14 +11,30 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "mkc.h"
+#include "Core.h"
+#include "Camera.h"
 #include "Mesh.h"
 #include "Shader.h"
 
+
+// --- global variables definitions ---
+uint32 g_buffer_width = 0;
+uint32 g_buffer_height = 0;
+const uint8* g_keystate = nullptr;
+int32 g_last_mouse_pos_x = INDEX_NONE;
+int32 g_last_mouse_pos_y = INDEX_NONE;
+int32 g_curr_mouse_pos_x = INDEX_NONE;
+int32 g_curr_mouse_pos_y = INDEX_NONE;
+int32 g_mouse_delta_x = 0;
+int32 g_mouse_delta_y = 0;
+
+
 const int32 WIDTH = 1280, HEIGHT = 720;
+const int8 FPS = 60;
 
 std::vector<Mesh*> meshes;
 std::vector<Shader*> shaders;
+Camera camera;
 
 static const char* vertex_shader_path = "shaders/default.vert";
 static const char* frag_shader_path = "shaders/default.frag";
@@ -62,7 +78,6 @@ private:
 	bool is_running = true;
 	SDL_Window* window = nullptr;
 	SDL_GLContext opengl_context = nullptr;
-	uint32 buffer_width, buffer_height;
 	HWND whandle = nullptr;	// Win32 API Window Handle
 	glm::mat4 matrix_projection;
 };
@@ -73,6 +88,9 @@ int8 Game::run()
 
 	create_triangles();
 
+	camera = Camera();
+	camera.set_position(0.f, 0.f, 0.f);
+	camera.set_rotation(0.f, 270.f, 0.f);
 	Shader* shader_ptr = new Shader();
 	shader_ptr->create_from_files(vertex_shader_path, frag_shader_path);
 	shaders.push_back(shader_ptr);
@@ -83,7 +101,7 @@ int8 Game::run()
 		That matrix can be stored inside the game object class alongside the VAO. Or we could simply update the game object's position, rotation, scale
 		fields, then construct the model matrix in Game::render based on those fields. Yeah that's probably better.
 	*/
-	float aspect_ratio = (float)buffer_width / (float)buffer_height;
+	float aspect_ratio = (float)g_buffer_width / (float)g_buffer_height;
 	matrix_projection = glm::perspective(45.f, aspect_ratio, 0.1f, 1000.f);
 
 	loop();
@@ -191,16 +209,20 @@ bool Game::init()
 		return false;
 	}
 
-	// NOTE: Enable depth test to see which triangles should be drawn over other triangles
-	glEnable(GL_DEPTH_TEST); 
-
 	/** Get the size of window's underlying drawable in pixels (for use with glViewport).
 		Remark: This may differ from SDL_GetWindowSize() if we're rendering to a high-DPI drawable, i.e. the window was created with SDL_WINDOW_ALLOW_HIGHDPI
 		on a platform with high-DPI support (Apple calls this "Retina"), and not disabled by the SDL_HINT_VIDEO_HIGHDPI_DISABLED hint. */
-	SDL_GL_GetDrawableSize(window, (int*)&buffer_width, (int*)&buffer_height);
+	SDL_GL_GetDrawableSize(window, (int*)&g_buffer_width, (int*)&g_buffer_height);
 
 	// Setup Viewport
-	glViewport(0, 0, buffer_width, buffer_height);
+	glViewport(0, 0, g_buffer_width, g_buffer_height);
+
+	// NOTE: Enable depth test to see which triangles should be drawn over other triangles
+	glEnable(GL_DEPTH_TEST); 
+	// Lock mouse to window
+	SDL_SetRelativeMouseMode(SDL_TRUE);
+	// Grab keystate array
+	g_keystate = SDL_GetKeyboardState(nullptr);
 
 	return true;
 }
@@ -219,7 +241,7 @@ void Game::loop()
 	game lags behind for some reason. Let's say our game does 1 tick per second. If, for example, it has been 3 seconds since the
 	last tick, then we are behind by 3 ticks. We will execute all 3 ticks before moving on. */
 	// Game Loop
-	float ms_per_frame = 1000.f / (float)60;
+	float ms_per_frame = 1000.f / (float) FPS;
 	float last_tick = (float)SDL_GetTicks(); // time (in milliseconds since SDL init) of the last tick
 	float ms_since_last_update = 0.f; // time in milliseconds since last update
 	while (is_running)
@@ -248,8 +270,23 @@ void Game::loop()
 
 void Game::process_events()
 {
+	SDL_bool b_relative_mouse = SDL_GetRelativeMouseMode();
+	if(b_relative_mouse)
+	{
+		SDL_GetRelativeMouseState(&g_mouse_delta_x, &g_mouse_delta_y);
+	}
+	else
+	{
+		// Store mouse state
+		g_last_mouse_pos_x = g_curr_mouse_pos_x;
+		g_last_mouse_pos_y = g_curr_mouse_pos_y;
+		SDL_GetMouseState(&g_curr_mouse_pos_x, &g_curr_mouse_pos_y);
+		if (g_last_mouse_pos_x >= 0) { g_mouse_delta_x = g_curr_mouse_pos_x - g_last_mouse_pos_x; } else { g_mouse_delta_x = 0; }
+		if (g_last_mouse_pos_y >= 0) { g_mouse_delta_y = g_curr_mouse_pos_y - g_last_mouse_pos_y; } else { g_mouse_delta_y = 0; }
+	}
+
 	SDL_Event event;
-	if (SDL_PollEvent(&event) > 0)
+	while (SDL_PollEvent(&event))
 	{
 		switch (event.type)
 		{
@@ -260,12 +297,20 @@ void Game::process_events()
 
 			case SDL_KEYDOWN:
 			{
+				// TODO register keydown for text input into dropdown console
+
 				if (event.key.keysym.sym == SDLK_ESCAPE)
 				{
 					is_running = false;
 					break;
 				} 
-			}
+
+				if (event.key.keysym.sym == SDLK_z)
+				{
+					SDL_SetRelativeMouseMode((SDL_bool) !b_relative_mouse);
+					printf("mouse grab = %s\n", !b_relative_mouse ? "true" : "false");
+				} 
+			} break;
 		}
 	}
 }
@@ -273,7 +318,7 @@ void Game::process_events()
 // Delta time is in seconds
 void Game::update(float dt)
 {
-
+	camera.update(dt);
 }
 
 void Game::render()
@@ -284,11 +329,13 @@ void Game::render()
 
 	shaders[0]->use_shader();
 
+		glUniformMatrix4fv(shaders[0]->get_matrix_view_location_id(), 1, GL_FALSE, glm::value_ptr(camera.calculate_viewmatrix()));
+		glUniformMatrix4fv(shaders[0]->get_matrix_projection_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_projection));
+
 		glm::mat4 matrix_model = glm::mat4(1.f);
 		matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.5f, -1.3f));
 		matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f)); // scale in each axis by the respective values of the vector
-		glUniformMatrix4fv(shaders[0]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model)); // need to use value_ptr bcs the matrix is not in format that is required
-		glUniformMatrix4fv(shaders[0]->get_matrix_projection_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_projection));
+		glUniformMatrix4fv(shaders[0]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model));
 		meshes[0]->render_mesh();
 
 		matrix_model = glm::mat4(1.f);
