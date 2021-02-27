@@ -13,7 +13,7 @@ rem call "C://Program Files (x86)//Microsoft Visual Studio//2019//Community//VC/
 
 rem ****************************************************************************************************
 rem Source Code to Build - Specify all the source files here - use ^ to split into next line if too long
-set SOURCE=..\src\Main.cpp ..\src\Mesh.cpp ..\src\Shader.cpp
+set SOURCE=..\src\Main.cpp ..\src\Mesh.cpp ..\src\Shader.cpp ..\src\Camera.cpp
 
 rem ****************************************************************************************************
 

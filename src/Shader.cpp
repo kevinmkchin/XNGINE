@@ -4,6 +4,7 @@
 Shader::Shader()
 	: id_shader_program(0)
 	, id_uniform_model(0)
+	, id_uniform_view(0)
 	, id_uniform_projection(0)
 {
 
@@ -51,6 +52,11 @@ std::string Shader::read_shader_file(const char* path)
 uint32 Shader::get_matrix_model_location_id()
 {
 	return id_uniform_model;
+}
+
+uint32 Shader::get_matrix_view_location_id()
+{
+	return id_uniform_view;
 }
 
 uint32 Shader::get_matrix_projection_location_id()
@@ -120,6 +126,7 @@ void Shader::compile_shader(const char* vertex_shader_str, const char* fragment_
 
 	// UNIFORM VARIABLES
 	id_uniform_model = glGetUniformLocation(id_shader_program, "matrix_model");
+	id_uniform_view = glGetUniformLocation(id_shader_program, "matrix_view");
 	id_uniform_projection = glGetUniformLocation(id_shader_program, "matrix_projection");
 }
 
