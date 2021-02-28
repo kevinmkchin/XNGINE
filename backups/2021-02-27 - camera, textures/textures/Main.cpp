@@ -11,11 +11,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "core.h"
-#include "camera.h"
-#include "mesh.h"
-#include "shader.h"
-#include "texture.h"
+#include "Core.h"
+#include "Camera.h"
+#include "Mesh.h"
+#include "Shader.h"
+#include "Texture.h"
+
 
 // --- global variables definitions ---
 uint32 g_buffer_width = 0;
@@ -28,6 +29,7 @@ int32 g_curr_mouse_pos_y = INDEX_NONE;
 int32 g_mouse_delta_x = 0;
 int32 g_mouse_delta_y = 0;
 // ------------------------------------
+
 
 const int32 WIDTH = 1280, HEIGHT = 720;
 
@@ -239,6 +241,7 @@ void Game::clean_up()
 	// clear shaders and delete shaders
 	for (size_t i = shaders.size() - 1; i > -1; --i)
 	{
+		printf("%zd\n", i);
 		shaders[i]->clear_shader();
 		delete shaders[i];
 	}
