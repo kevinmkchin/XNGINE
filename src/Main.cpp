@@ -11,11 +11,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "Core.h"
-#include "Camera.h"
-#include "Mesh.h"
-#include "Shader.h"
-
+#include "core.h"
+#include "camera.h"
+#include "mesh.h"
+#include "shader.h"
+#include "texture.h"
 
 // --- global variables definitions ---
 uint32 g_buffer_width = 0;
@@ -27,14 +27,15 @@ int32 g_curr_mouse_pos_x = INDEX_NONE;
 int32 g_curr_mouse_pos_y = INDEX_NONE;
 int32 g_mouse_delta_x = 0;
 int32 g_mouse_delta_y = 0;
-
+// ------------------------------------
 
 const int32 WIDTH = 1280, HEIGHT = 720;
-const int8 FPS = 60;
 
 std::vector<Mesh*> meshes;
 std::vector<Shader*> shaders;
 Camera camera;
+Texture tex_brick;
+Texture tex_dirt;
 
 static const char* vertex_shader_path = "shaders/default.vert";
 static const char* frag_shader_path = "shaders/default.frag";
@@ -48,18 +49,19 @@ void create_triangles()
 		0, 1, 2
 	};
 
-	GLfloat vertices[12] = {
-		-1.f, -1.f, 0.f,
-		0.f, -1.f, 1.f,
-		1.f, -1.f, 0.f,
-		0.f, 1.f, 0.f
+	GLfloat vertices[20] = {
+	//	x 	  y     z    u    v
+		-1.f, -1.f, 0.f, 0.f, 0.f,
+		0.f, -1.f, 1.f, 0.5f, 0.f,
+		1.f, -1.f, 0.f, 1.f, 0.f,
+		0.f, 1.f, 0.f, 0.5f, 1.f
 	};
 
 	Mesh* tri = new Mesh();
-	tri->create_mesh(vertices, indices, 12, 12);
+	tri->create_mesh(vertices, indices, 20, 12);
 	meshes.push_back(tri);
 	tri = new Mesh();
-	tri->create_mesh(vertices, indices, 12, 12);
+	tri->create_mesh(vertices, indices, 20, 12);
 	meshes.push_back(tri);
 }
 
@@ -70,8 +72,8 @@ public:
 private:
 	bool init();				// Create window, set up OpenGL context, initialize SDL and GLEW
 	void loop();				// Game loop with fixed timestep - Input, Logic, Render
-		void process_events();	// Process input events
-		void update(float dt);	// Tick game logic
+		void process_events();	// Process input and SDL events
+		void update(float dt);	// Tick game logic. Delta time is in seconds.
 		void render();			// Process graphics and render them to the screen
 	void clean_up();			// Clear memory and shut down
 private:
@@ -94,6 +96,10 @@ int8 Game::run()
 	Shader* shader_ptr = new Shader();
 	shader_ptr->create_from_files(vertex_shader_path, frag_shader_path);
 	shaders.push_back(shader_ptr);
+	tex_brick = Texture("data/textures/brick.png");
+	tex_brick.load_texture();
+	tex_dirt = Texture("data/textures/dirt.png");
+	tex_dirt.load_texture();
 
 	/** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)
 		The model matrix, right now, is in Game::render because we want to be able to update the object's transform on tick. However, ideally, the 
@@ -172,11 +178,8 @@ bool Game::init()
 #endif
 		}
 
-		SDL_Log("This program is running SDL version %u.%u.%u on %s",
-			sys_windows_info.version.major,
-			sys_windows_info.version.minor,
-			sys_windows_info.version.patch,
-			subsystem);
+		SDL_Log("This program is running SDL version %u.%u.%u on %s", sys_windows_info.version.major, 
+			sys_windows_info.version.minor, sys_windows_info.version.patch, subsystem);
 	}
 	else 
 	{
@@ -192,9 +195,10 @@ bool Game::init()
 		return false;
 	}
 
-	/**	This makes our Buffer Swap (SDL_GL_SwapWindow) synchronized with the monitor's vertical refresh - basically vsync; 0 = immediate, 1 = vsync, -1 = adaptive vsync.
-		Remark: If application requests adaptive vsync and the system does not support it, this function will fail and return -1.
-		In such a case, you should probably retry the call with 1 for the interval. */
+	/**	This makes our Buffer Swap (SDL_GL_SwapWindow) synchronized with the monitor's vertical refresh - basically vsync; 
+		0 = immediate, 1 = vsync, -1 = adaptive vsync. Remark: If application requests adaptive vsync and the system does 
+		not support it, this function will fail and return -1. In such a case, you should probably retry the call with 1 
+		for the interval. */
 	if (SDL_GL_SetSwapInterval(-1) == -1)
 	{
 		SDL_GL_SetSwapInterval(1);
@@ -210,8 +214,9 @@ bool Game::init()
 	}
 
 	/** Get the size of window's underlying drawable in pixels (for use with glViewport).
-		Remark: This may differ from SDL_GetWindowSize() if we're rendering to a high-DPI drawable, i.e. the window was created with SDL_WINDOW_ALLOW_HIGHDPI
-		on a platform with high-DPI support (Apple calls this "Retina"), and not disabled by the SDL_HINT_VIDEO_HIGHDPI_DISABLED hint. */
+		Remark: This may differ from SDL_GetWindowSize() if we're rendering to a high-DPI drawable, i.e. the window was created 
+		with SDL_WINDOW_ALLOW_HIGHDPI on a platform with high-DPI support (Apple calls this "Retina"), and not disabled by the 
+		SDL_HINT_VIDEO_HIGHDPI_DISABLED hint. */
 	SDL_GL_GetDrawableSize(window, (int*)&g_buffer_width, (int*)&g_buffer_height);
 
 	// Setup Viewport
@@ -229,6 +234,16 @@ bool Game::init()
 
 void Game::clean_up()
 {
+	tex_brick.clear_texture();
+	tex_dirt.clear_texture();
+	// clear shaders and delete shaders
+	for (size_t i = shaders.size() - 1; i > -1; --i)
+	{
+		shaders[i]->clear_shader();
+		delete shaders[i];
+	}
+	shaders.clear();
+
 	SDL_DestroyWindow(window);
 	SDL_GL_DeleteContext(opengl_context);
 	SDL_Quit();
@@ -236,40 +251,22 @@ void Game::clean_up()
 
 void Game::loop()
 {
-	/*	There are multiple methods of creating a game loop with a fixed timestep, but I thoroughly believe my method is the best.
-	I first employed this method in ADK, and I think it works excellently. My implementation allows the game to catch up if the
-	game lags behind for some reason. Let's say our game does 1 tick per second. If, for example, it has been 3 seconds since the
-	last tick, then we are behind by 3 ticks. We will execute all 3 ticks before moving on. */
-	// Game Loop
-	float ms_per_frame = 1000.f / (float) FPS;
-	float last_tick = (float)SDL_GetTicks(); // time (in milliseconds since SDL init) of the last tick
-	float ms_since_last_update = 0.f; // time in milliseconds since last update
+	float last_tick = (float)SDL_GetTicks(); 	// time (in milliseconds since SDL init) of the last tick
 	while (is_running)
 	{
-		// Calculate time since last tick
-		float this_tick = (float)SDL_GetTicks();
-		ms_since_last_update += this_tick - last_tick;
+		process_events(); 						// process events
+		if (is_running == false) { break; }
+		float this_tick = (float)SDL_GetTicks();// Calculate time since last tick
+		float delta_time_ms = this_tick - last_tick;
+		update(delta_time_ms / 1000.f); 		// update game
 		last_tick = this_tick;
-
-		while (ms_since_last_update > ms_per_frame)
-		{
-			ms_since_last_update -= ms_per_frame;
-
-			// process events
-			process_events();
-			if (is_running == false) { break; }
-
-			// update game
-			update(ms_per_frame / 1000.f);
-
-			// render game
-			render();
-		}
+		render();								// render game
 	}
 }
 
 void Game::process_events()
 {
+	// Store Mouse state
 	SDL_bool b_relative_mouse = SDL_GetRelativeMouseMode();
 	if(b_relative_mouse)
 	{
@@ -277,7 +274,6 @@ void Game::process_events()
 	}
 	else
 	{
-		// Store mouse state
 		g_last_mouse_pos_x = g_curr_mouse_pos_x;
 		g_last_mouse_pos_y = g_curr_mouse_pos_y;
 		SDL_GetMouseState(&g_curr_mouse_pos_x, &g_curr_mouse_pos_y);
@@ -285,6 +281,7 @@ void Game::process_events()
 		if (g_last_mouse_pos_y >= 0) { g_mouse_delta_y = g_curr_mouse_pos_y - g_last_mouse_pos_y; } else { g_mouse_delta_y = 0; }
 	}
 
+	// SDL Events
 	SDL_Event event;
 	while (SDL_PollEvent(&event))
 	{
@@ -315,7 +312,6 @@ void Game::process_events()
 	}
 }
 
-// Delta time is in seconds
 void Game::update(float dt)
 {
 	camera.update(dt);
@@ -327,6 +323,9 @@ void Game::render()
 	//glClearColor(0.39f, 0.582f, 0.926f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	// TODO Probably should make own shader for wireframe draws so that wireframe fragments aren't affected by lighting or textures
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // GL_LINE for wireframe, GL_FILL to fill interior of polygon
+
 	shaders[0]->use_shader();
 
 		glUniformMatrix4fv(shaders[0]->get_matrix_view_location_id(), 1, GL_FALSE, glm::value_ptr(camera.calculate_viewmatrix()));
@@ -336,12 +335,14 @@ void Game::render()
 		matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.5f, -1.3f));
 		matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f)); // scale in each axis by the respective values of the vector
 		glUniformMatrix4fv(shaders[0]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model));
+		tex_brick.use_texture();
 		meshes[0]->render_mesh();
 
 		matrix_model = glm::mat4(1.f);
 		matrix_model = glm::translate(matrix_model, glm::vec3(0.f, -0.5f, -1.3f));
 		matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f));
 		glUniformMatrix4fv(shaders[0]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model));
+		tex_dirt.use_texture();
 		meshes[1]->render_mesh();
 
 	glUseProgram(0);

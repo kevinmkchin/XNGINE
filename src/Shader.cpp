@@ -1,4 +1,4 @@
-#include "Shader.h"
+#include "shader.h"
 
 
 Shader::Shader()
@@ -66,9 +66,9 @@ uint32 Shader::get_matrix_projection_location_id()
 
 void Shader::use_shader()
 {
-	if (id_shader_program == 0) // Early out if shader program hasn't been created
+	if (id_shader_program == 0)
 	{
-		// TODO log a warning
+		printf("WARNING: Attempting to Shader::use_shader when there is no shader program loaded!\n");
 		return;
 	}
 
@@ -77,13 +77,14 @@ void Shader::use_shader()
 
 void Shader::clear_shader()
 {
-	if (id_shader_program != 0)
+	if (id_shader_program == 0)
 	{
-		// Delete the shader program off GPU memory
-		glDeleteProgram(id_shader_program);
-		id_shader_program = 0;
+		printf("WARNING: Attempting to Shader::clear_shader when there is no shader program loaded!\n");
+		return;
 	}
-
+	// Delete the shader program off GPU memory
+	glDeleteProgram(id_shader_program);
+	id_shader_program = 0;
 	// Reset uniform variable location ids
 	id_uniform_model = 0;
 	id_uniform_projection = 0;

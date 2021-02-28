@@ -13,7 +13,7 @@ rem call "C://Program Files (x86)//Microsoft Visual Studio//2019//Community//VC/
 
 rem ****************************************************************************************************
 rem Source Code to Build - Specify all the source files here - use ^ to split into next line if too long
-set SOURCE=..\src\Main.cpp ..\src\Mesh.cpp ..\src\Shader.cpp ..\src\Camera.cpp
+set SOURCE=..\src\main.cpp ..\src\mesh.cpp ..\src\shader.cpp ..\src\camera.cpp ..\src\texture.cpp
 
 rem ****************************************************************************************************
 
@@ -25,7 +25,7 @@ rem Additional Dependencies; may be from above ADDLIBPATHS
 set ADDDEPENDENCIES=Shell32.lib opengl32.lib glew32.lib SDL2.lib SDL2main.lib
 
 rem Binary Output Directory
-set OUTPUTDIR="debug\\"
+set OUTPUTDIR="debug"
 rem Output Executable Name
 set OUTPUTEXE="opengldemo.exe"
 
