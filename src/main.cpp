@@ -147,6 +147,8 @@ bool Game::init()
 		return false;
 	}
 
+	//SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+
 	/** GRABBING WINDOW INFORMATION - https://wiki.libsdl.org/SDL_GetWindowWMInfo
 	*	Remarks: You must include SDL_syswm.h for the declaration of SDL_SysWMinfo. The info structure must 
 		be initialized with the SDL version, and is then filled in with information about the given window, 

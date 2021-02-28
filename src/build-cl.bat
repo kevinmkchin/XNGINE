@@ -11,6 +11,8 @@ rem 	3. The call line below configures cmd.exe to access all of the Microsoft C+
 rem        it and rely on it, but make sure that the path points to vcvarsall.bat on your computer.
 rem call "C://Program Files (x86)//Microsoft Visual Studio//2019//Community//VC//Auxiliary//Build//vcvarsall.bat" x64
 
+echo Build started: %time%
+
 rem ****************************************************************************************************
 rem Source Code to Build - Specify all the source files here - use ^ to split into next line if too long
 set SOURCE=..\src\main.cpp ..\src\mesh.cpp ..\src\shader.cpp ..\src\camera.cpp ..\src\texture.cpp
@@ -32,14 +34,15 @@ set OUTPUTEXE="opengldemo.exe"
 rem Linker Options
 set LINKEROPTIONS=/SUBSYSTEM:CONSOLE %ADDLIBPATHS% %ADDDEPENDENCIES%
 
-if NOT exist ..\bin mkdir ..\bin
-pushd ..\bin
+if NOT exist ..\build mkdir ..\build
+pushd ..\build
 if NOT exist %OUTPUTDIR% mkdir %OUTPUTDIR%
 cl -Zi /EHsc /W3 /std:c++14 /Fe%OUTPUTDIR%%OUTPUTEXE% %ADDINCLUDES% %SOURCE% /link %LINKEROPTIONS%
 popd
 
-rem pause
+echo Build finished: %time%
 
+rem pause
 
 rem OTHER REMARKS
 rem Shell32.lib required because https://discourse.libsdl.org/t/windows-build-fails-with-missing-symbol-imp-commandlinetoargvw/27256/3

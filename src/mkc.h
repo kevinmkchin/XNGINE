@@ -15,5 +15,4 @@ typedef int32_t int32;
 typedef int64_t int64;
 
 const float TO_RADIANS = 3.14159265f / 180.f; // in_degrees * to_radians = in_radians
-
 #define INDEX_NONE -1;
