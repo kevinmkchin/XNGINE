@@ -24,7 +24,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include "mkc.h" // defines and typedefs
+#include "gamedefine.h" // defines and typedefs
 
 // --- global variables  --- note: static variables are initialized to their default values
 GLOBAL_VAR uint32 g_buffer_width;

@@ -1,11 +1,9 @@
-#ifndef MKC_H
-#define MKC_H
+#ifndef __GAME_DEFINE__
+#define __GAME_DEFINE__
 
 #include <cstdint>
 
-/** Defines, Typedefs, and helper functions for C, author's personal stuff. 
-	Kevin Myung Keon Chin
-*/
+/** Defines and typedefs for game */
 
 #define INTERNAL static				// static functions are internal to the translation unit
 #define LOCAL_PERSIST static		// local static variables are only accessible within the scope of its declaration
