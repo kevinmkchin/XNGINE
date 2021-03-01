@@ -1,6 +1,5 @@
 #include "shader.h"
 
-
 Shader::Shader()
 	: id_shader_program(0)
 	, id_uniform_model(0)

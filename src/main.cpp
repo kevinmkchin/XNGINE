@@ -1,7 +1,18 @@
+/**	OpenGL 3D Renderer
+
+	TODO
+	- Text rendering to textured quads
+	- Quake-style console with extensible commands
+	- Phong Lighting
+
+*/
+
 #include <stdio.h>
-#include <string.h>
+#include <string>
 #include <cmath>
 #include <vector>
+#include <iostream>
+#include <fstream>
 
 #include <Windows.h>
 #include <gl/glew.h>
@@ -10,24 +21,30 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
-#include "core.h"
-#include "camera.h"
-#include "mesh.h"
-#include "shader.h"
-#include "texture.h"
+#include "mkc.h" // defines and typedefs
 
-// --- global variables definitions ---
-uint32 g_buffer_width = 0;
-uint32 g_buffer_height = 0;
-const uint8* g_keystate = nullptr;
-int32 g_last_mouse_pos_x = INDEX_NONE;
-int32 g_last_mouse_pos_y = INDEX_NONE;
-int32 g_curr_mouse_pos_x = INDEX_NONE;
-int32 g_curr_mouse_pos_y = INDEX_NONE;
-int32 g_mouse_delta_x = 0;
-int32 g_mouse_delta_y = 0;
-// ------------------------------------
+// --- global variables  --- note: static variables are initialized to their default values
+GLOBAL_VAR uint32 g_buffer_width;
+GLOBAL_VAR uint32 g_buffer_height;
+
+GLOBAL_VAR const uint8* g_keystate = nullptr;		// Stores keyboard state this frame. Access via g_keystate[SDL_Scancode].
+
+GLOBAL_VAR int32 g_last_mouse_pos_x = INDEX_NONE;	// Stores mouse state this frame. mouse_pos is not updated when using SDL RelativeMouseMode.
+GLOBAL_VAR int32 g_last_mouse_pos_y = INDEX_NONE;
+GLOBAL_VAR int32 g_curr_mouse_pos_x = INDEX_NONE;
+GLOBAL_VAR int32 g_curr_mouse_pos_y = INDEX_NONE;
+GLOBAL_VAR int32 g_mouse_delta_x;
+GLOBAL_VAR int32 g_mouse_delta_y;
+
+// -------------------------
+
+#include "camera.cpp"
+#include "mesh.cpp"
+#include "shader.cpp"
+#include "texture.cpp"
 
 const int32 WIDTH = 1280, HEIGHT = 720;
 

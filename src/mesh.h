@@ -1,7 +1,5 @@
 #pragma once
 
-#include "mkc.h"
-
 class Mesh
 {
 public:

@@ -5,15 +5,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 project(opengldemo)
 
-add_executable(${PROJECT_NAME} 
-
-	src/main.cpp 
-	src/camera.cpp 
-	src/shader.cpp 
-	src/mesh.cpp 
-	src/texture.cpp
-	
-)
+add_executable(${PROJECT_NAME} src/main.cpp)
 
 # Additional Include Directories
 include_directories(${PROJECT_NAME}

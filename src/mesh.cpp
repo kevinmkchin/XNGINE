@@ -1,5 +1,4 @@
 #include "mesh.h"
-#include <gl/glew.h>
 
 Mesh::Mesh()
 	: id_vao(0)
