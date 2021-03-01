@@ -2,6 +2,10 @@
 
 	TODO
 	- Text rendering to textured quads
+		- get font texture atlas to display on a quad. the entire texture
+	- Turn Camera into a struct, make all Camera functions INTERNAL functions intead
+
+	Backlog
 	- Quake-style console with extensible commands
 	- Phong Lighting
 
@@ -23,6 +27,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+
+#include "mkc_ttassembler.h" // MKC TrueType Assembler
 
 #include "gamedefine.h" // defines and typedefs
 
@@ -56,6 +62,8 @@ Texture tex_dirt;
 
 static const char* vertex_shader_path = "shaders/default.vert";
 static const char* frag_shader_path = "shaders/default.frag";
+static const char* ui_vs_path = "shaders/ui.vert";
+static const char* ui_fs_path = "shaders/ui.frag";
 
 void create_triangles()
 {
@@ -110,9 +118,14 @@ int8 Game::run()
 	camera = Camera();
 	camera.set_position(0.f, 0.f, 0.f);
 	camera.set_rotation(0.f, 270.f, 0.f);
+
 	Shader* shader_ptr = new Shader();
 	shader_ptr->create_from_files(vertex_shader_path, frag_shader_path);
 	shaders.push_back(shader_ptr);
+	shader_ptr = new Shader();
+	shader_ptr->create_from_files(ui_vs_path, ui_fs_path);
+	shaders.push_back(shader_ptr);
+
 	tex_brick = Texture("data/textures/brick.png");
 	tex_brick.load_texture();
 	tex_dirt = Texture("data/textures/dirt.png");
@@ -365,6 +378,52 @@ void Game::render()
 		meshes[1]->render_mesh();
 
 	glUseProgram(0);
+
+
+	// test
+	glm::mat4 matrix_proj_ortho = glm::ortho(0.0f, (float)g_buffer_width,(float)g_buffer_height,0.0f, -100.f, 10.f);
+	GLuint id_vao = 0;
+	GLuint id_vbo = 0;
+	/*
+	GLfloat quad_vertices[] = {
+		-100.f, -100.f, 
+		-100.f, 100.f,
+		100.f, 100.f,
+		100.f, -100.f,
+		-100.f, -100.f,
+		100.f, 100.f
+	};
+	*/
+	GLfloat quad_vertices[] = {
+		-100.f, -100.f, 0.f, 0.f,
+		-100.f, 100.f, 0.f, 1.f,
+		100.f, 100.f, 1.f, 1.f,
+		100.f, -100.f, 1.f, 0.f,
+		-100.f, -100.f, 0.f, 0.f,
+		100.f, 100.f, 1.f, 1.f
+	};
+	glGenVertexArrays(1, &id_vao);
+	glBindVertexArray(id_vao);
+		glGenBuffers(1, &id_vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, id_vbo);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), quad_vertices, GL_STATIC_DRAW);
+			glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, 0);
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
+			glEnableVertexAttribArray(1);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+	shaders[1]->use_shader();
+		matrix_model = glm::mat4(1.f);
+		matrix_model = glm::translate(matrix_model, glm::vec3(150.f, 150.f, 100.f));
+		glUniformMatrix4fv(shaders[1]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model));
+		glUniformMatrix4fv(shaders[1]->get_matrix_projection_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_proj_ortho));
+		tex_brick.use_texture();
+		glBindVertexArray(id_vao);
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+		glBindVertexArray(0);
+	glUseProgram(0);
+	//
 
 	/* Swap our buffer to display the current contents of buffer on screen. This is used with double-buffered OpenGL contexts, which are the default. */
 	SDL_GL_SwapWindow(window);
