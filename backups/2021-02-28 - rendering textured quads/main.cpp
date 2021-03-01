@@ -2,10 +2,6 @@
 
 	TODO
 	- Text rendering to textured quads
-		- get font texture atlas to display on a quad. the entire texture
-	- Turn Camera into a struct, make all Camera functions INTERNAL functions intead
-
-	Backlog
 	- Quake-style console with extensible commands
 	- Phong Lighting
 
@@ -28,7 +24,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include "mkc_ttassembler.h" // MKC TrueType Assembler
+#include "mkc_ttassembler.h"
 
 #include "gamedefine.h" // defines and typedefs
 
@@ -381,7 +377,7 @@ void Game::render()
 
 
 	// test
-	glm::mat4 matrix_proj_ortho = glm::ortho(0.0f, (float)g_buffer_width,(float)g_buffer_height,0.0f, -100.f, 10.f);
+	glm::mat4 matrix_proj_ortho = glm::ortho(0.0f, (float)g_buffer_width,(float)g_buffer_height,0.0f, -1.f, 1.f);
 	GLuint id_vao = 0;
 	GLuint id_vbo = 0;
 	/*
@@ -415,7 +411,7 @@ void Game::render()
 	glBindVertexArray(0);
 	shaders[1]->use_shader();
 		matrix_model = glm::mat4(1.f);
-		matrix_model = glm::translate(matrix_model, glm::vec3(150.f, 150.f, 100.f));
+		matrix_model = glm::translate(matrix_model, glm::vec3(150.f, 150.f, 0.f));
 		glUniformMatrix4fv(shaders[1]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model));
 		glUniformMatrix4fv(shaders[1]->get_matrix_projection_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_proj_ortho));
 		tex_brick.use_texture();
