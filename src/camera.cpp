@@ -1,10 +1,5 @@
 #include "Camera.h"
 
-#include <SDL.h>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include "Core.h"
-
 Camera::Camera()
 	: position(glm::vec3(0.f))
 	, rotation(glm::vec3(0.f))

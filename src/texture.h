@@ -1,9 +1,5 @@
 #pragma once
 
-#include <gl/glew.h>
-
-#include "mkc.h"
-
 class Texture
 {
 public:
