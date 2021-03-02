@@ -21,8 +21,6 @@
 	should be able to feed that array into the vertex buffer of any graphics API and 
 	get it working.
 
-	TODO support indexed drawing (return indices as well)
-
 	This library is not responsible for rendering text. You can do that on your own in your
 	preferred graphics API, a quad/ui rendering shader, and an orthogonal projection matrix.
 
@@ -33,6 +31,7 @@
 
 	Backlog:
 	- Top to bottom text
+    - Support indexed drawing (return indices as well)
 */
 
 // TODO copy stb_truetype into this header

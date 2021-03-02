@@ -4,6 +4,9 @@
 
 /** DEFINES AND TYPEDEFS **/
 #define INTERNAL static				// static functions are internal to the translation unit
+/* Put "static" in front of all functions, and that prevents them from ever going into the linking table.
+This causes the compiler to treat them as intra-unit linkage and it doesn't ever have to even do the work
+ of moving to the link phase. */
 #define LOCAL_PERSIST static		// local static variables are only accessible within the scope of its declaration
 #define GLOBAL_VAR static			// global static variables are global to the translation unit
 
