@@ -82,13 +82,7 @@ mkctta_set_drawable_buffer_size(int drawable_width, int drawable_height)
 	mkctta_drawbuffer_height = drawable_height;
 }
 
-mkctta_internal void
-mkctta_init_font_from_file(const char* font_file_path, int font_height_in_pixels)
-{
-	// load to buffer, call mkctta_init_font
-}
-
-mkctta_internal void
+mkctta_internal TTABitmap
 mkctta_init_font(unsigned char* font_buffer, int font_height_in_pixels)
 {
 	TTAFont font;
@@ -98,31 +92,89 @@ mkctta_init_font(unsigned char* font_buffer, int font_height_in_pixels)
 
     int desired_atlas_width = 400;
 
+
+    int FontSize = 20;
+    // Result.Size = 30;
+    
+
+
+    stbtt_fontinfo StbFont;
+    stbtt_InitFont(&StbFont, font_buffer, 0);
+    
+    float Scale = stbtt_ScaleForPixelHeight(&StbFont, (float)FontSize);
+    
+
+    // int StbAscent;
+    // int StbDescent;
+    // int StbLineGap;
+    // stbtt_GetFontVMetrics(&StbFont, &StbAscent, &StbDescent, &StbLineGap);
+    
+    // Result.Ascent = (f32)StbAscent * Scale;
+    // Result.Descent = (f32)StbDescent * Scale;
+    // Result.LineGap = (f32)StbLineGap * Scale;
+    
+    // Result.LineAdvance = Result.Ascent - Result.Descent + Result.LineGap;
+
+
 	// load glyph bitmap for every character we want to display
-    TTABitmap temp_glyph_bitmaps[MKCTTA_ASCII_TO - MKCTTA_ASCII_FROM + 1];
+    TTABitmap temp_glyph_bitmaps[MKCTTA_ASCII_TO - MKCTTA_ASCII_FROM + 1] = {};
     int tallest_glyph_height = 0;
     int aggregate_glyph_width = 0;
     // load glyph data
 	for(char char_index = MKCTTA_ASCII_FROM; char_index <= MKCTTA_ASCII_TO; ++char_index) // ASCII
     {
     	// get shit from stbtt
+        TTAGlyph glyph = {};
+        
+        // int StbAdvance;
+        // int StbLeftBearing;
+        // stbtt_GetCodepointHMetrics(&StbFont, 
+        //                            CharIndex, 
+        //                            &StbAdvance, 
+        //                            &StbLeftBearing);
+        
+        // Glyph.Codepoint = CharIndex;
+        // Glyph.Advance = (f32)StbAdvance * Scale;
+        // Glyph.LeftBearing = (f32)StbLeftBearing * Scale;
+        
+        int stb_width, stb_height;
+        int StbXOffset, StbYOffset;
+        unsigned char* StbBitmap = stbtt_GetCodepointBitmap(&StbFont,
+                                                            0, Scale,
+                                                            char_index,
+                                                            &stb_width, &stb_height,
+                                                            &StbXOffset, 
+                                                            &StbYOffset);
+        
+        // glyph.Image = AllocateImageInternal(GlyphWidth, GlyphHeight, OurImageMem);
+        // glyph.XOffset = StbXOffset;
+        // glyph.YOffset = StbYOffset;
 
-    	// int iter = char_index - MKCTTA_ASCII_FROM;
-    	// temp_glyph_bitmaps[iter].pixels = (unsigned char*) malloc(stb_width * stb_height);
-    	// temp_glyph_bitmaps[iter].width = stb_width;
-    	// temp_glyph_bitmaps[iter].height = stb_height;
-    	// aggregate_glyph_width += stb_width;
-    	// if(tallest_glyph_height < stb_height)
-    	// {
-    	// 	tallest_glyph_height = stb_height;
-    	// }
+    	int iter = char_index - MKCTTA_ASCII_FROM;
+    	temp_glyph_bitmaps[iter].pixels = (unsigned char*) calloc(stb_width * stb_height, 1);
+    	// TODO copy StbBitmap into pixels
+    	for(int i = 0; i < stb_width * stb_height; ++i)
+    	{
+    		temp_glyph_bitmaps[iter].pixels[i] = StbBitmap[i];
+    	}
+
+    	temp_glyph_bitmaps[iter].width = stb_width;
+    	temp_glyph_bitmaps[iter].height = stb_height;
+    	aggregate_glyph_width += stb_width;
+    	if(tallest_glyph_height < stb_height)
+    	{
+    		tallest_glyph_height = stb_height;
+    	}
+
+
+        stbtt_FreeBitmap(StbBitmap, 0);
     }
 
     int desired_atlas_height = tallest_glyph_height
     	* mkctta_ceil((float)aggregate_glyph_width / (float)desired_atlas_width);
 
     TTABitmap atlas;
-    atlas.pixels = (unsigned char*) malloc(desired_atlas_width * desired_atlas_height);
+    atlas.pixels = (unsigned char*) calloc(desired_atlas_width * desired_atlas_height, 1);
     atlas.width = desired_atlas_width;
     atlas.height = desired_atlas_height;
     // knowing the atlas width and height before iterating through the glyphs will help us with UVs
@@ -150,9 +202,11 @@ mkctta_init_font(unsigned char* font_buffer, int font_height_in_pixels)
 
     	// TODO set glyph UVs
 
-    	// TODO deallocate temp glyph bitmap
+    	// TODO make sure this deallocates temp glyph bitmap
+    	free(glyph_bitmap.pixels);
     }
 
+    return atlas;
 
 /*
 
@@ -222,8 +276,6 @@ INTERNAL_FUNCTION void AddFontToAtlas(font* Font)
 
 	// create font atlas bitmap
 }
-
-// TODO return the font bitmap as a texture atlas?
 
 mkctta_internal void
 mkctta_append_glyph(char glyph)
