@@ -1,16 +1,38 @@
-/** mkc_ttassembler - MKC TrueType Assembler
+/** mkc_ttassembler - MKC TrueTypeAssembler
 
-	Single-header library to generate vertices and texture coordinates arrays for
-	creating Vertex Array Objects to render text onto the screen.
+	mkc_assembler
+	mkc_TrueTypeAssembler
+	mkc_truetypebuffer
+	mkc_textbuffer
+	mkc_TextPrimitiveAssembler
+	mkc_TextQuadAssembler
+	mkc_textquadassembly
+	mkcttb_*
+
+	Single-header library to generate vertices and texture coordinates array for
+	creating Vertex Buffers to render text onto the screen. Works seamlessly with 
+	both OpenGL and DirectX. Probably also works with other graphics APIs out there...
 
 	This library's purpose is to return an array of vertices and texture coordinates:
 		[ x, y, u, v, x, y, u, v, ......, x, y, u, v ]
-	You can feed this into a Vertex Buffer Object with a Stride of 4.
+	You can feed this into a Vertex Buffer with a Stride of 4.
+
+	Since this library only returns an array of vertex and texture coordinates, you 
+	should be able to feed that array into the vertex buffer of any graphics API and 
+	get it working.
 
 	TODO support indexed drawing (return indices as well)
 
 	This library is not responsible for rendering text. You can do that on your own in your
 	preferred graphics API, a quad/ui rendering shader, and an orthogonal projection matrix.
+
+	TODO:
+	- Push line of text
+	- Push char
+	- Pop all
+
+	Backlog:
+	- Top to bottom text
 */
 
 // TODO copy stb_truetype into this header
@@ -20,24 +42,21 @@
 #define mkctta_internal static		// mkctta internal function
 #define mkctta_local_persist static // mkctta local static variable
 
-mkctta_internal int
-mkctta_ceil(float num) 
+typedef struct
 {
-    int inum = (int)num;
-    if (num == (float)inum) 
-    {
-        return inum;
-    }
-    return inum + 1;
-}
+	float* vertex_buffer; // x y u v  x y u v
+	int vertex_count;
+} TTAVertexBuffer;
 
-typedef struct {
+typedef struct 
+{
 	unsigned char* 	pixels; // TTABitmap pixels are only 1 byte long and contain ONLY the alpha data
     int 			width;
     int 			height;
 } TTABitmap;
 
-typedef struct {
+typedef struct 
+{
 	//TTABitmap 		bitmap;			// glyph width and height is contained in bitmap
 	float 			advance;
 	float 			width;
@@ -51,7 +70,8 @@ typedef struct {
 	char 			codepoint;
 } TTAGlyph;
 
-typedef struct {
+typedef struct 
+{
 	TTAGlyph*		glyphs;
 	int 			glyph_count;
 	float 			ascender;
@@ -60,6 +80,16 @@ typedef struct {
 	// font identifier
 } TTAFont;
 
+mkctta_internal int
+mkctta_ceil(float num) 
+{
+    int inum = (int)num;
+    if (num == (float)inum) 
+    {
+        return inum;
+    }
+    return inum + 1;
+}
 
 #define MKCTTA_ASCII_FROM ' '
 #define MKCTTA_ASCII_TO '~'
@@ -207,74 +237,6 @@ mkctta_init_font(unsigned char* font_buffer, int font_height_in_pixels)
     }
 
     return atlas;
-
-/*
-
-INTERNAL_FUNCTION void AddGlyphToAtlas(glyph* Glyph)
-{
-    image* Src = &Glyph->Image;
-    image* Dst = &GlobalAssetSystem->FontsAtlas;
-    
-    int SrcW = Src->Width;
-    int SrcH = Src->Height;
-    
-    int DstSize = GlobalAssetSystem->FontsAtlas.Width;
-    
-    int DstPx = std::ceil(GlobalAssetSystem->FontAtlasAtP.x);
-    int DstPy = std::ceil(GlobalAssetSystem->FontAtlasAtP.y);
-    
-    if(DstPx + SrcW >= DstSize)
-    {
-        DstPx = 0;
-        DstPy = GlobalAssetSystem->FontAtlasMaxRowY;
-    }
-    
-    Assert(DstPy + SrcH < DstSize);
-    
-    f32 OneOverSize = 1.0f / DstSize;
-    
-    Glyph->MinUV = V2(DstPx, DstPy) * OneOverSize;
-    Glyph->MaxUV = V2(DstPx + SrcW, DstPy + SrcH) * OneOverSize;
-    
-    for(int y = 0; y < SrcH; y++)
-    {
-        for(int x = 0; x < SrcW; x++)
-        {
-            int DstPixelY = DstPy + y;
-            int DstPixelX = DstPx + x;
-            
-            u32* DstPixel = (u32*)Dst->Pixels + DstPixelY * DstSize + DstPixelX;
-            u32* SrcPixel = (u32*)Src->Pixels + y * SrcW + x;
-            
-            *DstPixel = *SrcPixel;
-        }
-    }
-    
-    GlobalAssetSystem->FontAtlasAtP = V2(DstPx + SrcW, DstPy);
-    GlobalAssetSystem->FontAtlasMaxRowY = std::max(GlobalAssetSystem->FontAtlasMaxRowY,
-                                                   DstPy + SrcH);
-}
-
-INTERNAL_FUNCTION void AddFontToAtlas(font* Font)
-{
-    for(int GlyphIndex = 0;
-        GlyphIndex < Font->GlyphCount;
-        GlyphIndex++)
-    {
-        glyph* Glyph = &Font->Glyphs[GlyphIndex];
-        
-        AddGlyphToAtlas(Glyph);
-    }
-}
-
-*/
-
-
-
-
-	// do we need to return the font? or can we just create the font atlas right away
-
-	// create font atlas bitmap
 }
 
 mkctta_internal void
@@ -292,11 +254,36 @@ mkctta_append_glyph(char glyph)
 }
 
 mkctta_internal void
-mkctta_append_line(const char* line_of_text)
+mkctta_push_line(const char* line_of_text)
 {
 	while(*line_of_text != '\0')
 	{
 		mkctta_append_glyph(*line_of_text);
 		++line_of_text;
 	}
+}
+
+mkctta_internal void
+mkctta_push_char(const char character)
+{
+
+}
+
+mkctta_internal TTAVertexBuffer
+mkcta_grab_all()
+{
+
+}
+
+/** Call before starting to push new text. 
+	Clears the vertex buffer that text is being appended to. 
+*/
+mkctta_internal void
+mkctta_clear_buffer()
+{
+	for(int i = 0; i < mkctta_vertex_count; ++i)
+	{
+		mkctta_assembly_buffer[i] = 0;
+	}
+	mkctta_vertex_count = 0;
 }

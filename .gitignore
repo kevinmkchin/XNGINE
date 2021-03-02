@@ -1,5 +1,7 @@
 bin/
 build/
+line-count.bat
+line-counter.exe
 
 # VS User-specific files
 *.rsuser
