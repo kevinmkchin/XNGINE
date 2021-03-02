@@ -65,6 +65,38 @@ static const char* frag_shader_path = "shaders/default.frag";
 static const char* ui_vs_path = "shaders/ui.vert";
 static const char* ui_fs_path = "shaders/ui.frag";
 
+TTABitmap pog;
+GLuint texture_id;
+
+INTERNAL TTABitmap
+LoadFontAtlasFromFile(const char* font_file_path, int font_height_in_pixels)
+{
+	TTABitmap retval = {};
+
+	// load to buffer, call mkctta_init_font
+	unsigned char* font_buffer = NULL;
+
+	SDL_RWops* font_file_rw = SDL_RWFromFile(font_file_path, "rb");
+    if(font_file_rw)
+    {
+        long long file_size = SDL_RWsize(font_file_rw);
+        font_buffer = (unsigned char*) malloc(file_size);
+        SDL_RWread(font_file_rw, font_buffer, file_size, 1);
+        SDL_RWclose(font_file_rw);
+    }
+    
+    if(font_buffer)
+    {
+		retval = mkctta_init_font(font_buffer, font_height_in_pixels);
+    }
+    
+    free(font_buffer);
+
+    return retval;
+}
+
+
+
 void create_triangles()
 {
 	uint32 indices[12] = { 
@@ -114,6 +146,26 @@ int8 Game::run()
 	if (init() == false) return 1;
 
 	create_triangles();
+
+	pog = LoadFontAtlasFromFile("c:/windows/fonts/arial.ttf", 20);
+	glGenTextures(1, &texture_id); // generate texture and grab texture id
+	glBindTexture(GL_TEXTURE_2D, texture_id);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);		// wrapping
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);	// filtering
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(
+			GL_TEXTURE_2D, 		// texture target type
+			0,					// level-of-detail number n = n-th mipmap reduction image
+			GL_RED,			// format of data to store: num of color components
+			pog.width,				// texture width
+			pog.height,				// texture height
+			0,					// must be 0 (legacy)
+			GL_RED,			// format of data being loaded
+			GL_UNSIGNED_BYTE,	// data type of the texture data
+			pog.pixels);		// data
+		glGenerateMipmap(GL_TEXTURE_2D); // generate mip maps automatically
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 	camera = Camera();
 	camera.set_position(0.f, 0.f, 0.f);
@@ -394,13 +446,21 @@ void Game::render()
 		100.f, 100.f
 	};
 	*/
+	// GLfloat quad_vertices[] = {
+	// 	-100.f, -100.f, 0.f, 0.f,
+	// 	-100.f, 100.f, 0.f, 1.f,
+	// 	100.f, 100.f, 1.f, 1.f,
+	// 	100.f, -100.f, 1.f, 0.f,
+	// 	-100.f, -100.f, 0.f, 0.f,
+	// 	100.f, 100.f, 1.f, 1.f
+	// };
 	GLfloat quad_vertices[] = {
-		-100.f, -100.f, 0.f, 0.f,
-		-100.f, 100.f, 0.f, 1.f,
-		100.f, 100.f, 1.f, 1.f,
-		100.f, -100.f, 1.f, 0.f,
-		-100.f, -100.f, 0.f, 0.f,
-		100.f, 100.f, 1.f, 1.f
+		0.f, 0.f, 0.f, 0.f,
+		0.f, 53.f, 0.f, 1.f,
+		400.f, 53.f, 1.f, 1.f,
+		400.f, 0.f, 1.f, 0.f,
+		0.f, 0.f, 0.f, 0.f,
+		400.f, 53.f, 1.f, 1.f
 	};
 	glGenVertexArrays(1, &id_vao);
 	glBindVertexArray(id_vao);
@@ -415,10 +475,11 @@ void Game::render()
 	glBindVertexArray(0);
 	shaders[1]->use_shader();
 		matrix_model = glm::mat4(1.f);
-		matrix_model = glm::translate(matrix_model, glm::vec3(150.f, 150.f, 100.f));
+		matrix_model = glm::translate(matrix_model, glm::vec3(400.f, 400.f, 100.f));
 		glUniformMatrix4fv(shaders[1]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model));
 		glUniformMatrix4fv(shaders[1]->get_matrix_projection_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_proj_ortho));
-		tex_brick.use_texture();
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture_id);
 		glBindVertexArray(id_vao);
 			glDrawArrays(GL_TRIANGLES, 0, 6);
 		glBindVertexArray(0);
