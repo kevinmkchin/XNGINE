@@ -1,5 +1,7 @@
 #version 330 core
 
+// Shader for Rendering Text on Textured Quads
+
 layout (location = 0) in vec2 pos;
 layout (location = 1) in vec2 in_tex_coord;
 

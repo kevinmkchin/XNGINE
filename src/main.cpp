@@ -13,8 +13,11 @@
 	- Redo Shader as struct and unpack functions
 	- Consider removing class Game and unpacking the functions
 	- Quake-style console with extensible commands
+		- use opengl textured quads for both the background and the text
 	- Phong Lighting
+	- Write own math library and remove GLM
 
+	THIS PROJECT IS A SINGLE TRANSLATION UNIT BUILD / UNITY BUILD
 */
 #include <stdio.h>
 #include <string>
@@ -306,8 +309,13 @@ bool Game::init()
 	// Setup Viewport
 	glViewport(0, 0, g_buffer_width, g_buffer_height);
 
-	// NOTE: Enable depth test to see which triangles should be drawn over other triangles
+	// Enable depth test to see which triangles should be drawn over other triangles
 	glEnable(GL_DEPTH_TEST); 
+	// Enable alpha blending
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // a * (rgb) + (1 - a) * (rgb) = final color output
+	glBlendEquation(GL_FUNC_ADD);
+	
 	// Lock mouse to window
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 	// Grab keystate array

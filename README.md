@@ -1,5 +1,5 @@
 # opengl-3d-renderer
-3D graphics render engine using OpenGL in C++
+3D graphics render engine using OpenGL in mostly C with some C++
 
 [GLEW](http://glew.sourceforge.net/) for interfacing with OpenGL.
 [SDL](https://www.libsdl.org/) for the Win32API and OpenGL Context. 
