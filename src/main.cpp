@@ -2,15 +2,20 @@
 
 	TODO
 	- Text rendering to textured quads
-		- get font texture atlas to display on a quad. the entire texture
-	- Turn Camera into a struct, make all Camera functions INTERNAL functions intead
+		- Store Glyph and Font informations
+		- Assemble vertices and texture coords
+		- Clean up library header
 
 	Backlog
+	- Review Texture.cpp functions and do the TODOs. Refactor out stbi_load. 
+	- Review Camera.cpp functions and clean up
+	- Review Mesh.cpp functions and clean up
+	- Redo Shader as struct and unpack functions
+	- Consider removing class Game and unpacking the functions
 	- Quake-style console with extensible commands
 	- Phong Lighting
 
 */
-
 #include <stdio.h>
 #include <string>
 #include <cmath>
@@ -27,11 +32,11 @@
 #include <glm/gtc/type_ptr.hpp>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-
 #include "mkc_ttassembler.h" // MKC TrueType Assembler
 
 #include "gamedefine.h" // defines and typedefs
-
+#include "core.h"
+#include "shader.h"
 // --- global variables  --- note: static variables are initialized to their default values
 GLOBAL_VAR uint32 g_buffer_width;
 GLOBAL_VAR uint32 g_buffer_height;
@@ -45,28 +50,25 @@ GLOBAL_VAR int32 g_curr_mouse_pos_y = INDEX_NONE;
 GLOBAL_VAR int32 g_mouse_delta_x;
 GLOBAL_VAR int32 g_mouse_delta_y;
 
+GLOBAL_VAR Camera camera;
 // -------------------------
-
 #include "camera.cpp"
 #include "mesh.cpp"
 #include "shader.cpp"
 #include "texture.cpp"
 
-const int32 WIDTH = 1280, HEIGHT = 720;
-
-std::vector<Mesh*> meshes;
+std::vector<Mesh> meshes;
 std::vector<Shader*> shaders;
-Camera camera;
 Texture tex_brick;
 Texture tex_dirt;
 
 static const char* vertex_shader_path = "shaders/default.vert";
 static const char* frag_shader_path = "shaders/default.frag";
-static const char* ui_vs_path = "shaders/ui.vert";
-static const char* ui_fs_path = "shaders/ui.frag";
-
+static const char* ui_vs_path = "shaders/text_ui.vert";
+static const char* ui_fs_path = "shaders/text_ui.frag";
 TTABitmap pog;
 GLuint texture_id;
+
 
 INTERNAL TTABitmap
 LoadFontAtlasFromFile(const char* font_file_path, int font_height_in_pixels)
@@ -114,11 +116,9 @@ void create_triangles()
 		0.f, 1.f, 0.f, 0.5f, 1.f
 	};
 
-	Mesh* tri = new Mesh();
-	tri->create_mesh(vertices, indices, 20, 12);
+	Mesh tri = gl_create_mesh_array(vertices, indices, 20, 12);
 	meshes.push_back(tri);
-	tri = new Mesh();
-	tri->create_mesh(vertices, indices, 20, 12);
+	tri = gl_create_mesh_array(vertices, indices, 20, 12);
 	meshes.push_back(tri);
 }
 
@@ -167,9 +167,8 @@ int8 Game::run()
 		glGenerateMipmap(GL_TEXTURE_2D); // generate mip maps automatically
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	camera = Camera();
-	camera.set_position(0.f, 0.f, 0.f);
-	camera.set_rotation(0.f, 270.f, 0.f);
+	camera.position = glm::vec3(0.f, 0.f, 0.f);
+	camera.rotation = glm::vec3(0.f, 270.f, 0.f);
 
 	Shader* shader_ptr = new Shader();
 	shader_ptr->create_from_files(vertex_shader_path, frag_shader_path);
@@ -178,10 +177,11 @@ int8 Game::run()
 	shader_ptr->create_from_files(ui_vs_path, ui_fs_path);
 	shaders.push_back(shader_ptr);
 
-	tex_brick = Texture("data/textures/brick.png");
-	tex_brick.load_texture();
-	tex_dirt = Texture("data/textures/dirt.png");
-	tex_dirt.load_texture();
+	//tex_brick = Texture("data/textures/brick.png");
+	tex_brick.file_path = "data/textures/brick.png";
+	gl_load_texture(tex_brick);
+	tex_dirt.file_path = "data/textures/dirt.png";
+	gl_load_texture(tex_dirt);
 
 	/** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)
 		The model matrix, right now, is in Game::render because we want to be able to update the object's transform on tick. However, ideally, the 
@@ -318,9 +318,13 @@ bool Game::init()
 
 void Game::clean_up()
 {
-	tex_brick.clear_texture();
-	tex_dirt.clear_texture();
+	gl_delete_texture(tex_brick);
+	gl_delete_texture(tex_dirt);
 	// clear shaders and delete shaders
+	for (size_t i = 0; i < meshes.size(); ++i)
+	{
+		gl_delete_mesh(meshes[i]);
+	}
 	for (size_t i = shaders.size() - 1; i > -1; --i)
 	{
 		shaders[i]->clear_shader();
@@ -398,7 +402,7 @@ void Game::process_events()
 
 void Game::update(float dt)
 {
-	camera.update(dt);
+	update_camera(camera, dt);
 }
 
 void Game::render()
@@ -412,22 +416,22 @@ void Game::render()
 
 	shaders[0]->use_shader();
 
-		glUniformMatrix4fv(shaders[0]->get_matrix_view_location_id(), 1, GL_FALSE, glm::value_ptr(camera.calculate_viewmatrix()));
+		glUniformMatrix4fv(shaders[0]->get_matrix_view_location_id(), 1, GL_FALSE, glm::value_ptr(calculate_viewmatrix(camera)));
 		glUniformMatrix4fv(shaders[0]->get_matrix_projection_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_projection));
 
 		glm::mat4 matrix_model = glm::mat4(1.f);
 		matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.5f, -1.3f));
 		matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f)); // scale in each axis by the respective values of the vector
 		glUniformMatrix4fv(shaders[0]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model));
-		tex_brick.use_texture();
-		meshes[0]->render_mesh();
+		gl_use_texture(tex_brick);
+		gl_render_mesh(meshes[0]);
 
 		matrix_model = glm::mat4(1.f);
 		matrix_model = glm::translate(matrix_model, glm::vec3(0.f, -0.5f, -1.3f));
 		matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f));
 		glUniformMatrix4fv(shaders[0]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model));
-		tex_dirt.use_texture();
-		meshes[1]->render_mesh();
+		gl_use_texture(tex_dirt);
+		gl_render_mesh(meshes[1]);
 
 	glUseProgram(0);
 
@@ -436,24 +440,6 @@ void Game::render()
 	glm::mat4 matrix_proj_ortho = glm::ortho(0.0f, (float)g_buffer_width,(float)g_buffer_height,0.0f, -100.f, 10.f);
 	GLuint id_vao = 0;
 	GLuint id_vbo = 0;
-	/*
-	GLfloat quad_vertices[] = {
-		-100.f, -100.f, 
-		-100.f, 100.f,
-		100.f, 100.f,
-		100.f, -100.f,
-		-100.f, -100.f,
-		100.f, 100.f
-	};
-	*/
-	// GLfloat quad_vertices[] = {
-	// 	-100.f, -100.f, 0.f, 0.f,
-	// 	-100.f, 100.f, 0.f, 1.f,
-	// 	100.f, 100.f, 1.f, 1.f,
-	// 	100.f, -100.f, 1.f, 0.f,
-	// 	-100.f, -100.f, 0.f, 0.f,
-	// 	100.f, 100.f, 1.f, 1.f
-	// };
 	GLfloat quad_vertices[] = {
 		0.f, 0.f, 0.f, 0.f,
 		0.f, 53.f, 0.f, 1.f,
