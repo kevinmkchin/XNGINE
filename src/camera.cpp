@@ -1,3 +1,4 @@
+/**  */
 INTERNAL void update_camera(Camera& camera, float dt)
 {
 	// Check Mouse
@@ -48,6 +49,7 @@ INTERNAL void update_camera(Camera& camera, float dt)
 	}
 }
 
+/**  */
 INTERNAL glm::mat4 calculate_viewmatrix(Camera& camera)
 {
 	return glm::lookAt(camera.position,

@@ -1,3 +1,4 @@
+/**  */
 INTERNAL Mesh gl_create_mesh_array(float* vertices, 
 								   uint32* indices,
 								   uint32 num_of_vertices,
@@ -41,6 +42,7 @@ INTERNAL Mesh gl_create_mesh_array(float* vertices,
 	return mesh;
 }
 
+/**  */
 INTERNAL void gl_render_mesh(Mesh& mesh)
 {
 	if (mesh.index_count == 0) // Early out if index_count == 0, nothing to draw
@@ -56,7 +58,6 @@ INTERNAL void gl_render_mesh(Mesh& mesh)
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }
-
 
 /** Clearing GPU memory: glDeleteBuffers and glDeleteVertexArrays deletes the buffer
 	object and vertex array object off the GPU memory. 
