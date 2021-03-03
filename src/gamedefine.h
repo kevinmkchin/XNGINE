@@ -20,8 +20,8 @@ typedef int16_t int16;
 typedef int32_t int32;
 typedef int64_t int64;
 
-typedef float float32;
-typedef double float64;
+typedef float real32;
+typedef double real64;
 
 typedef size_t mi;					// memory index
 

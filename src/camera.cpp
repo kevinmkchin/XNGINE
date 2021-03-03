@@ -1,5 +1,5 @@
 /**  */
-INTERNAL void update_camera(Camera& camera, float dt)
+INTERNAL void update_camera(Camera& camera, real32 dt)
 {
 	// Check Mouse
 	camera.rotation.y += g_mouse_delta_x * camera.turnspeed;
