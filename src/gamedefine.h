@@ -31,8 +31,13 @@ const float TO_DEGREES = 57.2958f;		// in_radians * TO_DEGREES = in_degrees
 #define INDEX_NONE -1;
 
 
+#define array_count(arr) (sizeof(arr) / (sizeof(arr[0])))
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#define max(a, b) ((a) > (b) ? (a) : (b))
+
 /** GAME SPECIFIC **/
 const int32 WIDTH = 1280, HEIGHT = 720;
+
 
 
 #endif

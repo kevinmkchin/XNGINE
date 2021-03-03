@@ -1,12 +1,13 @@
 /**	OpenGL 3D Renderer
 
-	TODO
+TODO:
 	- Text rendering to textured quads
 		- Store Glyph and Font informations
 		- Assemble vertices and texture coords
 		- Clean up library header
+	- add uniform in text_ui.frag for text color 
 
-	Backlog
+Backlog:
 	- Review Texture.cpp functions and do the TODOs. Refactor out stbi_load. 
 	- Review Camera.cpp functions and clean up
 	- Review Mesh.cpp functions and clean up
@@ -14,8 +15,10 @@
 	- Consider removing class Game and unpacking the functions
 	- Quake-style console with extensible commands
 		- use opengl textured quads for both the background and the text
+		- shader hotloading/compiling during runtime
 	- Phong Lighting
 	- Write own math library and remove GLM
+	- Entity - pos, rot, scale, mesh, few boolean flags, collider, tags
 
 	THIS PROJECT IS A SINGLE TRANSLATION UNIT BUILD / UNITY BUILD
 */
@@ -39,7 +42,7 @@
 
 #include "gamedefine.h" // defines and typedefs
 #include "core.h"
-#include "shader.h"
+#include "data.h"
 // --- global variables  --- note: static variables are initialized to their default values
 GLOBAL_VAR uint32 g_buffer_width;
 GLOBAL_VAR uint32 g_buffer_height;
@@ -55,13 +58,14 @@ GLOBAL_VAR int32 g_mouse_delta_y;
 
 GLOBAL_VAR Camera camera;
 // -------------------------
+#include "data.cpp"
 #include "camera.cpp"
 #include "mesh.cpp"
 #include "shader.cpp"
 #include "texture.cpp"
 
 std::vector<Mesh> meshes;
-std::vector<Shader*> shaders;
+std::vector<ShaderProgram> shaders;
 Texture tex_brick;
 Texture tex_dirt;
 
@@ -74,32 +78,21 @@ GLuint texture_id;
 
 
 INTERNAL TTABitmap
-LoadFontAtlasFromFile(const char* font_file_path, int font_height_in_pixels)
+load_font_atlas_from_texture(const char* font_file_path, int font_height_in_pixels)
 {
 	TTABitmap retval = {};
 
-	// load to buffer, call mkctta_init_font
-	unsigned char* font_buffer = NULL;
+	ReadBinaryFileResult fontfile = file_read_file_binary(font_file_path);
 
-	SDL_RWops* font_file_rw = SDL_RWFromFile(font_file_path, "rb");
-    if(font_file_rw)
+    if(fontfile.memory)
     {
-        long long file_size = SDL_RWsize(font_file_rw);
-        font_buffer = (unsigned char*) malloc(file_size);
-        SDL_RWread(font_file_rw, font_buffer, file_size, 1);
-        SDL_RWclose(font_file_rw);
+		retval = mkctta_init_font((uint8*) fontfile.memory, font_height_in_pixels);
     }
     
-    if(font_buffer)
-    {
-		retval = mkctta_init_font(font_buffer, font_height_in_pixels);
-    }
-    
-    free(font_buffer);
+    free(fontfile.memory);
 
     return retval;
 }
-
 
 
 void create_triangles()
@@ -150,7 +143,7 @@ int8 Game::run()
 
 	create_triangles();
 
-	pog = LoadFontAtlasFromFile("c:/windows/fonts/arial.ttf", 20);
+	pog = load_font_atlas_from_texture("c:/windows/fonts/arial.ttf", 20);
 	glGenTextures(1, &texture_id); // generate texture and grab texture id
 	glBindTexture(GL_TEXTURE_2D, texture_id);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);		// wrapping
@@ -173,14 +166,12 @@ int8 Game::run()
 	camera.position = glm::vec3(0.f, 0.f, 0.f);
 	camera.rotation = glm::vec3(0.f, 270.f, 0.f);
 
-	Shader* shader_ptr = new Shader();
-	shader_ptr->create_from_files(vertex_shader_path, frag_shader_path);
-	shaders.push_back(shader_ptr);
-	shader_ptr = new Shader();
-	shader_ptr->create_from_files(ui_vs_path, ui_fs_path);
-	shaders.push_back(shader_ptr);
+	ShaderProgram shader;
+	init_shader_program(shader, vertex_shader_path, frag_shader_path);
+	shaders.push_back(shader);
+	init_shader_program(shader, ui_vs_path, ui_fs_path);
+	shaders.push_back(shader);
 
-	//tex_brick = Texture("data/textures/brick.png");
 	tex_brick.file_path = "data/textures/brick.png";
 	gl_load_texture(tex_brick);
 	tex_dirt.file_path = "data/textures/dirt.png";
@@ -335,10 +326,8 @@ void Game::clean_up()
 	}
 	for (size_t i = shaders.size() - 1; i > -1; --i)
 	{
-		shaders[i]->clear_shader();
-		delete shaders[i];
+		gl_clear_shader(shaders[i]);
 	}
-	shaders.clear();
 
 	SDL_DestroyWindow(window);
 	SDL_GL_DeleteContext(opengl_context);
@@ -422,22 +411,22 @@ void Game::render()
 	// TODO Probably should make own shader for wireframe draws so that wireframe fragments aren't affected by lighting or textures
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // GL_LINE for wireframe, GL_FILL to fill interior of polygon
 
-	shaders[0]->use_shader();
+	use_shader(shaders[0]);
 
-		glUniformMatrix4fv(shaders[0]->get_matrix_view_location_id(), 1, GL_FALSE, glm::value_ptr(calculate_viewmatrix(camera)));
-		glUniformMatrix4fv(shaders[0]->get_matrix_projection_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_projection));
+		glUniformMatrix4fv(shaders[0].id_uniform_view, 1, GL_FALSE, glm::value_ptr(calculate_viewmatrix(camera)));
+		glUniformMatrix4fv(shaders[0].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(matrix_projection));
 
 		glm::mat4 matrix_model = glm::mat4(1.f);
 		matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.5f, -1.3f));
 		matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f)); // scale in each axis by the respective values of the vector
-		glUniformMatrix4fv(shaders[0]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model));
+		glUniformMatrix4fv(shaders[0].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
 		gl_use_texture(tex_brick);
 		gl_render_mesh(meshes[0]);
 
 		matrix_model = glm::mat4(1.f);
 		matrix_model = glm::translate(matrix_model, glm::vec3(0.f, -0.5f, -1.3f));
 		matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f));
-		glUniformMatrix4fv(shaders[0]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model));
+		glUniformMatrix4fv(shaders[0].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
 		gl_use_texture(tex_dirt);
 		gl_render_mesh(meshes[1]);
 
@@ -467,11 +456,11 @@ void Game::render()
 			glEnableVertexAttribArray(1);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
-	shaders[1]->use_shader();
+	use_shader(shaders[1]);
 		matrix_model = glm::mat4(1.f);
 		matrix_model = glm::translate(matrix_model, glm::vec3(400.f, 400.f, 100.f));
-		glUniformMatrix4fv(shaders[1]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model));
-		glUniformMatrix4fv(shaders[1]->get_matrix_projection_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_proj_ortho));
+		glUniformMatrix4fv(shaders[1].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
+		glUniformMatrix4fv(shaders[1].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(matrix_proj_ortho));
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture_id);
 		glBindVertexArray(id_vao);
@@ -480,7 +469,8 @@ void Game::render()
 	glUseProgram(0);
 	//
 
-	/* Swap our buffer to display the current contents of buffer on screen. This is used with double-buffered OpenGL contexts, which are the default. */
+	/* Swap our buffer to display the current contents of buffer on screen. 
+	This is used with double-buffered OpenGL contexts, which are the default. */
 	SDL_GL_SwapWindow(window);
 }
 

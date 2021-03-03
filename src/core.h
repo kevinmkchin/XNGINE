@@ -2,16 +2,16 @@
 
 struct Texture
 {
-	GLuint 		texture_id 	= 0;
-	int32 		width 		= 0;
-	int32 		height 		= 0;
+	GLuint 		texture_id 	= 0;	// ID for the texture in GPU memory
+	int32 		width 		= 0;	// Width of the texture
+	int32 		height 		= 0;	// Height of the texture
 	int32		bit_depth 	= 0;
-	const char* file_path 	= "";
+	const char* file_path 	= "";	// File path on disk to load the texture image from
 };
 
 struct Mesh
 {
-	// Holds the ID for the VAO, VBO, IBO in the gpu memory
+	// Holds the ID for the VAO, VBO, IBO in the GPU memory
 	uint32 	id_vao;
 	uint32 	id_vbo;
 	uint32 	id_ibo;

@@ -9,10 +9,19 @@
 	mkc_textquadassembly
 	mkcttb_*
 
+PURPOSE:
 	Single-header library to generate vertices and texture coordinates array for
 	creating Vertex Buffers to render text onto the screen. Works seamlessly with 
 	both OpenGL and DirectX. Probably also works with other graphics APIs out there...
 
+    This library strives to solve 2 problems:
+    - Creating an individual vertex array / textured quad for every single character you 
+    want to draw is extremely inefficient.
+    - Every character/glyph has varying sizes and parameters that affect how they should
+    be drawn relative to all the other characters/glyphs. These must be considered when
+    drawing a line of text.
+
+USAGE:
 	This library's purpose is to return an array of vertices and texture coordinates:
 		[ x, y, u, v, x, y, u, v, ......, x, y, u, v ]
 	You can feed this into a Vertex Buffer with a Stride of 4.
@@ -24,12 +33,12 @@
 	This library is not responsible for rendering text. You can do that on your own in your
 	preferred graphics API, a quad/ui rendering shader, and an orthogonal projection matrix.
 
-	TODO:
+TODO:
 	- Push line of text
 	- Push char
 	- Pop all
 
-	Backlog:
+Backlog:
 	- Top to bottom text
     - Support indexed drawing (return indices as well)
 */
