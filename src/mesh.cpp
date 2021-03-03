@@ -1,5 +1,5 @@
 /**  */
-INTERNAL Mesh gl_create_mesh_array(float* vertices, 
+INTERNAL Mesh gl_create_mesh_array(real32* vertices, 
 								   uint32* indices,
 								   uint32 num_of_vertices,
 								   uint32 num_of_indices)
@@ -26,9 +26,9 @@ INTERNAL Mesh gl_create_mesh_array(float* vertices,
 					use          stride        use          stride
 				In this case, the stride would be 3 because we need to skip 3 values (the color values) to reach the next vertex data.
 			Apparently the last parameter is the offset? */
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 5, 0); // vertex pointer
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(real32) * 5, 0); // vertex pointer
 			glEnableVertexAttribArray(0); // Enabling location in VAO for the attribute
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)( sizeof(float) * 3)); // uv coord pointer
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(real32) * 5, (void*)(sizeof(real32) * 3)); // uv coord pointer
 			glEnableVertexAttribArray(1);
 		glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind the VBO
 

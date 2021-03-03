@@ -30,8 +30,8 @@ struct Camera
 	glm::vec3 calculated_up = glm::vec3(0.f);
 	glm::vec3 calculated_right = glm::vec3(0.f);
 
-	float movespeed = 2.f;
-	float turnspeed = 0.17f;
+	real32 movespeed = 2.f;
+	real32 turnspeed = 0.17f;
 };
 
 struct ShaderProgram

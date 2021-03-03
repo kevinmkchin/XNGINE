@@ -99,8 +99,7 @@ load_font_atlas_from_texture(const char* font_file_path, int font_height_in_pixe
     return retval;
 }
 
-
-void create_triangles()
+INTERNAL void create_triangles()
 {
 	uint32 indices[12] = { 
 		0, 3, 1,
@@ -123,14 +122,17 @@ void create_triangles()
 	meshes.push_back(tri);
 }
 
+
 INTERNAL int8 game_run();
 INTERNAL bool game_init();
 INTERNAL void game_loop();
 INTERNAL void game_process_events();
-INTERNAL void game_update(float dt);
+INTERNAL void game_update(real32 dt);
 INTERNAL void game_render();
 INTERNAL void game_clean_up();
 
+/** Start the game procedure
+ */
 INTERNAL int8 game_run()
 {
 	if (game_init() == false) return 1;
@@ -177,7 +179,7 @@ INTERNAL int8 game_run()
 		That matrix can be stored inside the game object class alongside the VAO. Or we could simply update the game object's position, rotation, scale
 		fields, then construct the model matrix in Game::render based on those fields. Yeah that's probably better.
 	*/
-	float aspect_ratio = (float)g_buffer_width / (float)g_buffer_height;
+	real32 aspect_ratio = (real32)g_buffer_width / (real32)g_buffer_height;
 	matrix_projection = glm::perspective(45.f, aspect_ratio, 0.1f, 1000.f);
 
 	game_loop();
@@ -336,13 +338,13 @@ INTERNAL void game_clean_up()
  */
 INTERNAL void game_loop()
 {
-	float last_tick = (float)SDL_GetTicks(); 	// time (in milliseconds since SDL init) of the last tick
+	real32 last_tick = (real32)SDL_GetTicks(); 	// time (in milliseconds since SDL init) of the last tick
 	while (is_running)
 	{
 		game_process_events(); 						// process events
 		if (is_running == false) { break; }
-		float this_tick = (float)SDL_GetTicks();// Calculate time since last tick
-		float delta_time_ms = this_tick - last_tick;
+		real32 this_tick = (real32)SDL_GetTicks();// Calculate time since last tick
+		real32 delta_time_ms = this_tick - last_tick;
 		game_update(delta_time_ms / 1000.f); 		// update game
 		last_tick = this_tick;
 		game_render();								// render game
@@ -401,7 +403,7 @@ INTERNAL void game_process_events()
 
 /** Tick game logic. Delta time is in seconds.
 */
-INTERNAL void game_update(float dt)
+INTERNAL void game_update(real32 dt)
 {
 	update_camera(camera, dt);
 }
@@ -440,7 +442,7 @@ INTERNAL void game_render()
 
 
 	// test
-	glm::mat4 matrix_proj_ortho = glm::ortho(0.0f, (float)g_buffer_width,(float)g_buffer_height,0.0f, -100.f, 10.f);
+	glm::mat4 matrix_proj_ortho = glm::ortho(0.0f, (real32)g_buffer_width,(real32)g_buffer_height,0.0f, -100.f, 10.f);
 	GLuint id_vao = 0;
 	GLuint id_vbo = 0;
 	GLfloat quad_vertices[] = {
@@ -456,9 +458,9 @@ INTERNAL void game_render()
 		glGenBuffers(1, &id_vbo);
 		glBindBuffer(GL_ARRAY_BUFFER, id_vbo);
 			glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), quad_vertices, GL_STATIC_DRAW);
-			glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, 0);
+			glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(real32) * 4, 0);
 			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(real32) * 4, (void*)(sizeof(real32) * 2));
 			glEnableVertexAttribArray(1);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
