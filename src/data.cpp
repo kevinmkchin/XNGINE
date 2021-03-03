@@ -22,25 +22,36 @@ INTERNAL std::string file_read_file_string(const char* file_path)
 	return string_content;
 }
 
-/** Allocates memory, stores the file data in binary, and returns a ReadBinaryFileResult
+/** Deallocates the memory pointed to by the given BinaryFileHandle.
+ */
+INTERNAL void file_free_file_binary(BinaryFileHandle& binary_file_to_free)
+{
+	free(binary_file_to_free.memory);
+	binary_file_to_free.memory = NULL;
+	binary_file_to_free.size = 0;
+}
+
+/** Allocates memory, stores the file data in binary, and returns a BinaryFileHandle
 	containing a pointer its place in memory and the size in bytes.
  */
-INTERNAL ReadBinaryFileResult file_read_file_binary(const char* file_path)
+INTERNAL void file_read_file_binary(BinaryFileHandle& mem_to_read_to, const char* file_path)
 {
-	ReadBinaryFileResult binary_result;
+	if(mem_to_read_to.memory)
+	{
+		printf("WARNING: Binary File Handle already points to allocated memory. Freeing memory first...\n");
+		file_free_file_binary(mem_to_read_to);
+	}
 
 	SDL_RWops* binary_file_rw = SDL_RWFromFile(file_path, "rb");
     if(binary_file_rw)
     {
-       	binary_result.size = SDL_RWsize(binary_file_rw); // total size in bytes
-        binary_result.memory = malloc(binary_result.size);
-        SDL_RWread(binary_file_rw, binary_result.memory, binary_result.size, 1);
+       	mem_to_read_to.size = SDL_RWsize(binary_file_rw); // total size in bytes
+        mem_to_read_to.memory = malloc(mem_to_read_to.size);
+        SDL_RWread(binary_file_rw, mem_to_read_to.memory, mem_to_read_to.size, 1);
         SDL_RWclose(binary_file_rw);
     }
     else
     {
     	printf("Failed to read %s! File doesn't exist.\n", file_path);
     }
-
-    return binary_result;
 }

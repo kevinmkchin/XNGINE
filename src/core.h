@@ -1,5 +1,7 @@
 #pragma once
 
+// Core game engine objects
+
 struct Texture
 {
 	GLuint 		texture_id 	= 0;	// ID for the texture in GPU memory
