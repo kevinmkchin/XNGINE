@@ -76,7 +76,7 @@ INTERNAL void init_shader_program(ShaderProgram& shader, const char* vertex_path
 {
 	std::string v = file_read_file_string(vertex_path);
 	std::string f = file_read_file_string(fragment_path);
-	create_from_strings(shader, v.c_str(), f.c_str());
+	init_shader_program_from_strings(shader, v.c_str(), f.c_str());
 }
 
 /** Telling opengl to start using this shader program */

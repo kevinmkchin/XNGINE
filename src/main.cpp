@@ -57,6 +57,12 @@ GLOBAL_VAR int32 g_mouse_delta_x;
 GLOBAL_VAR int32 g_mouse_delta_y;
 
 GLOBAL_VAR Camera camera;
+
+GLOBAL_VAR bool is_running = true;
+GLOBAL_VAR SDL_Window* window = nullptr;
+GLOBAL_VAR SDL_GLContext opengl_context = nullptr;
+GLOBAL_VAR HWND whandle = nullptr;	// Win32 API Window Handle
+GLOBAL_VAR glm::mat4 matrix_projection;
 // -------------------------
 #include "data.cpp"
 #include "camera.cpp"
@@ -82,15 +88,14 @@ load_font_atlas_from_texture(const char* font_file_path, int font_height_in_pixe
 {
 	TTABitmap retval = {};
 
-	ReadBinaryFileResult fontfile = file_read_file_binary(font_file_path);
-
+	BinaryFileHandle fontfile;
+	file_read_file_binary(fontfile, font_file_path);
     if(fontfile.memory)
     {
 		retval = mkctta_init_font((uint8*) fontfile.memory, font_height_in_pixels);
     }
+    file_free_file_binary(fontfile);
     
-    free(fontfile.memory);
-
     return retval;
 }
 
@@ -118,28 +123,17 @@ void create_triangles()
 	meshes.push_back(tri);
 }
 
-class Game
-{
-public:
-	int8 run();					// Game start
-private:
-	bool init();				// Create window, set up OpenGL context, initialize SDL and GLEW
-	void loop();				// Game loop with fixed timestep - Input, Logic, Render
-		void process_events();	// Process input and SDL events
-		void update(float dt);	// Tick game logic. Delta time is in seconds.
-		void render();			// Process graphics and render them to the screen
-	void clean_up();			// Clear memory and shut down
-private:
-	bool is_running = true;
-	SDL_Window* window = nullptr;
-	SDL_GLContext opengl_context = nullptr;
-	HWND whandle = nullptr;	// Win32 API Window Handle
-	glm::mat4 matrix_projection;
-};
+INTERNAL int8 game_run();
+INTERNAL bool game_init();
+INTERNAL void game_loop();
+INTERNAL void game_process_events();
+INTERNAL void game_update(float dt);
+INTERNAL void game_render();
+INTERNAL void game_clean_up();
 
-int8 Game::run()
+INTERNAL int8 game_run()
 {
-	if (init() == false) return 1;
+	if (game_init() == false) return 1;
 
 	create_triangles();
 
@@ -186,13 +180,15 @@ int8 Game::run()
 	float aspect_ratio = (float)g_buffer_width / (float)g_buffer_height;
 	matrix_projection = glm::perspective(45.f, aspect_ratio, 0.1f, 1000.f);
 
-	loop();
-	clean_up();
+	game_loop();
+	game_clean_up();
 
 	return 0;
 }
 
-bool Game::init()
+/** Create window, set up OpenGL context, initialize SDL and GLEW 
+*/
+INTERNAL bool game_init()
 {
 	// Initialize SDL
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
@@ -287,7 +283,7 @@ bool Game::init()
 	if (glewInit() != GLEW_OK)
 	{
 		printf("GLEW failed to initialize.");
-		clean_up();
+		game_clean_up();
 		return false;
 	}
 
@@ -315,7 +311,9 @@ bool Game::init()
 	return true;
 }
 
-void Game::clean_up()
+/** Clear memory and shut down
+ */
+INTERNAL void game_clean_up()
 {
 	gl_delete_texture(tex_brick);
 	gl_delete_texture(tex_dirt);
@@ -334,22 +332,26 @@ void Game::clean_up()
 	SDL_Quit();
 }
 
-void Game::loop()
+/** Game loop with fixed timestep - Input, Logic, Render
+ */
+INTERNAL void game_loop()
 {
 	float last_tick = (float)SDL_GetTicks(); 	// time (in milliseconds since SDL init) of the last tick
 	while (is_running)
 	{
-		process_events(); 						// process events
+		game_process_events(); 						// process events
 		if (is_running == false) { break; }
 		float this_tick = (float)SDL_GetTicks();// Calculate time since last tick
 		float delta_time_ms = this_tick - last_tick;
-		update(delta_time_ms / 1000.f); 		// update game
+		game_update(delta_time_ms / 1000.f); 		// update game
 		last_tick = this_tick;
-		render();								// render game
+		game_render();								// render game
 	}
 }
 
-void Game::process_events()
+/** Process input and SDL events
+*/
+INTERNAL void game_process_events()
 {
 	// Store Mouse state
 	SDL_bool b_relative_mouse = SDL_GetRelativeMouseMode();
@@ -397,12 +399,16 @@ void Game::process_events()
 	}
 }
 
-void Game::update(float dt)
+/** Tick game logic. Delta time is in seconds.
+*/
+INTERNAL void game_update(float dt)
 {
 	update_camera(camera, dt);
 }
 
-void Game::render()
+/** Process graphics and render them to the screen.
+*/
+INTERNAL void game_render()
 {
 	// Clear opengl context's buffer
 	//glClearColor(0.39f, 0.582f, 0.926f, 1.f);
@@ -476,6 +482,5 @@ void Game::render()
 
 int main(int argc, char* argv[]) // Our main entry point MUST be in this form when using SDL
 {
-	Game game;
-	return game.run();
+	return game_run();
 }
