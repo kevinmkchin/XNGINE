@@ -47,7 +47,7 @@ INTERNAL void gl_render_mesh(Mesh& mesh)
 {
 	if (mesh.index_count == 0) // Early out if index_count == 0, nothing to draw
 	{
-		// TODO log a warning
+		printf("WARNING: Attempting to render a mesh with 0 index count!\n");
 		return;
 	}
 

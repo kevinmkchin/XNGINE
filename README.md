@@ -13,11 +13,8 @@ I create a backup of the project at every new feature/implementation to keep a r
 - Either set the working directory of the executable to be /data or move the contents of /data to where the executable is located
 - Profit
 
-### Mac & Linux
-- Download SDL2, GLEW, and configure CMakeLists to find them
-- Build with CMake
-- Either set the working directory of the executable to be /data or move the contents of /data to where the executable is located
-- Profit
+### Mac
+- OpenGL is deprecated on macos rip
 
 ## License
 

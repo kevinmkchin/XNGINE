@@ -16,6 +16,7 @@ INTERNAL void gl_load_texture(Texture& texture)
 		gl_delete_texture(texture);
 	}
 
+	stbi_set_flip_vertically_on_load(true);
 	unsigned char* texture_data = stbi_load(texture.file_path, &texture.width, &texture.height, &texture.bit_depth, 0);
 	if(texture_data == nullptr)
 	{
@@ -36,10 +37,10 @@ INTERNAL void gl_load_texture(Texture& texture)
 			texture.width,		// texture width
 			texture.height,		// texture height
 			0,					// must be 0 (legacy)
-			GL_RGBA,			// format of data being loaded
+			(texture.bit_depth == 3 ? GL_RGB : GL_RGBA),			// format of data being loaded
 			GL_UNSIGNED_BYTE,	// data type of the texture data
 			texture_data);		// data
-		glGenerateMipmap(GL_TEXTURE_2D); // generate mip maps automatically
+		//glGenerateMipmap(GL_TEXTURE_2D); // generate mip maps automatically
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	stbi_image_free(texture_data); // texture data has been copied to GPU memory, so we can free image from memory
