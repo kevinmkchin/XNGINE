@@ -1,30 +1,12 @@
 /**	OpenGL 3D Renderer
 
-TODO:
+	TODO
 	- Text rendering to textured quads
-		- Store Glyph and Font informations
-		- Assemble vertices and texture coords
-		- Clean up library header
-	- add uniform in text_ui.frag for text color 
-	- Review Texture.cpp functions and clean up. Refactor out stbi_load. 
-	- Review Camera.cpp functions and clean up
-	- Review Mesh.cpp functions and clean up
-	- Review Shader.cpp functions and clean up
-	- Review main.cpp functions and clean up
-
-Backlog:
-	- Mesh type without ibo? or just create a simple text struct
 	- Quake-style console with extensible commands
-		- use opengl textured quads for both the background and the text
-		- shader hotloading/compiling during runtime
-	- Memory management system (allocate and deallocate functions that use a memory arena 
-	or something instead of doing malloc all the time)
 	- Phong Lighting
-	- Write own math library and remove GLM
-	- Entity - pos, rot, scale, mesh, few boolean flags, collider, tags
 
-	THIS PROJECT IS A SINGLE TRANSLATION UNIT BUILD / UNITY BUILD
 */
+
 #include <stdio.h>
 #include <string>
 #include <cmath>
@@ -41,13 +23,11 @@ Backlog:
 #include <glm/gtc/type_ptr.hpp>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#define STB_TRUETYPE_IMPLEMENTATION
-#include "stb_truetype.h"		    // Sean Barrett's stb_truetype library
-#include "kc_truetypeassembler.h"   // KC TrueType Assembler
+
+#include "mkc_ttassembler.h"
 
 #include "gamedefine.h" // defines and typedefs
-#include "core.h"
-#include "data.h"
+
 // --- global variables  --- note: static variables are initialized to their default values
 GLOBAL_VAR uint32 g_buffer_width;
 GLOBAL_VAR uint32 g_buffer_height;
@@ -61,45 +41,27 @@ GLOBAL_VAR int32 g_curr_mouse_pos_y = INDEX_NONE;
 GLOBAL_VAR int32 g_mouse_delta_x;
 GLOBAL_VAR int32 g_mouse_delta_y;
 
-GLOBAL_VAR Camera camera;
-
-GLOBAL_VAR bool is_running = true;
-GLOBAL_VAR SDL_Window* window = nullptr;
-GLOBAL_VAR SDL_GLContext opengl_context = nullptr;
-GLOBAL_VAR HWND whandle = nullptr;	// Win32 API Window Handle
-GLOBAL_VAR glm::mat4 matrix_projection;
 // -------------------------
-#include "data.cpp"
+
 #include "camera.cpp"
 #include "mesh.cpp"
 #include "shader.cpp"
 #include "texture.cpp"
 
-std::vector<Mesh> meshes;
-std::vector<ShaderProgram> shaders;
+const int32 WIDTH = 1280, HEIGHT = 720;
+
+std::vector<Mesh*> meshes;
+std::vector<Shader*> shaders;
+Camera camera;
 Texture tex_brick;
 Texture tex_dirt;
 
 static const char* vertex_shader_path = "shaders/default.vert";
 static const char* frag_shader_path = "shaders/default.frag";
-static const char* ui_vs_path = "shaders/text_ui.vert";
-static const char* ui_fs_path = "shaders/text_ui.frag";
-TTAFont pogfont;
-GLuint texture_id;
+static const char* ui_vs_path = "shaders/ui.vert";
+static const char* ui_fs_path = "shaders/ui.frag";
 
-
-INTERNAL void load_font(TTAFont& font_handle, const char* font_file_path, int font_height_in_pixels)
-{
-	BinaryFileHandle fontfile;
-	file_read_file_binary(fontfile, font_file_path);
-    if(fontfile.memory)
-    {
-		font_handle = kctta_init_font((uint8*) fontfile.memory, font_height_in_pixels);
-    }
-    file_free_file_binary(fontfile);
-}
-
-INTERNAL void create_triangles()
+void create_triangles()
 {
 	uint32 indices[12] = { 
 		0, 3, 1,
@@ -116,63 +78,54 @@ INTERNAL void create_triangles()
 		0.f, 1.f, 0.f, 0.5f, 1.f
 	};
 
-	Mesh tri = gl_create_mesh_array(vertices, indices, 20, 12);
+	Mesh* tri = new Mesh();
+	tri->create_mesh(vertices, indices, 20, 12);
 	meshes.push_back(tri);
-	tri = gl_create_mesh_array(vertices, indices, 20, 12);
+	tri = new Mesh();
+	tri->create_mesh(vertices, indices, 20, 12);
 	meshes.push_back(tri);
 }
 
-
-INTERNAL int8 game_run();
-INTERNAL bool game_init();
-INTERNAL void game_loop();
-INTERNAL void game_process_events();
-INTERNAL void game_update(real32 dt);
-INTERNAL void game_render();
-INTERNAL void game_clean_up();
-
-/** Start the game procedure
- */
-INTERNAL int8 game_run()
+class Game
 {
-	if (game_init() == false) return 1;
+public:
+	int8 run();					// Game start
+private:
+	bool init();				// Create window, set up OpenGL context, initialize SDL and GLEW
+	void loop();				// Game loop with fixed timestep - Input, Logic, Render
+		void process_events();	// Process input and SDL events
+		void update(float dt);	// Tick game logic. Delta time is in seconds.
+		void render();			// Process graphics and render them to the screen
+	void clean_up();			// Clear memory and shut down
+private:
+	bool is_running = true;
+	SDL_Window* window = nullptr;
+	SDL_GLContext opengl_context = nullptr;
+	HWND whandle = nullptr;	// Win32 API Window Handle
+	glm::mat4 matrix_projection;
+};
+
+int8 Game::run()
+{
+	if (init() == false) return 1;
 
 	create_triangles();
 
-	load_font(pogfont, "c:/windows/fonts/impact.ttf", 20);
-	glGenTextures(1, &texture_id); // generate texture and grab texture id
-	glBindTexture(GL_TEXTURE_2D, texture_id);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);		// wrapping
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);	// filtering
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexImage2D(
-			GL_TEXTURE_2D, 		// texture target type
-			0,					// level-of-detail number n = n-th mipmap reduction image
-			GL_RED,			// format of data to store: num of color components
-			pogfont.font_atlas.width,				// texture width
-			pogfont.font_atlas.height,				// texture height
-			0,					// must be 0 (legacy)
-			GL_RED,			// format of data being loaded
-			GL_UNSIGNED_BYTE,	// data type of the texture data
-			pogfont.font_atlas.pixels);		// data
-		glGenerateMipmap(GL_TEXTURE_2D); // generate mip maps automatically
-	glBindTexture(GL_TEXTURE_2D, 0);
-	free(pogfont.font_atlas.pixels);
+	camera = Camera();
+	camera.set_position(0.f, 0.f, 0.f);
+	camera.set_rotation(0.f, 270.f, 0.f);
 
-	camera.position = glm::vec3(0.f, 0.f, 0.f);
-	camera.rotation = glm::vec3(0.f, 270.f, 0.f);
+	Shader* shader_ptr = new Shader();
+	shader_ptr->create_from_files(vertex_shader_path, frag_shader_path);
+	shaders.push_back(shader_ptr);
+	shader_ptr = new Shader();
+	shader_ptr->create_from_files(ui_vs_path, ui_fs_path);
+	shaders.push_back(shader_ptr);
 
-	ShaderProgram shader;
-	init_shader_program(shader, vertex_shader_path, frag_shader_path);
-	shaders.push_back(shader);
-	init_shader_program(shader, ui_vs_path, ui_fs_path);
-	shaders.push_back(shader);
-
-	tex_brick.file_path = "data/textures/brick.png";
-	gl_load_texture(tex_brick);
-	tex_dirt.file_path = "data/textures/mqdefault.jpg";
-	gl_load_texture(tex_dirt);
+	tex_brick = Texture("data/textures/brick.png");
+	tex_brick.load_texture();
+	tex_dirt = Texture("data/textures/dirt.png");
+	tex_dirt.load_texture();
 
 	/** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)
 		The model matrix, right now, is in Game::render because we want to be able to update the object's transform on tick. However, ideally, the 
@@ -180,18 +133,16 @@ INTERNAL int8 game_run()
 		That matrix can be stored inside the game object class alongside the VAO. Or we could simply update the game object's position, rotation, scale
 		fields, then construct the model matrix in Game::render based on those fields. Yeah that's probably better.
 	*/
-	real32 aspect_ratio = (real32)g_buffer_width / (real32)g_buffer_height;
+	float aspect_ratio = (float)g_buffer_width / (float)g_buffer_height;
 	matrix_projection = glm::perspective(45.f, aspect_ratio, 0.1f, 1000.f);
 
-	game_loop();
-	game_clean_up();
+	loop();
+	clean_up();
 
 	return 0;
 }
 
-/** Create window, set up OpenGL context, initialize SDL and GLEW 
-*/
-INTERNAL bool game_init()
+bool Game::init()
 {
 	// Initialize SDL
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
@@ -276,7 +227,7 @@ INTERNAL bool game_init()
 		0 = immediate, 1 = vsync, -1 = adaptive vsync. Remark: If application requests adaptive vsync and the system does 
 		not support it, this function will fail and return -1. In such a case, you should probably retry the call with 1 
 		for the interval. */
-	if (SDL_GL_SetSwapInterval(0) == -1)
+	if (SDL_GL_SetSwapInterval(-1) == -1)
 	{
 		SDL_GL_SetSwapInterval(1);
 	}
@@ -286,7 +237,7 @@ INTERNAL bool game_init()
 	if (glewInit() != GLEW_OK)
 	{
 		printf("GLEW failed to initialize.");
-		game_clean_up();
+		clean_up();
 		return false;
 	}
 
@@ -299,13 +250,8 @@ INTERNAL bool game_init()
 	// Setup Viewport
 	glViewport(0, 0, g_buffer_width, g_buffer_height);
 
-	// Enable depth test to see which triangles should be drawn over other triangles
+	// NOTE: Enable depth test to see which triangles should be drawn over other triangles
 	glEnable(GL_DEPTH_TEST); 
-	// Enable alpha blending
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // a * (rgb) + (1 - a) * (rgb) = final color output
-	glBlendEquation(GL_FUNC_ADD);
-	
 	// Lock mouse to window
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 	// Grab keystate array
@@ -314,47 +260,39 @@ INTERNAL bool game_init()
 	return true;
 }
 
-/** Clear memory and shut down
- */
-INTERNAL void game_clean_up()
+void Game::clean_up()
 {
-	gl_delete_texture(tex_brick);
-	gl_delete_texture(tex_dirt);
+	tex_brick.clear_texture();
+	tex_dirt.clear_texture();
 	// clear shaders and delete shaders
-	for (size_t i = 0; i < meshes.size(); ++i)
-	{
-		gl_delete_mesh(meshes[i]);
-	}
 	for (size_t i = shaders.size() - 1; i > -1; --i)
 	{
-		gl_clear_shader(shaders[i]);
+		shaders[i]->clear_shader();
+		delete shaders[i];
 	}
+	shaders.clear();
 
 	SDL_DestroyWindow(window);
 	SDL_GL_DeleteContext(opengl_context);
 	SDL_Quit();
 }
 
-/** Game loop with fixed timestep - Input, Logic, Render
- */
-INTERNAL void game_loop()
+void Game::loop()
 {
-	real32 last_tick = (real32)SDL_GetTicks(); 	// time (in milliseconds since SDL init) of the last tick
+	float last_tick = (float)SDL_GetTicks(); 	// time (in milliseconds since SDL init) of the last tick
 	while (is_running)
 	{
-		game_process_events();
+		process_events(); 						// process events
 		if (is_running == false) { break; }
-		real32 this_tick = (real32)SDL_GetTicks();
-		real32 delta_time_ms = this_tick - last_tick;
-		game_update(delta_time_ms / 1000.f);
-		last_tick = this_tick; // TODO is this right?
-		game_render();
+		float this_tick = (float)SDL_GetTicks();// Calculate time since last tick
+		float delta_time_ms = this_tick - last_tick;
+		update(delta_time_ms / 1000.f); 		// update game
+		last_tick = this_tick;
+		render();								// render game
 	}
 }
 
-/** Process input and SDL events
-*/
-INTERNAL void game_process_events()
+void Game::process_events()
 {
 	// Store Mouse state
 	SDL_bool b_relative_mouse = SDL_GetRelativeMouseMode();
@@ -402,16 +340,12 @@ INTERNAL void game_process_events()
 	}
 }
 
-/** Tick game logic. Delta time is in seconds.
-*/
-INTERNAL void game_update(real32 dt)
+void Game::update(float dt)
 {
-	update_camera(camera, dt);
+	camera.update(dt);
 }
 
-/** Process graphics and render them to the screen.
-*/
-INTERNAL void game_render()
+void Game::render()
 {
 	// Clear opengl context's buffer
 	//glClearColor(0.39f, 0.582f, 0.926f, 1.f);
@@ -420,65 +354,79 @@ INTERNAL void game_render()
 	// TODO Probably should make own shader for wireframe draws so that wireframe fragments aren't affected by lighting or textures
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // GL_LINE for wireframe, GL_FILL to fill interior of polygon
 
-	use_shader(shaders[0]);
+	shaders[0]->use_shader();
 
-		glUniformMatrix4fv(shaders[0].id_uniform_view, 1, GL_FALSE, glm::value_ptr(calculate_viewmatrix(camera)));
-		glUniformMatrix4fv(shaders[0].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(matrix_projection));
+		glUniformMatrix4fv(shaders[0]->get_matrix_view_location_id(), 1, GL_FALSE, glm::value_ptr(camera.calculate_viewmatrix()));
+		glUniformMatrix4fv(shaders[0]->get_matrix_projection_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_projection));
 
 		glm::mat4 matrix_model = glm::mat4(1.f);
 		matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.5f, -1.3f));
 		matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f)); // scale in each axis by the respective values of the vector
-		glUniformMatrix4fv(shaders[0].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
-		gl_use_texture(tex_brick);
-		gl_render_mesh(meshes[0]);
+		glUniformMatrix4fv(shaders[0]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model));
+		tex_brick.use_texture();
+		meshes[0]->render_mesh();
 
 		matrix_model = glm::mat4(1.f);
 		matrix_model = glm::translate(matrix_model, glm::vec3(0.f, -0.5f, -1.3f));
 		matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f));
-		glUniformMatrix4fv(shaders[0].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
-		gl_use_texture(tex_dirt);
-		gl_render_mesh(meshes[1]);
+		glUniformMatrix4fv(shaders[0]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model));
+		tex_dirt.use_texture();
+		meshes[1]->render_mesh();
 
 	glUseProgram(0);
 
 
 	// test
-	kctta_append_line("Among Us", &pogfont);
-	TTAVertexBuffer textbuffer = kctta_grab_buffer();
-	glm::mat4 matrix_proj_ortho = glm::ortho(0.0f, (real32)g_buffer_width,(real32)g_buffer_height,0.0f, -100.f, 10.f);
+	glm::mat4 matrix_proj_ortho = glm::ortho(0.0f, (float)g_buffer_width,(float)g_buffer_height,0.0f, -1.f, 1.f);
 	GLuint id_vao = 0;
 	GLuint id_vbo = 0;
+	/*
+	GLfloat quad_vertices[] = {
+		-100.f, -100.f, 
+		-100.f, 100.f,
+		100.f, 100.f,
+		100.f, -100.f,
+		-100.f, -100.f,
+		100.f, 100.f
+	};
+	*/
+	GLfloat quad_vertices[] = {
+		-100.f, -100.f, 0.f, 0.f,
+		-100.f, 100.f, 0.f, 1.f,
+		100.f, 100.f, 1.f, 1.f,
+		100.f, -100.f, 1.f, 0.f,
+		-100.f, -100.f, 0.f, 0.f,
+		100.f, 100.f, 1.f, 1.f
+	};
 	glGenVertexArrays(1, &id_vao);
 	glBindVertexArray(id_vao);
 		glGenBuffers(1, &id_vbo);
 		glBindBuffer(GL_ARRAY_BUFFER, id_vbo);
-			glBufferData(GL_ARRAY_BUFFER, textbuffer.buffer_size_bytes, textbuffer.vertex_buffer, GL_STATIC_DRAW);
-			glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(real32) * 4, 0);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), quad_vertices, GL_STATIC_DRAW);
+			glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, 0);
 			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(real32) * 4, (void*)(sizeof(real32) * 2));
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
 			glEnableVertexAttribArray(1);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
-	use_shader(shaders[1]);
+	shaders[1]->use_shader();
 		matrix_model = glm::mat4(1.f);
-		matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.f, 100.f));
-		glUniformMatrix4fv(shaders[1].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
-		glUniformMatrix4fv(shaders[1].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(matrix_proj_ortho));
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texture_id);
+		matrix_model = glm::translate(matrix_model, glm::vec3(150.f, 150.f, 0.f));
+		glUniformMatrix4fv(shaders[1]->get_matrix_model_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_model));
+		glUniformMatrix4fv(shaders[1]->get_matrix_projection_location_id(), 1, GL_FALSE, glm::value_ptr(matrix_proj_ortho));
+		tex_brick.use_texture();
 		glBindVertexArray(id_vao);
-			glDrawArrays(GL_TRIANGLES, 0, textbuffer.vertex_count);
+			glDrawArrays(GL_TRIANGLES, 0, 6);
 		glBindVertexArray(0);
 	glUseProgram(0);
-	kctta_clear_buffer();
 	//
 
-	/* Swap our buffer to display the current contents of buffer on screen. 
-	This is used with double-buffered OpenGL contexts, which are the default. */
+	/* Swap our buffer to display the current contents of buffer on screen. This is used with double-buffered OpenGL contexts, which are the default. */
 	SDL_GL_SwapWindow(window);
 }
 
 int main(int argc, char* argv[]) // Our main entry point MUST be in this form when using SDL
 {
-	return game_run();
+	Game game;
+	return game.run();
 }

@@ -23,8 +23,8 @@ set OUTPUTEXE="opengldemo.exe"
 rem Linker Options
 set LINKEROPTIONS=/SUBSYSTEM:CONSOLE %ADDLIBPATHS% %ADDDEPENDENCIES%
 
-if NOT exist ..\build mkdir ..\build
-pushd ..\build
+if NOT exist build mkdir build
+pushd build
 if NOT exist %OUTPUTDIR% mkdir %OUTPUTDIR%
 cl -Zi /EHsc /W3 /std:c++14 /Fe%OUTPUTDIR%%OUTPUTEXE% %ADDINCLUDES% %SOURCE% /link %LINKEROPTIONS%
 popd
