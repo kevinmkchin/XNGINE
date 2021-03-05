@@ -1,11 +1,10 @@
 /**	OpenGL 3D Renderer
 
 TODO:
-	- add uniform in text_ui.frag for text color 
 	- clean up kc_truetypeassembler.h, make sure im not copying fucking 20 kb
 	- Review Texture.cpp functions and clean up. Refactor out stbi_load. 
-	- Review Camera.cpp functions and clean up
 	- Review Mesh.cpp functions and clean up
+	- Review Camera.cpp functions and clean up
 	- Review Shader.cpp functions and clean up
 	- Review main.cpp functions and clean up
 
@@ -64,6 +63,7 @@ GLOBAL_VAR SDL_Window* window = nullptr;
 GLOBAL_VAR SDL_GLContext opengl_context = nullptr;
 GLOBAL_VAR HWND whandle = nullptr;	// Win32 API Window Handle
 GLOBAL_VAR glm::mat4 matrix_projection;
+GLOBAL_VAR glm::mat4 matrix_projection_ortho;
 // -------------------------
 #include "data.cpp"
 #include "camera.cpp"
@@ -75,14 +75,13 @@ Mesh meshes[3];
 ShaderProgram shaders[2];
 Texture tex_brick;
 Texture tex_dirt;
-Texture tex_font_atlas;
 
 static const char* vertex_shader_path = "shaders/default.vert";
 static const char* frag_shader_path = "shaders/default.frag";
 static const char* ui_vs_path = "shaders/text_ui.vert";
 static const char* ui_fs_path = "shaders/text_ui.frag";
 TTAFont pogfont;
-GLuint texture_id;
+Texture tex_font_atlas;
 
 
 INTERNAL void load_font(TTAFont& font_handle, const char* font_file_path, int font_height_in_pixels)
@@ -169,6 +168,7 @@ INTERNAL int8 game_run()
 	*/
 	real32 aspect_ratio = (real32)g_buffer_width / (real32)g_buffer_height;
 	matrix_projection = glm::perspective(45.f, aspect_ratio, 0.1f, 1000.f);
+	matrix_projection_ortho = glm::ortho(0.0f, (real32)g_buffer_width,(real32)g_buffer_height,0.0f, -100.f, 10.f);
 
 	game_loop();
 	game_clean_up();
@@ -428,47 +428,13 @@ INTERNAL void game_render()
 
 	glUseProgram(0);
 
-
-	// test // TODO MEMORY LEAK CUZ GENERATING VAO AND VBO ALL THE TIME
-	// kctta_move_cursor(0, 100);
-	// kctta_append_line("Among Us", &pogfont);
-	// TTAVertexBuffer textbuffer = kctta_grab_buffer();
-	// glm::mat4 matrix_proj_ortho = glm::ortho(0.0f, (real32)g_buffer_width,(real32)g_buffer_height,0.0f, -100.f, 10.f);
-	// GLuint id_vao = 0;
-	// GLuint id_vbo = 0;
-	// glGenVertexArrays(1, &id_vao);
-	// glBindVertexArray(id_vao);
-	// 	glGenBuffers(1, &id_vbo);
-	// 	glBindBuffer(GL_ARRAY_BUFFER, id_vbo);
-	// 		glBufferData(GL_ARRAY_BUFFER, textbuffer.vertex_buffer_size_bytes, textbuffer.vertex_buffer, GL_STATIC_DRAW);
-	// 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(real32) * 4, 0);
-	// 		glEnableVertexAttribArray(0);
-	// 		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(real32) * 4, (void*)(sizeof(real32) * 2));
-	// 		glEnableVertexAttribArray(1);
-	// 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	// glBindVertexArray(0);
-	// use_shader(shaders[1]);
-	// 	matrix_model = glm::mat4(1.f);
-	// 	matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.f, 100.f));
-	// 	glUniformMatrix4fv(shaders[1].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
-	// 	glUniformMatrix4fv(shaders[1].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(matrix_proj_ortho));
-	// 	glActiveTexture(GL_TEXTURE0);
-	// 	glBindTexture(GL_TEXTURE_2D, texture_id);
-	// 	glBindVertexArray(id_vao);
-	// 		glDrawArrays(GL_TRIANGLES, 0, textbuffer.vertex_count);
-	// 	glBindVertexArray(0);
-	// glUseProgram(0);
-	// kctta_clear_buffer();
-	//
-
 	// test
-	glm::mat4 matrix_proj_ortho = glm::ortho(0.0f, (real32)g_buffer_width,(real32)g_buffer_height,0.0f, -100.f, 10.f);
-
 	use_shader(shaders[1]);
 		matrix_model = glm::mat4(1.f);
 		matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.f, 100.f));
 		glUniformMatrix4fv(shaders[1].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
-		glUniformMatrix4fv(shaders[1].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(matrix_proj_ortho));
+		glUniformMatrix4fv(shaders[1].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(matrix_projection_ortho));
+		glUniform3f(glGetUniformLocation(shaders[1].id_shader_program, "text_colour"), 0.f, 1.f, 0.f);
 		gl_use_texture(tex_font_atlas);
 		gl_render_mesh(meshes[2]);
 	glUseProgram(0);

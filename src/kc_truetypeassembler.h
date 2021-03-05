@@ -29,7 +29,6 @@ USAGE:
 Backlog:
     - Kerning
 	- Top to bottom text
-    - Support indexed drawing (return indices as well)
 */
 
 #define kctta_internal static		// kctta internal function
@@ -319,7 +318,7 @@ kctta_append_glyph(const char in_glyph, TTAFont* font)
         kctta_vertex_buffer[kctta_vertex_count * STRIDE + 13] = kctta_cursor_y + glyph.offset_y + glyph.height;
         kctta_vertex_buffer[kctta_vertex_count * STRIDE + 14] = glyph.max_u;
         kctta_vertex_buffer[kctta_vertex_count * STRIDE + 15] = glyph.min_v;
-        
+
         kctta_index_buffer[kctta_index_count + 0] = kctta_vertex_count + 0;
         kctta_index_buffer[kctta_index_count + 1] = kctta_vertex_count + 1;
         kctta_index_buffer[kctta_index_count + 2] = kctta_vertex_count + 2;
