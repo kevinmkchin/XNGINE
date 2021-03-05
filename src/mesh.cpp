@@ -1,12 +1,16 @@
 /**  */
 INTERNAL Mesh gl_create_mesh_array(real32* vertices, 
 								   uint32* indices,
-								   uint32 num_of_vertices,
-								   uint32 num_of_indices)
+								   uint32 vertices_array_count,
+								   uint32 indices_array_count,
+								   uint8 vertex_attrib_size = 3,
+								   uint8 texture_attrib_size = 2)
 {
+	uint8 stride = vertex_attrib_size + texture_attrib_size;
+
 	Mesh mesh;
 	// Need to store to index_count because we need the count of indices when we are drawing in Mesh::render_mesh
-	mesh.index_count = num_of_indices;
+	mesh.index_count = indices_array_count;
 
 	glGenVertexArrays(1, &mesh.id_vao); // Defining some space in the GPU for a vertex array and giving you the vao ID
 	glBindVertexArray(mesh.id_vao); // Binding a VAO means we are currently operating on that VAO
@@ -16,7 +20,7 @@ INTERNAL Mesh gl_create_mesh_array(real32* vertices,
 			/* Connect the vertices data to the actual gl array buffer for this VBO. We need to pass in the size of the data we are passing as well.
 			GL_STATIC_DRAW (as opposed to GL_DYNAMIC_DRAW) means we won't be changing these data values in the array. 
 			The vertices array does not need to exist anymore after this call because that data will now be stored in the VAO on the GPU. */
-			glBufferData(GL_ARRAY_BUFFER, 4 /*bytes cuz uint32*/ * num_of_vertices, vertices, GL_STATIC_DRAW); // NOTE: 12 instead of 9 now because 12 elements in vertices
+			glBufferData(GL_ARRAY_BUFFER, 4 /*bytes cuz uint32*/ * vertices_array_count, vertices, GL_STATIC_DRAW);
 			/* Index is location in VAO of the attribute we are creating this pointer for.
 			Size is number of values we are passing in (e.g. size is 3 if x y z).
 			Normalized is normalizing the values.
@@ -26,16 +30,16 @@ INTERNAL Mesh gl_create_mesh_array(real32* vertices,
 					use          stride        use          stride
 				In this case, the stride would be 3 because we need to skip 3 values (the color values) to reach the next vertex data.
 			Apparently the last parameter is the offset? */
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(real32) * 5, 0); // vertex pointer
+			glVertexAttribPointer(0, vertex_attrib_size, GL_FLOAT, GL_FALSE, sizeof(real32) * stride, 0); // vertex pointer
 			glEnableVertexAttribArray(0); // Enabling location in VAO for the attribute
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(real32) * 5, (void*)(sizeof(real32) * 3)); // uv coord pointer
+			glVertexAttribPointer(1, texture_attrib_size, GL_FLOAT, GL_FALSE, sizeof(real32) * stride, (void*)(sizeof(real32) * vertex_attrib_size)); // uv coord pointer
 			glEnableVertexAttribArray(1);
 		glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind the VBO
 
 		// Index Buffer Object
 		glGenBuffers(1, &mesh.id_ibo);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.id_ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, 4 /*bytes cuz uint32*/ * num_of_indices, indices, GL_STATIC_DRAW); // 4 bytes (for uint32) * 12 elements in indices
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, 4 /*bytes cuz uint32*/ * indices_array_count, indices, GL_STATIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0); // Unbind the VAO;
 

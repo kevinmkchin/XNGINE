@@ -1,11 +1,8 @@
 /**	OpenGL 3D Renderer
 
 TODO:
-	- Text rendering to textured quads
-		- Store Glyph and Font informations
-		- Assemble vertices and texture coords
-		- Clean up library header
 	- add uniform in text_ui.frag for text color 
+	- clean up kc_truetypeassembler.h, make sure im not copying fucking 20 kb
 	- Review Texture.cpp functions and clean up. Refactor out stbi_load. 
 	- Review Camera.cpp functions and clean up
 	- Review Mesh.cpp functions and clean up
@@ -13,12 +10,12 @@ TODO:
 	- Review main.cpp functions and clean up
 
 Backlog:
-	- Mesh type without ibo? or just create a simple text struct
 	- Quake-style console with extensible commands
 		- use opengl textured quads for both the background and the text
 		- shader hotloading/compiling during runtime
-	- Memory management system (allocate and deallocate functions that use a memory arena 
-	or something instead of doing malloc all the time)
+	- WATCH handmadehero day 14 first: memory.cpp Memory management system 
+	(allocate and deallocate functions that use a memory arena or something instead of doing malloc all the time)
+	- WATCH handmadehero day 15
 	- Phong Lighting
 	- Write own math library and remove GLM
 	- Entity - pos, rot, scale, mesh, few boolean flags, collider, tags
@@ -28,13 +25,12 @@ Backlog:
 #include <stdio.h>
 #include <string>
 #include <cmath>
-#include <vector>
 #include <iostream>
 #include <fstream>
 
-#include <Windows.h>
 #include <gl/glew.h>
 #include <SDL.h>
+#include <Windows.h>
 #include <SDL_syswm.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -75,10 +71,11 @@ GLOBAL_VAR glm::mat4 matrix_projection;
 #include "shader.cpp"
 #include "texture.cpp"
 
-std::vector<Mesh> meshes;
-std::vector<ShaderProgram> shaders;
+Mesh meshes[3];
+ShaderProgram shaders[2];
 Texture tex_brick;
 Texture tex_dirt;
+Texture tex_font_atlas;
 
 static const char* vertex_shader_path = "shaders/default.vert";
 static const char* frag_shader_path = "shaders/default.frag";
@@ -116,10 +113,8 @@ INTERNAL void create_triangles()
 		0.f, 1.f, 0.f, 0.5f, 1.f
 	};
 
-	Mesh tri = gl_create_mesh_array(vertices, indices, 20, 12);
-	meshes.push_back(tri);
-	tri = gl_create_mesh_array(vertices, indices, 20, 12);
-	meshes.push_back(tri);
+	meshes[0] = gl_create_mesh_array(vertices, indices, 20, 12);
+	meshes[1] = gl_create_mesh_array(vertices, indices, 20, 12);
 }
 
 
@@ -139,35 +134,27 @@ INTERNAL int8 game_run()
 
 	create_triangles();
 
-	load_font(pogfont, "c:/windows/fonts/impact.ttf", 20);
-	glGenTextures(1, &texture_id); // generate texture and grab texture id
-	glBindTexture(GL_TEXTURE_2D, texture_id);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);		// wrapping
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);	// filtering
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexImage2D(
-			GL_TEXTURE_2D, 		// texture target type
-			0,					// level-of-detail number n = n-th mipmap reduction image
-			GL_RED,			// format of data to store: num of color components
-			pogfont.font_atlas.width,				// texture width
-			pogfont.font_atlas.height,				// texture height
-			0,					// must be 0 (legacy)
-			GL_RED,			// format of data being loaded
-			GL_UNSIGNED_BYTE,	// data type of the texture data
-			pogfont.font_atlas.pixels);		// data
-		glGenerateMipmap(GL_TEXTURE_2D); // generate mip maps automatically
-	glBindTexture(GL_TEXTURE_2D, 0);
+
+	load_font(pogfont, "c:/windows/fonts/impact.ttf", 60);
+	gl_load_bitmap(tex_font_atlas, pogfont.font_atlas.pixels, pogfont.font_atlas.width, pogfont.font_atlas.height, GL_RED, GL_RED);
 	free(pogfont.font_atlas.pixels);
+	kctta_use_index_buffer(1);
+	kctta_move_cursor(0, 100);
+	kctta_append_line("Among Us", &pogfont);
+	TTAVertexBuffer textbuffer = kctta_grab_buffer();
+	meshes[2] = gl_create_mesh_array(textbuffer.vertex_buffer, textbuffer.index_buffer, 
+		textbuffer.vertices_array_count, textbuffer.indices_array_count, 2, 2);
+	kctta_clear_buffer();
+
 
 	camera.position = glm::vec3(0.f, 0.f, 0.f);
 	camera.rotation = glm::vec3(0.f, 270.f, 0.f);
 
 	ShaderProgram shader;
 	init_shader_program(shader, vertex_shader_path, frag_shader_path);
-	shaders.push_back(shader);
+	shaders[0] = shader;
 	init_shader_program(shader, ui_vs_path, ui_fs_path);
-	shaders.push_back(shader);
+	shaders[1] = shader;
 
 	tex_brick.file_path = "data/textures/brick.png";
 	gl_load_texture(tex_brick);
@@ -321,11 +308,11 @@ INTERNAL void game_clean_up()
 	gl_delete_texture(tex_brick);
 	gl_delete_texture(tex_dirt);
 	// clear shaders and delete shaders
-	for (size_t i = 0; i < meshes.size(); ++i)
+	for (int i = 0; i < array_count(meshes); ++i)
 	{
 		gl_delete_mesh(meshes[i]);
 	}
-	for (size_t i = shaders.size() - 1; i > -1; --i)
+	for (int i = 0; i < array_count(shaders); ++i)
 	{
 		gl_clear_shader(shaders[i]);
 	}
@@ -442,35 +429,49 @@ INTERNAL void game_render()
 	glUseProgram(0);
 
 
+	// test // TODO MEMORY LEAK CUZ GENERATING VAO AND VBO ALL THE TIME
+	// kctta_move_cursor(0, 100);
+	// kctta_append_line("Among Us", &pogfont);
+	// TTAVertexBuffer textbuffer = kctta_grab_buffer();
+	// glm::mat4 matrix_proj_ortho = glm::ortho(0.0f, (real32)g_buffer_width,(real32)g_buffer_height,0.0f, -100.f, 10.f);
+	// GLuint id_vao = 0;
+	// GLuint id_vbo = 0;
+	// glGenVertexArrays(1, &id_vao);
+	// glBindVertexArray(id_vao);
+	// 	glGenBuffers(1, &id_vbo);
+	// 	glBindBuffer(GL_ARRAY_BUFFER, id_vbo);
+	// 		glBufferData(GL_ARRAY_BUFFER, textbuffer.vertex_buffer_size_bytes, textbuffer.vertex_buffer, GL_STATIC_DRAW);
+	// 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(real32) * 4, 0);
+	// 		glEnableVertexAttribArray(0);
+	// 		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(real32) * 4, (void*)(sizeof(real32) * 2));
+	// 		glEnableVertexAttribArray(1);
+	// 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	// glBindVertexArray(0);
+	// use_shader(shaders[1]);
+	// 	matrix_model = glm::mat4(1.f);
+	// 	matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.f, 100.f));
+	// 	glUniformMatrix4fv(shaders[1].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
+	// 	glUniformMatrix4fv(shaders[1].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(matrix_proj_ortho));
+	// 	glActiveTexture(GL_TEXTURE0);
+	// 	glBindTexture(GL_TEXTURE_2D, texture_id);
+	// 	glBindVertexArray(id_vao);
+	// 		glDrawArrays(GL_TRIANGLES, 0, textbuffer.vertex_count);
+	// 	glBindVertexArray(0);
+	// glUseProgram(0);
+	// kctta_clear_buffer();
+	//
+
 	// test
-	kctta_append_line("Among Us", &pogfont);
-	TTAVertexBuffer textbuffer = kctta_grab_buffer();
 	glm::mat4 matrix_proj_ortho = glm::ortho(0.0f, (real32)g_buffer_width,(real32)g_buffer_height,0.0f, -100.f, 10.f);
-	GLuint id_vao = 0;
-	GLuint id_vbo = 0;
-	glGenVertexArrays(1, &id_vao);
-	glBindVertexArray(id_vao);
-		glGenBuffers(1, &id_vbo);
-		glBindBuffer(GL_ARRAY_BUFFER, id_vbo);
-			glBufferData(GL_ARRAY_BUFFER, textbuffer.buffer_size_bytes, textbuffer.vertex_buffer, GL_STATIC_DRAW);
-			glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(real32) * 4, 0);
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(real32) * 4, (void*)(sizeof(real32) * 2));
-			glEnableVertexAttribArray(1);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
+
 	use_shader(shaders[1]);
 		matrix_model = glm::mat4(1.f);
 		matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.f, 100.f));
 		glUniformMatrix4fv(shaders[1].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
 		glUniformMatrix4fv(shaders[1].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(matrix_proj_ortho));
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texture_id);
-		glBindVertexArray(id_vao);
-			glDrawArrays(GL_TRIANGLES, 0, textbuffer.vertex_count);
-		glBindVertexArray(0);
+		gl_use_texture(tex_font_atlas);
+		gl_render_mesh(meshes[2]);
 	glUseProgram(0);
-	kctta_clear_buffer();
 	//
 
 	/* Swap our buffer to display the current contents of buffer on screen. 

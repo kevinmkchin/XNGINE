@@ -26,8 +26,6 @@ USAGE:
 	This library is not responsible for rendering text. You can do that on your own in your
 	preferred graphics API, a quad/ui rendering shader, and an orthogonal projection matrix.
 
-TODO:
-    - MASS CLEAN UP
 Backlog:
     - Kerning
 	- Top to bottom text
@@ -39,23 +37,26 @@ Backlog:
 
 #define KCTTA_ASCII_FROM ' '
 #define KCTTA_ASCII_TO '~'
-#define GLYPH_COUNT KCTTA_ASCII_TO - KCTTA_ASCII_FROM + 1
+#define KCTTA_MAX_CHAR_IN_BUFFER 800
+#define KCTTA_GLYPH_COUNT KCTTA_ASCII_TO - KCTTA_ASCII_FROM + 1
 
 /** Stores a pointer to the vertex buffer assembly array and the count of 
     vertices in the array (total length of array would be count of vertices * 4).
 */
 typedef struct
 {
+    int vertex_count;
+    int vertices_array_count;
+    int indices_array_count;
 	float* vertex_buffer; // x y u v  x y u v
-	int vertex_count;
-    int buffer_size_bytes; 
+    unsigned int* index_buffer;
 } TTAVertexBuffer;
 
 typedef struct 
 {
+    int             width;
+    int             height;
 	unsigned char* 	pixels; // TTABitmap pixels are only 1 byte long and contain ONLY the alpha data
-    int 			width;
-    int 			height;
 } TTABitmap;
 
 typedef struct 
@@ -78,10 +79,12 @@ typedef struct
 	float			descender;
     float           linegap;
 	TTABitmap 		font_atlas;
-    TTAGlyph        glyphs[GLYPH_COUNT];
+    TTAGlyph        glyphs[KCTTA_GLYPH_COUNT];
 } TTAFont;
 
 
+/** 
+*/
 kctta_internal TTAFont kctta_init_font(unsigned char* font_buffer, int font_height_in_pixels);
 
 /** Move cursor location
@@ -113,7 +116,10 @@ kctta_internal TTAVertexBuffer kctta_grab_buffer();
 */
 kctta_internal void kctta_clear_buffer();
 
-
+/** Sets the TrueTypeAssembler to use indexed vertices and return a index buffer
+    as well when grabbing buffers. Clears vertex buffer if you switch the flag while
+    there are already vertices in the vertex buffer. */
+kctta_internal void kctta_use_index_buffer(unsigned int b_use);
 
 
 ///////////////////// IMPLEMENTATION //////////////////////////
@@ -132,10 +138,16 @@ kctta_ceil(float num)
 // Buffers for vertices and texture_coords before they are written to GPU memory.
 // If you have a pointer to these buffers, DO NOT let these buffers be overwritten
 // before you bind the data to GPU memory.
-kctta_local_persist float kctta_assembly_buffer[19200]; // 800 characters * 6 vertices * (2 xy + 2 uv)
-kctta_local_persist int kctta_vertex_count;	          // Each vertex takes up 4 places in the assembly_buffer
+kctta_local_persist float kctta_vertex_buffer[KCTTA_MAX_CHAR_IN_BUFFER * 6 * 4]; // 800 characters * 6 vertices * (2 xy + 2 uv)
+kctta_local_persist int kctta_vertex_count = 0;	          // Each vertex takes up 4 places in the assembly_buffer
+kctta_local_persist unsigned int kctta_index_buffer[KCTTA_MAX_CHAR_IN_BUFFER * 6];
+kctta_local_persist int kctta_index_count = 0;
+
+kctta_local_persist unsigned int kctta_b_use_indexed_draw_flag = 0; // Flag to indicate whether to use indexed draws [https://www.learnopengles.com/tag/index-buffer-object/]
+
 kctta_local_persist int kctta_cursor_x = 0;             // top left of the screen is pixel (0, 0), bot right of the screen is pixel (screen buffer width, screen buffer height)
 kctta_local_persist int kctta_cursor_y = 100;           // cursor points to the base line at which to start drawing the glyph
+
 
 kctta_internal TTAFont
 kctta_init_font(unsigned char* font_buffer, int font_height_in_pixels)
@@ -160,7 +172,7 @@ kctta_init_font(unsigned char* font_buffer, int font_height_in_pixels)
     font.linegap = (float)stb_linegap * stb_scale;
 
     // LOAD GLYPH BITMAP AND INFO FOR EVERY CHARACTER WE WANT IN THE FONT
-    TTABitmap temp_glyph_bitmaps[GLYPH_COUNT] = {};
+    TTABitmap temp_glyph_bitmaps[KCTTA_GLYPH_COUNT];
     int tallest_glyph_height = 0;
     int aggregate_glyph_width = 0;
     // load glyph data
@@ -223,7 +235,7 @@ kctta_init_font(unsigned char* font_buffer, int font_height_in_pixels)
     atlas.width = desired_atlas_width;
     atlas.height = desired_atlas_height;
     // COMBINE ALL GLYPH BITMAPS INTO FONT ATLAS
-    int glyph_count = GLYPH_COUNT;
+    int glyph_count = KCTTA_GLYPH_COUNT;
     int atlas_x = 0;
     int atlas_y = 0;
     for(int i = 0; i < glyph_count; ++i)
@@ -244,7 +256,7 @@ kctta_init_font(unsigned char* font_buffer, int font_height_in_pixels)
     		} 
     	}
         font.glyphs[i].min_u = (float) atlas_x / (float) atlas.width;
-        font.glyphs[i].min_v = (float) atlas_y / (float) atlas.height;//(float) (atlas.height - (atlas_y + glyph_bitmap.height)) / (float) atlas.height;
+        font.glyphs[i].min_v = (float) atlas_y / (float) atlas.height;
         font.glyphs[i].max_u = (float) (atlas_x + glyph_bitmap.width) / (float) atlas.width;
         font.glyphs[i].max_v = (float) (atlas_y + glyph_bitmap.height) / (float) atlas.height;
 
@@ -277,42 +289,81 @@ kctta_append_glyph(const char in_glyph, TTAFont* font)
     int iter = in_glyph - KCTTA_ASCII_FROM;
     TTAGlyph glyph = font->glyphs[iter];
 
-    // TODO make sure we are not exceeding the array size
+    // Make sure we are not exceeding the array size
+    if(KCTTA_MAX_CHAR_IN_BUFFER * 6 < kctta_vertex_count + 6)
+    {
+        return;
+    }
 
-	// for each of the 6 vertices, fill in the mckctta_assembly_buffer in the order x y u v
+	// For each of the 6 vertices, fill in the kctta_vertex_buffer in the order x y u v
     int STRIDE = 4;
 
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 0] = kctta_cursor_x + glyph.offset_x;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 1] = kctta_cursor_y + glyph.offset_y + glyph.height;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 2] = glyph.min_u;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 3] = glyph.min_v;
+    if(kctta_b_use_indexed_draw_flag)
+    {
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 0] = kctta_cursor_x + glyph.offset_x;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 1] = kctta_cursor_y + glyph.offset_y + glyph.height;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 2] = glyph.min_u;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 3] = glyph.min_v;
 
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 4] = kctta_cursor_x + glyph.offset_x;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 5] = kctta_cursor_y + glyph.offset_y;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 6] = glyph.min_u;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 7] = glyph.max_v;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 4] = kctta_cursor_x + glyph.offset_x;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 5] = kctta_cursor_y + glyph.offset_y;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 6] = glyph.min_u;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 7] = glyph.max_v;
 
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 8] = kctta_cursor_x + glyph.offset_x + glyph.width;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 9] = kctta_cursor_y + glyph.offset_y;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 10] = glyph.max_u;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 11] = glyph.max_v;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 8] = kctta_cursor_x + glyph.offset_x + glyph.width;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 9] = kctta_cursor_y + glyph.offset_y;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 10] = glyph.max_u;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 11] = glyph.max_v;
 
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 12] = kctta_cursor_x + glyph.offset_x + glyph.width;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 13] = kctta_cursor_y + glyph.offset_y + glyph.height;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 14] = glyph.max_u;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 15] = glyph.min_v;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 12] = kctta_cursor_x + glyph.offset_x + glyph.width;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 13] = kctta_cursor_y + glyph.offset_y + glyph.height;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 14] = glyph.max_u;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 15] = glyph.min_v;
+        
+        kctta_index_buffer[kctta_index_count + 0] = kctta_vertex_count + 0;
+        kctta_index_buffer[kctta_index_count + 1] = kctta_vertex_count + 1;
+        kctta_index_buffer[kctta_index_count + 2] = kctta_vertex_count + 2;
+        kctta_index_buffer[kctta_index_count + 3] = kctta_vertex_count + 0;
+        kctta_index_buffer[kctta_index_count + 4] = kctta_vertex_count + 2;
+        kctta_index_buffer[kctta_index_count + 5] = kctta_vertex_count + 3;
 
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 16] = kctta_cursor_x + glyph.offset_x;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 17] = kctta_cursor_y + glyph.offset_y + glyph.height;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 18] = glyph.min_u;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 19] = glyph.min_v;
+        kctta_vertex_count += 4;
+        kctta_index_count += 6;
+    }
+    else
+    {
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 0] = kctta_cursor_x + glyph.offset_x;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 1] = kctta_cursor_y + glyph.offset_y + glyph.height;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 2] = glyph.min_u;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 3] = glyph.min_v;
 
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 20] = kctta_cursor_x + glyph.offset_x + glyph.width;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 21] = kctta_cursor_y + glyph.offset_y;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 22] = glyph.max_u;
-    kctta_assembly_buffer[kctta_vertex_count * STRIDE + 23] = glyph.max_v;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 4] = kctta_cursor_x + glyph.offset_x;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 5] = kctta_cursor_y + glyph.offset_y;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 6] = glyph.min_u;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 7] = glyph.max_v;
 
-    kctta_vertex_count += 6;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 8] = kctta_cursor_x + glyph.offset_x + glyph.width;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 9] = kctta_cursor_y + glyph.offset_y;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 10] = glyph.max_u;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 11] = glyph.max_v;
+
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 12] = kctta_cursor_x + glyph.offset_x + glyph.width;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 13] = kctta_cursor_y + glyph.offset_y + glyph.height;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 14] = glyph.max_u;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 15] = glyph.min_v;
+
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 16] = kctta_cursor_x + glyph.offset_x;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 17] = kctta_cursor_y + glyph.offset_y + glyph.height;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 18] = glyph.min_u;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 19] = glyph.min_v;
+
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 20] = kctta_cursor_x + glyph.offset_x + glyph.width;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 21] = kctta_cursor_y + glyph.offset_y;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 22] = glyph.max_u;
+        kctta_vertex_buffer[kctta_vertex_count * STRIDE + 23] = glyph.max_v;
+
+        kctta_vertex_count += 6;
+    }
 
     // Advance the cursor
     kctta_cursor_x += (int) glyph.advance;
@@ -337,9 +388,20 @@ kctta_internal TTAVertexBuffer
 kctta_grab_buffer()
 {
     TTAVertexBuffer retval;
-    retval.vertex_buffer = kctta_assembly_buffer;
+    retval.vertex_buffer = kctta_vertex_buffer;
+    if(kctta_b_use_indexed_draw_flag)
+    {
+        retval.index_buffer = kctta_index_buffer;
+        retval.vertices_array_count = kctta_vertex_count * 4;
+        retval.indices_array_count = kctta_index_count;
+    }
+    else
+    {
+        retval.index_buffer = NULL;
+        retval.vertices_array_count = kctta_vertex_count * 6;
+        retval.indices_array_count = 0;
+    }
     retval.vertex_count = kctta_vertex_count;
-    retval.buffer_size_bytes = kctta_vertex_count * 4 * 4;
     return retval;
 }
 
@@ -349,13 +411,36 @@ kctta_clear_buffer()
 	for(int i = 0; i < kctta_vertex_count; ++i)
 	{   
         int STRIDE = 4;
-		kctta_assembly_buffer[i * STRIDE + 0] = 0;
-        kctta_assembly_buffer[i * STRIDE + 1] = 0;
-        kctta_assembly_buffer[i * STRIDE + 2] = 0;
-        kctta_assembly_buffer[i * STRIDE + 3] = 0;
+		kctta_vertex_buffer[i * STRIDE + 0] = 0;
+        kctta_vertex_buffer[i * STRIDE + 1] = 0;
+        kctta_vertex_buffer[i * STRIDE + 2] = 0;
+        kctta_vertex_buffer[i * STRIDE + 3] = 0;
 	}
+    for(int i = 0; i < kctta_index_count; ++i)
+    {   
+        kctta_vertex_buffer[i] = 0;
+    }
 	kctta_vertex_count = 0;
+    kctta_index_count = 0;
+}
 
-    kctta_cursor_x = 0;
-    kctta_cursor_y = 100;
+kctta_internal void
+kctta_use_index_buffer(unsigned int b_use)
+{
+    if(b_use)
+    {
+        if(!kctta_b_use_indexed_draw_flag)
+        {
+            kctta_clear_buffer();
+        }
+        kctta_b_use_indexed_draw_flag = 1;
+    }
+    else
+    {
+        if(kctta_b_use_indexed_draw_flag)
+        {
+            kctta_clear_buffer();
+        }
+        kctta_b_use_indexed_draw_flag = 0;
+    }
 }
