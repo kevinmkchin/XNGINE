@@ -11,7 +11,7 @@ out vec4 colour;
 
 void main()
 {
-	float text_alpha = texture(font_atlas_sampler, tex_coord).x; // x because bitmap is passed as a GL_R value only
-	// Make sure alpha blending is on
-	colour = vec4(text_colour, text_alpha);
+    float text_alpha = texture(font_atlas_sampler, tex_coord).x; // x because bitmap is passed as a GL_R value only
+    // Make sure alpha blending is on
+    colour = vec4(text_colour, text_alpha);
 }

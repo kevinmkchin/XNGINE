@@ -11,6 +11,6 @@ out vec2 tex_coord;
 
 void main()
 {
-	gl_Position = matrix_projection * matrix_view * matrix_model * vec4(pos, 1.0);
-	tex_coord = in_tex_coord;
+    gl_Position = matrix_projection * matrix_view * matrix_model * vec4(pos, 1.0);
+    tex_coord = in_tex_coord;
 }
