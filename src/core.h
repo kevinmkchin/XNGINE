@@ -14,24 +14,24 @@ struct Texture
 struct Mesh
 {
 	// Holds the ID for the VAO, VBO, IBO in the GPU memory
-	uint32 	id_vao;
-	uint32 	id_vbo;
+	uint32	id_vao;
+	uint32	id_vbo;
 	uint32 	id_ibo;
 	int32	index_count;
 };
 
 struct Camera
 {
-	glm::vec3 position = glm::vec3(0.f);			// camera x y z pos in world space 
-	glm::vec3 rotation = glm::vec3(0.f);			// pitch, yaw, roll - in that order
-	glm::vec3 world_up = glm::vec3(0.f, 1.f, 0.f);
+	glm::vec3 	position 				= glm::vec3(0.f);			// camera x y z pos in world space 
+	glm::vec3 	rotation 				= glm::vec3(0.f);			// pitch, yaw, roll - in that order
+	glm::vec3 	world_up 				= glm::vec3(0.f, 1.f, 0.f);
 
-	glm::vec3 calculated_direction = glm::vec3(0.f);// Intuitive direction - direction forward
-	glm::vec3 calculated_up = glm::vec3(0.f);
-	glm::vec3 calculated_right = glm::vec3(0.f);
+	glm::vec3 	calculated_direction 	= glm::vec3(0.f);// Intuitive direction - direction forward
+	glm::vec3 	calculated_up 			= glm::vec3(0.f);
+	glm::vec3 	calculated_right 		= glm::vec3(0.f);
 
-	real32 movespeed = 2.f;
-	real32 turnspeed = 0.17f;
+	real32 	  	movespeed 				= 2.f;
+	real32		turnspeed 				= 0.17f;
 };
 
 struct ShaderProgram
