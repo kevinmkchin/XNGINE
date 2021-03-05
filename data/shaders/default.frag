@@ -8,5 +8,5 @@ out vec4 colour;
 
 void main()
 {
-	colour = texture(texture_sampler_0, tex_coord);
+    colour = texture(texture_sampler_0, tex_coord);
 }
