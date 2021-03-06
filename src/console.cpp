@@ -35,7 +35,6 @@ real32 con_y;
 ConState con_state = CON_HIDDEN;
 TTAFont* con_font;
 
-
 INTERNAL void con_initialize(TTAFont* console_font)
 {   
     con_cursor = 0;
@@ -126,7 +125,7 @@ INTERNAL void con_update(real32 dt)
         {
             printf("%s\n", con_io_buffer);
         } break;
-        case CON_HIDING: 
+        case CON_HIDING:
         {
             con_y -= CON_SCROLL_SPEED * dt;
             if(con_y < 0.f)
@@ -198,9 +197,12 @@ INTERNAL void con_keydown(SDL_KeyboardEvent& keyevent)
         }break;
         case SDLK_BACKSPACE:
         {
-            --con_cursor;
-            con_io_buffer[con_cursor] = 0;
-            --con_io_buffer_count;
+            if(con_cursor > 0)
+            {
+                --con_cursor;
+                con_io_buffer[con_cursor] = 0;
+                --con_io_buffer_count;
+            }
         }break;
     }
 
@@ -282,9 +284,12 @@ INTERNAL void con_keydown(SDL_KeyboardEvent& keyevent)
     // CHECK INPUT
     if((ASCII_SPACE <= keycode && keycode <= ASCII_TILDE))
     {
-        con_io_buffer[con_cursor] = keycode;
-        ++con_cursor;
-        ++con_io_buffer_count;
+        if(con_io_buffer_count < CON_COLS_IN_LINE)
+        {
+            con_io_buffer[con_cursor] = keycode;
+            ++con_cursor;
+            ++con_io_buffer_count;
+        }
     }
 }
 
