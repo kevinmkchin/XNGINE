@@ -3,11 +3,11 @@
 layout (location = 0) in vec3 pos;
 layout (location = 1) in vec2 in_tex_coord;
 
+out vec2 tex_coord;
+
 uniform mat4 matrix_model;
 uniform mat4 matrix_view;
 uniform mat4 matrix_projection;
-
-out vec2 tex_coord;
 
 void main()
 {

@@ -27,12 +27,15 @@ struct Camera
     glm::vec3   rotation                = glm::vec3(0.f);           // pitch, yaw, roll - in that order
     glm::vec3   world_up                = glm::vec3(0.f, 1.f, 0.f);
 
-    glm::vec3   calculated_direction    = glm::vec3(0.f);// Intuitive direction - direction forward
+    glm::vec3   calculated_direction    = glm::vec3(0.f);           // Intuitive direction - direction forward
     glm::vec3   calculated_up           = glm::vec3(0.f);
     glm::vec3   calculated_right        = glm::vec3(0.f);
 
     real32      movespeed               = 2.f;
     real32      turnspeed               = 0.17f;
+
+    glm::mat4   matrix_perspective; // Perspective projection matrix
+    glm::mat4   matrix_view;        // Last calculated view matrix
 };
 
 /** Handle for Shader Program stored in GPU memory */

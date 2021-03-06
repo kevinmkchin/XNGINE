@@ -2,9 +2,9 @@
 
 in vec2 tex_coord;
 
-uniform sampler2D texture_sampler_0;
-
 out vec4 colour;
+
+uniform sampler2D texture_sampler_0;
 
 void main()
 {
