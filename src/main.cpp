@@ -1,7 +1,6 @@
 /** OpenGL 3D Renderer
 
 TODO:
-    - clean up kc_truetypeassembler.h, make sure im not copying fucking 20 kb
     - Review Texture.cpp functions and clean up. Refactor out stbi_load. 
     - Review Mesh.cpp functions and clean up
     - Review Camera.cpp functions and clean up
@@ -90,7 +89,7 @@ INTERNAL void load_font(TTAFont& font_handle, const char* font_file_path, int fo
     file_read_file_binary(fontfile, font_file_path);
     if(fontfile.memory)
     {
-        font_handle = kctta_init_font((uint8*) fontfile.memory, font_height_in_pixels);
+        kctta_init_font(&font_handle, (uint8*) fontfile.memory, font_height_in_pixels);
     }
     file_free_file_binary(fontfile);
 }
@@ -134,13 +133,12 @@ INTERNAL int8 game_run()
     create_triangles();
 
 
-    load_font(pogfont, "c:/windows/fonts/impact.ttf", 60);
-    printf("sizeof pogfont: %zd", sizeof(pogfont));
+    load_font(pogfont, "c:/windows/fonts/times.ttf", 30);
     gl_load_bitmap(tex_font_atlas, pogfont.font_atlas.pixels, pogfont.font_atlas.width, pogfont.font_atlas.height, GL_RED, GL_RED);
     free(pogfont.font_atlas.pixels);
     kctta_use_index_buffer(1);
-    kctta_move_cursor(0, 100);
-    kctta_append_line("Among Us", &pogfont);
+    kctta_move_cursor(400, 300);
+    kctta_append_line("Amogus", &pogfont, 100);
     TTAVertexBuffer textbuffer = kctta_grab_buffer();
     meshes[2] = gl_create_mesh_array(textbuffer.vertex_buffer, textbuffer.index_buffer, 
         textbuffer.vertices_array_count, textbuffer.indices_array_count, 2, 2);
@@ -430,11 +428,24 @@ INTERNAL void game_render()
     glUseProgram(0);
 
     // test
+    // kctta_move_cursor(100,100);
+    // kctta_append_line("amogus", &pogfont, 100);
+    // TTAVertexBuffer textbuffer = kctta_grab_buffer();
+    // gl_rebind_buffers(meshes[2], 
+    //     textbuffer.vertex_buffer, 
+    //     textbuffer.index_buffer, 
+    //     textbuffer.vertices_array_count, 
+    //     textbuffer.indices_array_count,
+    //     GL_DYNAMIC_DRAW);
+    // kctta_clear_buffer();
+
     use_shader(shaders[1]);
+        glUniformMatrix4fv(shaders[1].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(matrix_projection_ortho));
+
         matrix_model = glm::mat4(1.f);
         matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.f, 100.f));
+        //matrix_model = glm::scale(matrix_model, glm::vec3(1.f, 3.f, 1.f));
         glUniformMatrix4fv(shaders[1].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
-        glUniformMatrix4fv(shaders[1].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(matrix_projection_ortho));
         glUniform3f(glGetUniformLocation(shaders[1].id_shader_program, "text_colour"), 0.f, 1.f, 0.f);
         gl_use_texture(tex_font_atlas);
         gl_render_mesh(meshes[2]);

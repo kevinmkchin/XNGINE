@@ -4,7 +4,8 @@ INTERNAL Mesh gl_create_mesh_array(real32* vertices,
                                    uint32 vertices_array_count,
                                    uint32 indices_array_count,
                                    uint8 vertex_attrib_size = 3,
-                                   uint8 texture_attrib_size = 2)
+                                   uint8 texture_attrib_size = 2,
+                                   GLenum draw_usage = GL_STATIC_DRAW)
 {
     uint8 stride = vertex_attrib_size + texture_attrib_size;
 
@@ -20,7 +21,7 @@ INTERNAL Mesh gl_create_mesh_array(real32* vertices,
             /* Connect the vertices data to the actual gl array buffer for this VBO. We need to pass in the size of the data we are passing as well.
             GL_STATIC_DRAW (as opposed to GL_DYNAMIC_DRAW) means we won't be changing these data values in the array. 
             The vertices array does not need to exist anymore after this call because that data will now be stored in the VAO on the GPU. */
-            glBufferData(GL_ARRAY_BUFFER, 4 /*bytes cuz uint32*/ * vertices_array_count, vertices, GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, 4 /*bytes cuz uint32*/ * vertices_array_count, vertices, draw_usage);
             /* Index is location in VAO of the attribute we are creating this pointer for.
             Size is number of values we are passing in (e.g. size is 3 if x y z).
             Normalized is normalizing the values.
@@ -39,11 +40,33 @@ INTERNAL Mesh gl_create_mesh_array(real32* vertices,
         // Index Buffer Object
         glGenBuffers(1, &mesh.id_ibo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.id_ibo);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, 4 /*bytes cuz uint32*/ * indices_array_count, indices, GL_STATIC_DRAW);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, 4 /*bytes cuz uint32*/ * indices_array_count, indices, draw_usage);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0); // Unbind the VAO;
 
     return mesh;
+}
+
+INTERNAL void gl_rebind_buffers(Mesh& mesh,
+                                real32* vertices, 
+                                uint32* indices,
+                                uint32 vertices_array_count,
+                                uint32 indices_array_count,
+                                GLenum draw_usage = GL_STATIC_DRAW)
+{
+    if(mesh.id_vbo == 0 || mesh.id_ibo == 0)
+    {
+        return;
+    }
+
+    mesh.index_count = indices_array_count;
+    glBindVertexArray(mesh.id_vao);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh.id_vbo);
+            glBufferData(GL_ARRAY_BUFFER, 4 * vertices_array_count, vertices, draw_usage);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.id_ibo);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, 4 * indices_array_count, indices, draw_usage);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 }
 
 /**  */

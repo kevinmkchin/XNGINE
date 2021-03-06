@@ -1,6 +1,6 @@
 /** kc_truetypeassembler.h 
 
- - KC TrueType Assembler -
+ - kevinmkchin's TrueType Assembler -
 
 PURPOSE:
     Single-header library to generate vertices and texture coordinates array for
@@ -9,12 +9,35 @@ PURPOSE:
 
     This library strives to solve 2 problems:
     - Creating an individual vertex array / textured quad for every single character you
-    want to draw is extremely inefficient.
+    want to draw is extremely inefficient - especially if each character has their own
+    texture that needs to be binded to the graphics card.
     - Every character/glyph has varying sizes and parameters that affect how they should
     be drawn relative to all the other characters/glyphs. These must be considered when
     drawing a line of text.
 
+    This library solves these problems by 
+        1.  generating a single, large texture combining all the individual textures of the
+            characters - called a font Texture Atlas
+        2.  generating a single vertex buffer containing the vertices of all the quads 
+            (https://en.wikipedia.org/wiki/Quadrilateral - one quad can draw one character) 
+            required by the text you want to draw
+        3.  handling the assembly of the quad vertices for the single vertex buffer by
+            using the character/glyph metrics (size, offsets, etc.)
+
+CONCEPT:
+    This library serves as a text drawing "canvas". 
+    You can "append" lines of text or characters to the "canvas". You can control where
+    the text gets "appended" to the "canvas" by moving the "cursor" (setting its location
+    on the screen). Then when you want to draw the "canvas" with your graphics API (OpenGL, 
+    DirectX, etc.), you can "grab" the "canvas" (vertex buffer).
+    Then, it is up to you and your graphics API to create the VAO and VBO on the graphics card
+    using the vertex buffer you "grabbed" from this library.
+    Check the USAGE EXAMPLEs below to see how this would translate to code.
+
 USAGE:
+    This library REQUIRES Sean Barrett's stb_truetype.h to be included beforehand:
+    https://raw.githubusercontent.com/nothings/stb/master/stb_truetype.h
+
     This library's purpose is to return an array of vertices and texture coordinates:
         [ x, y, u, v, x, y, u, v, ......, x, y, u, v ]
     You can feed this into a Vertex Buffer with a Stride of 4.
@@ -25,19 +48,65 @@ USAGE:
 
     This library is not responsible for rendering text. You can do that on your own in your
     preferred graphics API, a quad/ui rendering shader, and an orthogonal projection matrix.
+    (https://www.learnopengles.com/tag/index-buffer-object/)
 
-Backlog:
+USAGE EXAMPLE (Pseudocode):
+
+Do only once:
+    Optional:   kctta_use_index_buffer(b_use = 1);                                  <-- Set this to true if you are using indexed draws
+                            |
+                            V
+    Required:   kctta_init_font(font_handle, font_buffer, font_height_in_pixels);   <-- DO ONLY ONCE PER FONT (or per font resolution)
+
+Loop:
+    Optional:   kctta_move_cursor(x = 640, y = 360);                                <-- Set the cursor to x y (where to start drawing)
+                            |
+                            V
+    Required:   kctta_append_line("some text", font_handle, b_reset_cursor_after_append);   <-- text to draw
+                            |
+                            V
+    Optional:   kctta_new_line(x = 640, font);                                      <-- Go to next line, set cursor x to 640
+                            |
+                            V
+    Optional:   kctta_append_line("next lin", font_handle, b_reset_cursor_after_append);    <-- next line to draw
+                            |
+                            V
+    Optional:   kctta_append_glyph('e', font_handle);                               <-- Can append individual glyphs also
+                            |
+                            V
+    Required:   TTAVertexBuffer %grabbedbuffer% = kctta_grab_buffer();              <-- Grabs the buffer
+                            |
+                            V
+    Required:   * create/bind Vertex Array Object and Vertex Buffer Objects on GPU using your graphics API and %grabbedbuffer%
+                            |
+                            V
+    Optional:   kctta_clear_buffer();           <-- REQUIRED IF you want to clear the appended text to append NEW text
+                                                    Only clear AFTER you bind the vertex and index buffers of %grabbedbuffer%
+                                                    to the VAO and VBO on the GPU.
+
+
+USAGE EXAMPLE (Actual Code using OpenGL):
+
+
+
+TODO:
+    - 1-2 pixel gap between the glyphs in font atlas
     - Kerning
-    - Top to bottom text
+    - Top-to-bottom text (vertical text)
+    - Support creating font atlas for a select few characters (e.g. only the characters in 'D''O''O''M')
+        this will allow larger font sizes for the few select characters and also smaller font texture atlas sizes.
 */
 
-#define kctta_internal static       // kctta internal function
-#define kctta_local_persist static // kctta local static variable
-
-#define KCTTA_ASCII_FROM ' '
-#define KCTTA_ASCII_TO '~'
-#define KCTTA_MAX_CHAR_IN_BUFFER 800
+#define kctta_internal static           // kctta internal function
+#define kctta_local_persist static      // kctta local static variable
+#define KCTTA_ASCII_FROM ' '            // starting ASCII codepoint to collect font data for
+#define KCTTA_ASCII_TO '~'              // ending ASCII codepoint to collect font data for
+#define KCTTA_MAX_CHAR_IN_BUFFER 800    // maximum characters allowed in vertex buffer ("canvas")
 #define KCTTA_GLYPH_COUNT KCTTA_ASCII_TO - KCTTA_ASCII_FROM + 1
+#define KCTTA_MAX_FONT_RESOLUTION 100   // maximum font resolution when initializing font
+#define KCTTA_DESIRED_ATLAS_WIDTH 400   // width of the font atlas
+#define KCTTA_AT_PAD_X 1         // x padding between the glyph textures on the texture atlas
+#define KCTTA_AT_PAD_Y 1         // y padding between the glyph textures on the texture atlas
 
 /** Stores a pointer to the vertex buffer assembly array and the count of vertices in the 
     array (total length of array would be count of vertices * 4).
@@ -56,11 +125,15 @@ typedef struct
 */
 typedef struct 
 {
-    int             width;      //
-    int             height;
-    unsigned char*pixels; // TTABitmap pixels are only 1 byte long and contain ONLY the alpha data
+    int             width;      // bitmap width
+    int             height;     // bitmap height
+    unsigned char*  pixels;     // unsigned byte bitmap
 } TTABitmap;
 
+/** Stores information about a glyph. The glyph is identified via codepoint (ASCII).
+    Check out https://learnopengl.com/img/in-practice/glyph.png 
+    Learn more about glyph metrics if you want.
+*/
 typedef struct 
 {
     float           advance;
@@ -76,47 +149,63 @@ typedef struct
 } TTAGlyph;
 
 /** TTAFont is a handle to hold font information. It's around ~4KB, so don't copy it around all the time.
+    
 */
 typedef struct 
 {
-    float           ascender;
-    float           descender;
-    float           linegap;
-    TTABitmap       font_atlas;
-    TTAGlyph        glyphs[KCTTA_GLYPH_COUNT];
+    float           ascender;                   // https://en.wikipedia.org/wiki/Ascender_(typography)
+    float           descender;                  // https://en.wikipedia.org/wiki/Descender
+    float           linegap;                    // gap between the bottom of the descender of one line to the top of the ascender of the line below
+    TTABitmap       font_atlas;                 // stores the bitmap for the font texture atlas (https://en.wikipedia.org/wiki/Texture_atlas#/media/File:Texture_Atlas.png)
+    TTAGlyph        glyphs[KCTTA_GLYPH_COUNT];  // array for glyphs information
 } TTAFont;
 
 
-/** 
+/** Initializes a TTAFont font handle to store glyphs information, font information, and the font texture atlas.
+    Collects the glyphs and font information from the font file (given as a binary buffer in memory)
+    and generates the font texture atlas (https://en.wikipedia.org/wiki/Texture_atlas#/media/File:Texture_Atlas.png)
+    Expensive, so you should only do this ONCE per font (and font size) and just keep the TTAFont around somewhere.
 */
-kctta_internal TTAFont kctta_init_font(TTAFont*         font_handle,
-                                       unsigned char*   font_buffer,
-                                       int              font_height_in_pixels);
+kctta_internal void kctta_init_font(TTAFont*         font_handle,
+                                    unsigned char*   font_buffer,
+                                    int              font_height_in_pixels);
 
-/** Move cursor location
+/** Move cursor location (cursor represents the position on the screen where text is placed)
 */
 kctta_internal void kctta_move_cursor(int x, 
                                       int y);
 
 /** Go to new line and set X location of cursor
 */
-kctta_internal void kctta_new_line(int x, 
+kctta_internal void kctta_new_line(int      x, 
                                    TTAFont* font);
 
-/** Assemble quad for a glyph and append to vertex buffer.
-*/
-kctta_internal void kctta_append_glyph(const char in_glyph, TTAFont* font);
-
 /** Assemble quads for a line of text and append to vertex buffer.
+    line_of_text is the text you want to draw e.g. "some text I want to draw".
+    font is the TTAFont font handle that contains the font you want to use.
+    font_size is the font height in pixels.
+    b_reset_cursor_after_append is whether or not to return the cursor back
+    to where it started after appending the line.
 */
-kctta_internal void kctta_append_line(const char* line_of_text, TTAFont* font);
+kctta_internal void kctta_append_line(const char*   line_of_text,
+                                      TTAFont*      font,
+                                      int           font_size,
+                                      unsigned int  b_reset_cursor_after_append = 0);
+
+/** Assemble quad for a glyph and append to vertex buffer.
+    font is the TTAFont font handle that contains the font you want to use.
+    font_size is the font height in pixels
+*/
+kctta_internal void kctta_append_glyph(const char   in_glyph, 
+                                       TTAFont*     font,
+                                       int          font_size);
 
 /** Get TTAVertexBuffer with a pointer to the vertex buffer array
     and vertex buffer information.
 */
 kctta_internal TTAVertexBuffer kctta_grab_buffer();
 
-/** Call before starting to push new text.
+/** Call before starting to append new text.
     Clears the vertex buffer that text is being appended to. 
     If you called kctta_grab_buffer and want to use the buffer you received,
     make sure you pass the buffer to OpenGL (glBufferData) or make a copy of
@@ -126,7 +215,8 @@ kctta_internal void kctta_clear_buffer();
 
 /** Sets the TrueTypeAssembler to use indexed vertices and return a index buffer
     as well when grabbing buffers. Clears vertex buffer if you switch the flag while
-    there are already vertices in the vertex buffer. */
+    there are already vertices in the vertex buffer. 
+*/
 kctta_internal void kctta_use_index_buffer(unsigned int b_use);
 
 
@@ -147,37 +237,37 @@ kctta_ceil(float num)
 // If you have a pointer to these buffers, DO NOT let these buffers be overwritten
 // before you bind the data to GPU memory.
 kctta_local_persist float kctta_vertex_buffer[KCTTA_MAX_CHAR_IN_BUFFER * 6 * 4]; // 800 characters * 6 vertices * (2 xy + 2 uv)
-kctta_local_persist int kctta_vertex_count = 0;           // Each vertex takes up 4 places in the assembly_buffer
+kctta_local_persist int kctta_vertex_count = 0; // Each vertex takes up 4 places in the assembly_buffer
 kctta_local_persist unsigned int kctta_index_buffer[KCTTA_MAX_CHAR_IN_BUFFER * 6];
 kctta_local_persist int kctta_index_count = 0;
 
-kctta_local_persist unsigned int kctta_b_use_indexed_draw_flag = 0; // Flag to indicate whether to use indexed draws [https://www.learnopengles.com/tag/index-buffer-object/]
+kctta_local_persist unsigned int kctta_b_use_indexed_draw_flag = 0; // Flag to indicate whether to use indexed draws
 
 kctta_local_persist int kctta_cursor_x = 0;             // top left of the screen is pixel (0, 0), bot right of the screen is pixel (screen buffer width, screen buffer height)
 kctta_local_persist int kctta_cursor_y = 100;           // cursor points to the base line at which to start drawing the glyph
 
 
-kctta_internal TTAFont
-kctta_init_font(unsigned char* font_buffer, int font_height_in_pixels)
+kctta_internal void
+kctta_init_font(TTAFont* font_handle, unsigned char* font_buffer, int font_height_in_pixels)
 {
-    TTAFont font;
+    int desired_atlas_width = KCTTA_DESIRED_ATLAS_WIDTH;
 
-    int desired_atlas_width = 400;
+    if(font_height_in_pixels > KCTTA_MAX_FONT_RESOLUTION)
+    {
+        return;
+    }
 
-    int font_size = font_height_in_pixels;
-
+    // Font metrics
     stbtt_fontinfo stb_font_info;
     stbtt_InitFont(&stb_font_info, font_buffer, 0);
-    
-    float stb_scale = stbtt_ScaleForPixelHeight(&stb_font_info, (float)font_size);
-    
+    float stb_scale = stbtt_ScaleForPixelHeight(&stb_font_info, (float)font_height_in_pixels);
     int stb_ascender;
     int stb_descender;
     int stb_linegap;
     stbtt_GetFontVMetrics(&stb_font_info, &stb_ascender, &stb_descender, &stb_linegap);
-    font.ascender = (float)stb_ascender * stb_scale;
-    font.descender = (float)stb_descender * stb_scale;
-    font.linegap = (float)stb_linegap * stb_scale;
+    font_handle->ascender = (float)stb_ascender * stb_scale;
+    font_handle->descender = (float)stb_descender * stb_scale;
+    font_handle->linegap = (float)stb_linegap * stb_scale;
 
     // LOAD GLYPH BITMAP AND INFO FOR EVERY CHARACTER WE WANT IN THE FONT
     TTABitmap temp_glyph_bitmaps[KCTTA_GLYPH_COUNT];
@@ -186,9 +276,9 @@ kctta_init_font(unsigned char* font_buffer, int font_height_in_pixels)
     // load glyph data
     for(char char_index = KCTTA_ASCII_FROM; char_index <= KCTTA_ASCII_TO; ++char_index) // ASCII
     {
-        // get shit from stbtt
         TTAGlyph glyph;
         
+        // get glyph metrics from stbtt
         int stb_advance;
         int stb_leftbearing;
         stbtt_GetCodepointHMetrics(&stb_font_info, 
@@ -197,7 +287,6 @@ kctta_init_font(unsigned char* font_buffer, int font_height_in_pixels)
                                    &stb_leftbearing);
         glyph.codepoint = char_index;
         glyph.advance = (float)stb_advance * stb_scale;
-        
         int stb_width, stb_height;
         int stb_offset_x, stb_offset_y;
         unsigned char* stb_bitmap_temp = stbtt_GetCodepointBitmap(&stb_font_info,
@@ -219,23 +308,23 @@ kctta_init_font(unsigned char* font_buffer, int font_height_in_pixels)
         {
             for(int col = 0; col < glyph.width; ++col)
             {
+                // Flip the bitmap image from top to bottom to bottom to top
                 temp_glyph_bitmaps[iter].pixels[row * glyph.width + col] = stb_bitmap_temp[(glyph.height - row - 1) * glyph.width + col];
             }
         }
-
         temp_glyph_bitmaps[iter].width = glyph.width;
         temp_glyph_bitmaps[iter].height = glyph.height;
-        aggregate_glyph_width += glyph.width;
+        aggregate_glyph_width += glyph.width + KCTTA_AT_PAD_X;
         if(tallest_glyph_height < glyph.height)
         {
             tallest_glyph_height = glyph.height;
         }
         stbtt_FreeBitmap(stb_bitmap_temp, 0);
 
-        font.glyphs[iter] = glyph;
+        font_handle->glyphs[iter] = glyph;
     }
 
-    int desired_atlas_height = tallest_glyph_height
+    int desired_atlas_height = (tallest_glyph_height + KCTTA_AT_PAD_Y)
         * kctta_ceil((float)aggregate_glyph_width / (float)desired_atlas_width);
     // Build font atlas bitmap based on these parameters
     TTABitmap atlas;
@@ -252,29 +341,27 @@ kctta_init_font(unsigned char* font_buffer, int font_height_in_pixels)
         if (atlas_x + glyph_bitmap.width > atlas.width) // check if move atlas bitmap cursor to next line
         {
             atlas_x = 0;
-            atlas_y += tallest_glyph_height;
+            atlas_y += tallest_glyph_height + KCTTA_AT_PAD_Y;
         }
 
         for(int glyph_y = 0; glyph_y < glyph_bitmap.height; ++glyph_y)
         {
             for(int glyph_x = 0; glyph_x < glyph_bitmap.width; ++glyph_x)
             {
-                atlas.pixels[atlas_x + glyph_x + (atlas_y + glyph_y) * atlas.width]
-                    = glyph_bitmap.pixels[glyph_x + glyph_y * glyph_bitmap.width];
-            } 
+                atlas.pixels[(atlas_y + glyph_y) * atlas.width + atlas_x + glyph_x]
+                    = glyph_bitmap.pixels[glyph_y * glyph_bitmap.width + glyph_x];
+            }
         }
-        font.glyphs[i].min_u = (float) atlas_x / (float) atlas.width;
-        font.glyphs[i].min_v = (float) atlas_y / (float) atlas.height;
-        font.glyphs[i].max_u = (float) (atlas_x + glyph_bitmap.width) / (float) atlas.width;
-        font.glyphs[i].max_v = (float) (atlas_y + glyph_bitmap.height) / (float) atlas.height;
+        font_handle->glyphs[i].min_u = (float) atlas_x / (float) atlas.width;
+        font_handle->glyphs[i].min_v = (float) atlas_y / (float) atlas.height;
+        font_handle->glyphs[i].max_u = (float) (atlas_x + glyph_bitmap.width) / (float) atlas.width;
+        font_handle->glyphs[i].max_v = (float) (atlas_y + glyph_bitmap.height) / (float) atlas.height;
 
-        atlas_x += glyph_bitmap.width; // move the atlas bitmap cursor by glyph bitmap width
+        atlas_x += glyph_bitmap.width + KCTTA_AT_PAD_X; // move the atlas bitmap cursor by glyph bitmap width
 
         free(glyph_bitmap.pixels);
     }
-    font.font_atlas = atlas;
-
-    return font;
+    font_handle->font_atlas = atlas;
 }
 
 kctta_internal void
@@ -292,16 +379,15 @@ kctta_new_line(int x, TTAFont* font)
 }
 
 kctta_internal void
-kctta_append_glyph(const char in_glyph, TTAFont* font)
+kctta_append_glyph(const char in_glyph, TTAFont* font, int font_size)
 {
-    int iter = in_glyph - KCTTA_ASCII_FROM;
-    TTAGlyph glyph = font->glyphs[iter];
-
-    // Make sure we are not exceeding the array size
-    if(KCTTA_MAX_CHAR_IN_BUFFER * 6 < kctta_vertex_count + 6)
-    {
-        return;
-    }
+    float scale = ((float) font_size) / (font->ascender - font->descender);
+    TTAGlyph glyph = font->glyphs[in_glyph - KCTTA_ASCII_FROM];
+    glyph.advance *= scale;
+    glyph.width = (int) ((float) glyph.width * scale);
+    glyph.height = (int) ((float) glyph.height * scale);
+    glyph.offset_x *= scale;
+    glyph.offset_y *= scale;
 
     // For each of the 6 vertices, fill in the kctta_vertex_buffer in the order x y u v
     int STRIDE = 4;
@@ -378,17 +464,30 @@ kctta_append_glyph(const char in_glyph, TTAFont* font)
 }
 
 kctta_internal void
-kctta_append_line(const char* line_of_text, TTAFont* font)
+kctta_append_line(const char* line_of_text, TTAFont* font, int font_size, unsigned int b_reset_cursor_after_append)
 {
     int line_start_x = kctta_cursor_x;
+    int line_start_y = kctta_cursor_y;
     while(*line_of_text != '\0')
     {
         if(*line_of_text == '\n')
         {
             kctta_new_line(line_start_x, font);
         }
-        kctta_append_glyph(*line_of_text, font);
+
+        if(KCTTA_MAX_CHAR_IN_BUFFER * 6 < kctta_vertex_count + 6) // Make sure we are not exceeding the array size
+        {
+            break;
+        }
+
+        kctta_append_glyph(*line_of_text, font, font_size);
         ++line_of_text;
+    }
+
+    if(b_reset_cursor_after_append)
+    {
+        kctta_cursor_x = line_start_x;
+        kctta_cursor_y = line_start_y;
     }
 }
 
@@ -435,20 +534,9 @@ kctta_clear_buffer()
 kctta_internal void
 kctta_use_index_buffer(unsigned int b_use)
 {
-    if(b_use)
+    if((b_use > 0) != (kctta_b_use_indexed_draw_flag > 0))
     {
-        if(!kctta_b_use_indexed_draw_flag)
-        {
-            kctta_clear_buffer();
-        }
-        kctta_b_use_indexed_draw_flag = 1;
+        kctta_clear_buffer();
     }
-    else
-    {
-        if(kctta_b_use_indexed_draw_flag)
-        {
-            kctta_clear_buffer();
-        }
-        kctta_b_use_indexed_draw_flag = 0;
-    }
+    kctta_b_use_indexed_draw_flag = b_use;
 }
