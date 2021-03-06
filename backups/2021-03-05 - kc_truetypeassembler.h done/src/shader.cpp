@@ -74,8 +74,8 @@ INTERNAL void init_shader_program_from_strings(ShaderProgram& shader, const char
 
 INTERNAL void init_shader_program(ShaderProgram& shader, const char* vertex_path, const char* fragment_path)
 {
-    std::string v = FILE_read_file_string(vertex_path);
-    std::string f = FILE_read_file_string(fragment_path);
+    std::string v = file_read_file_string(vertex_path);
+    std::string f = file_read_file_string(fragment_path);
     init_shader_program_from_strings(shader, v.c_str(), f.c_str());
 }
 

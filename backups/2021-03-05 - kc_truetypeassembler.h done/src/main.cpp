@@ -86,12 +86,12 @@ Texture tex_font_atlas;
 INTERNAL void load_font(TTAFont& font_handle, const char* font_file_path, int font_height_in_pixels)
 {
     BinaryFileHandle fontfile;
-    FILE_read_file_binary(fontfile, font_file_path);
-        if(fontfile.memory)
-        {
-            kctta_init_font(&font_handle, (uint8*) fontfile.memory, font_height_in_pixels);
-        }
-    FILE_free_file_binary(fontfile);
+    file_read_file_binary(fontfile, font_file_path);
+    if(fontfile.memory)
+    {
+        kctta_init_font(&font_handle, (uint8*) fontfile.memory, font_height_in_pixels);
+    }
+    file_free_file_binary(fontfile);
 }
 
 INTERNAL void create_triangles()
@@ -134,13 +134,8 @@ INTERNAL int8 game_run()
 
 
     load_font(pogfont, "c:/windows/fonts/times.ttf", 30);
-        gl_load_texture_from_bitmap(tex_font_atlas,
-                                    pogfont.font_atlas.pixels,
-                                    pogfont.font_atlas.width,
-                                    pogfont.font_atlas.height,
-                                    GL_RED, GL_RED);
+    gl_load_bitmap(tex_font_atlas, pogfont.font_atlas.pixels, pogfont.font_atlas.width, pogfont.font_atlas.height, GL_RED, GL_RED);
     free(pogfont.font_atlas.pixels);
-
     kctta_use_index_buffer(1);
     kctta_move_cursor(400, 300);
     kctta_append_line("Amogus", &pogfont, 100);
@@ -159,8 +154,10 @@ INTERNAL int8 game_run()
     init_shader_program(shader, ui_vs_path, ui_fs_path);
     shaders[1] = shader;
 
-    gl_load_texture_from_file(tex_brick, "data/textures/brick.png");
-    gl_load_texture_from_file(tex_dirt, "data/textures/mqdefault.jpg");
+    tex_brick.file_path = "data/textures/brick.png";
+    gl_load_texture(tex_brick);
+    tex_dirt.file_path = "data/textures/mqdefault.jpg";
+    gl_load_texture(tex_dirt);
 
     /** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)
         The model matrix, right now, is in Game::render because we want to be able to update the object's transform on tick. However, ideally, the 
@@ -299,9 +296,6 @@ INTERNAL bool game_init()
     SDL_SetRelativeMouseMode(SDL_TRUE);
     // Grab keystate array
     g_keystate = SDL_GetKeyboardState(nullptr);
-
-    // stb_image setting
-    stbi_set_flip_vertically_on_load(true);
 
     return true;
 }
