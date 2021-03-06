@@ -5,7 +5,10 @@ TODO:
         - use opengl textured quads for both the background and the text
         - do instant show and hide first
         - scrolling down and up can do later
+        - remember previously entered commands
         - shader hotloading/compiling during runtime
+            - pause all update / render while shaders are being recompiled
+    - Texture GL_NEAREST option
 Backlog:
     - WATCH handmadehero day 14 first: memory.cpp Memory management system 
     (allocate and deallocate functions that use a memory arena or something instead of doing malloc all the time)
@@ -13,12 +16,16 @@ Backlog:
     - Phong Lighting
     - Write own math library and remove GLM
     - Entity - pos, rot, scale, mesh, few boolean flags, collider, tags\
-    - Resize event
+    - Resize event 
+        https://stackoverflow.com/questions/20735637/resize-sdl2-window#:~:text=To%20resize%20a%20window%20in,0%2C%20windowWidth%2C%20windowHeight)%20.
+        SDL_WINDOWEVENT_RESIZED https://wiki.libsdl.org/SDL_WindowEvent
     - Frame lock
 
     THIS PROJECT IS A SINGLE TRANSLATION UNIT BUILD / UNITY BUILD
 */
+#include <assert.h>
 #include <stdio.h>
+#include <string.h>
 #include <string>
 #include <cmath>
 #include <iostream>
@@ -56,6 +63,7 @@ GLOBAL_VAR int32 g_mouse_delta_y;
 GLOBAL_VAR Camera camera;
 
 GLOBAL_VAR bool is_running = true;
+GLOBAL_VAR bool b_is_update_running = true;
 GLOBAL_VAR SDL_Window* window = nullptr;
 GLOBAL_VAR SDL_GLContext opengl_context = nullptr;
 GLOBAL_VAR HWND whandle = nullptr;  // Win32 API Window Handle
@@ -70,6 +78,7 @@ GLOBAL_VAR glm::mat4 g_matrix_projection_ortho;
 
 Mesh meshes[3];
 ShaderProgram shaders[3];
+TTAFont fonts[1];
 Texture tex_brick;
 Texture tex_dirt;
 
@@ -79,7 +88,6 @@ static const char* ui_vs_path = "shaders/ui.vert";
 static const char* ui_fs_path = "shaders/ui.frag";
 static const char* text_vs_path = "shaders/text_ui.vert";
 static const char* text_fs_path = "shaders/text_ui.frag";
-TTAFont pogfont;
 Texture tex_font_atlas;
 
 
@@ -132,17 +140,20 @@ INTERNAL int8 game_run()
     create_triangles();
 
 
-    load_font(pogfont, "c:/windows/fonts/times.ttf", 30);
+    load_font(fonts[0], "data/fonts/c64.ttf", 30);
         gl_load_texture_from_bitmap(tex_font_atlas,
-                                    pogfont.font_atlas.pixels,
-                                    pogfont.font_atlas.width,
-                                    pogfont.font_atlas.height,
+                                    fonts[0].font_atlas.pixels,
+                                    fonts[0].font_atlas.width,
+                                    fonts[0].font_atlas.height,
                                     GL_RED, GL_RED);
-    free(pogfont.font_atlas.pixels);
+    free(fonts[0].font_atlas.pixels);
+
+    // init console
+    con_initialize(&fonts[0]);
 
     kctta_use_index_buffer(1);
     kctta_move_cursor(400, 300);
-    kctta_append_line("Amogus", &pogfont, 25);
+    kctta_append_line("Amogus", &fonts[0], 24);
     TTAVertexBuffer textbuffer = kctta_grab_buffer();
     meshes[2] = gl_create_mesh_array(textbuffer.vertex_buffer, textbuffer.index_buffer, 
         textbuffer.vertices_array_count, textbuffer.indices_array_count, 2, 2);
@@ -299,9 +310,6 @@ INTERNAL bool game_init()
     // stb_image setting
     stbi_set_flip_vertically_on_load(true);
 
-    // init console
-    con_initialize();
-
     return true;
 }
 
@@ -372,6 +380,11 @@ INTERNAL void game_process_events()
 
             case SDL_KEYDOWN:
             {
+                if (event.key.keysym.sym == SDLK_F11)
+                {
+                    break;
+                }
+
                 if (event.key.keysym.sym == SDLK_BACKQUOTE)
                 {
                     con_toggle();
@@ -379,13 +392,13 @@ INTERNAL void game_process_events()
                 }
 
                 // TODO register keydown for text input into dropdown console
-                if (con_shown())
+                if (con_is_shown())
                 {
-                    con_keydown();
+                    con_keydown(event.key);
                     break;
                 }
 
-                if (event.key.keysym.sym == SDLK_ESCAPE)
+                if (event.key.keysym.sym == SDLK_ESCAPE && con_is_hidden())
                 {
                     is_running = false;
                     break;
@@ -404,9 +417,12 @@ INTERNAL void game_process_events()
 /** Tick game logic. Delta time is in seconds. */
 INTERNAL void game_update(real32 dt)
 {
-    update_camera(camera, dt);
-
     con_update(dt);
+
+    if(b_is_update_running)
+    {
+        update_camera(camera, dt);
+    }
 }
 
 /** Process graphics and render them to the screen. */
@@ -416,12 +432,11 @@ INTERNAL void game_render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear opengl context's buffer
 
 // DEPTH TESTED
-    // Enable depth test to see which triangles should be drawn over other triangles
     glEnable(GL_DEPTH_TEST);
-
 
     // TODO Probably should make own shader for wireframe draws so that wireframe fragments aren't affected by lighting or textures
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // GL_LINE for wireframe, GL_FILL to fill interior of polygon
+    
     gl_use_shader(shaders[0]);
         glUniformMatrix4fv(shaders[0].id_uniform_view, 1, GL_FALSE, glm::value_ptr(calculate_viewmatrix(camera)));
         glUniformMatrix4fv(shaders[0].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(camera.matrix_perspective));
@@ -448,7 +463,7 @@ INTERNAL void game_render()
 
     // test
     // kctta_move_cursor(100,100);
-    // kctta_append_line("amogus", &pogfont, 100);
+    // kctta_append_line("amogus", &fonts[0], 100);
     // TTAVertexBuffer textbuffer = kctta_grab_buffer();
     // gl_rebind_buffers(meshes[2], 
     //     textbuffer.vertex_buffer, 
@@ -460,10 +475,11 @@ INTERNAL void game_render()
 
     gl_use_shader(shaders[1]);
         glUniformMatrix4fv(shaders[1].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(g_matrix_projection_ortho));
-        glUniform3f(glGetUniformLocation(shaders[1].id_shader_program, "text_colour"), 0.f, 1.f, 0.f);
+        glUniform3f(glGetUniformLocation(shaders[1].id_shader_program, "text_colour"), 1.f, 1.f, 1.f);
 
         matrix_model = glm::mat4(1.f);
-        matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.f, 0.f));
+        //matrix_model = glm::translate(matrix_model, glm::vec3(-400.f, -300.f, 0.f));
+        //matrix_model = glm::scale(matrix_model, glm::vec3(4.f, 4.f, 0.f));
         glUniformMatrix4fv(shaders[1].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
         gl_use_texture(tex_font_atlas);
         gl_render_mesh(meshes[2]);
