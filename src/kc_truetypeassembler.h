@@ -90,9 +90,9 @@ USAGE EXAMPLE (Actual Code using OpenGL):
 
 
 TODO:
-    - 1-2 pixel gap between the glyphs in font atlas
     - Kerning
     - Top-to-bottom text (vertical text)
+Maybe:
     - Support creating font atlas for a select few characters (e.g. only the characters in 'D''O''O''M')
         this will allow larger font sizes for the few select characters and also smaller font texture atlas sizes.
 */
