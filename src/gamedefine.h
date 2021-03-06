@@ -28,8 +28,9 @@ typedef size_t      mi;         // memory index
 const float TO_RADIANS = 0.0174532925f; // in_degrees * TO_RADIANS = in_radians
 const float TO_DEGREES = 57.2958f;      // in_radians * TO_DEGREES = in_degrees
 
-#define INDEX_NONE -1;
-
+#define INDEX_NONE -1
+#define ASCII_SPACE 32
+#define ASCII_TILDE 126
 
 #define array_count(arr) (sizeof(arr) / (sizeof(arr[0])))
 #define min(a, b) ((a) < (b) ? (a) : (b))

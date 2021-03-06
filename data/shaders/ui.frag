@@ -6,10 +6,18 @@ in vec2 tex_coord;
 
 out vec4 colour;
 
+uniform bool b_use_colour = false;
 uniform sampler2D font_atlas_sampler;
-uniform vec3 text_colour;
+uniform vec4 ui_element_colour;
 
 void main()
 {
-    colour = vec4(0.1, 0.1, 0.1, 1.0); //texture(font_atlas_sampler, tex_coord);
+    if(b_use_colour)
+    {
+        colour = ui_element_colour;
+    }
+    else
+    {
+        colour = texture(font_atlas_sampler, tex_coord);
+    }
 }
