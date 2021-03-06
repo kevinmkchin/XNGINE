@@ -1,10 +1,11 @@
 /** OpenGL 3D Renderer
 
-TODO:
-    - Review Texture.cpp functions and clean up. Refactor out stbi_load. 
-    - Review Mesh.cpp functions and clean up
+done:
     - Review Camera.cpp functions and clean up
+    - Review Mesh.cpp functions and clean up
     - Review Shader.cpp functions and clean up
+
+TODO:
     - Review main.cpp functions and clean up
 
 Backlog:
@@ -124,8 +125,7 @@ INTERNAL void game_update(real32 dt);
 INTERNAL void game_render();
 INTERNAL void game_clean_up();
 
-/** Start the game procedure
- */
+/** Start the game procedure */
 INTERNAL int8 game_run()
 {
     if (game_init() == false) return 1;
@@ -143,7 +143,7 @@ INTERNAL int8 game_run()
 
     kctta_use_index_buffer(1);
     kctta_move_cursor(400, 300);
-    kctta_append_line("Amogus", &pogfont, 100);
+    kctta_append_line("Amogus", &pogfont, 25);
     TTAVertexBuffer textbuffer = kctta_grab_buffer();
     meshes[2] = gl_create_mesh_array(textbuffer.vertex_buffer, textbuffer.index_buffer, 
         textbuffer.vertices_array_count, textbuffer.indices_array_count, 2, 2);
@@ -154,9 +154,9 @@ INTERNAL int8 game_run()
     camera.rotation = glm::vec3(0.f, 270.f, 0.f);
 
     ShaderProgram shader;
-    init_shader_program(shader, vertex_shader_path, frag_shader_path);
+    gl_load_shader_program_from_file(shader, vertex_shader_path, frag_shader_path);
     shaders[0] = shader;
-    init_shader_program(shader, ui_vs_path, ui_fs_path);
+    gl_load_shader_program_from_file(shader, ui_vs_path, ui_fs_path);
     shaders[1] = shader;
 
     gl_load_texture_from_file(tex_brick, "data/textures/brick.png");
@@ -178,8 +178,7 @@ INTERNAL int8 game_run()
     return 0;
 }
 
-/** Create window, set up OpenGL context, initialize SDL and GLEW 
-*/
+/** Create window, set up OpenGL context, initialize SDL and GLEW */
 INTERNAL bool game_init()
 {
     // Initialize SDL
@@ -306,8 +305,7 @@ INTERNAL bool game_init()
     return true;
 }
 
-/** Clear memory and shut down
- */
+/** Clear memory and shut down */
 INTERNAL void game_clean_up()
 {
     gl_delete_texture(tex_brick);
@@ -319,7 +317,7 @@ INTERNAL void game_clean_up()
     }
     for (int i = 0; i < array_count(shaders); ++i)
     {
-        gl_clear_shader(shaders[i]);
+        gl_delete_shader(shaders[i]);
     }
 
     SDL_DestroyWindow(window);
@@ -327,8 +325,7 @@ INTERNAL void game_clean_up()
     SDL_Quit();
 }
 
-/** Game loop with fixed timestep - Input, Logic, Render
- */
+/** Game loop with fixed timestep - Input, Logic, Render */
 INTERNAL void game_loop()
 {
     real32 last_tick = (real32)SDL_GetTicks();  // time (in milliseconds since SDL init) of the last tick
@@ -344,8 +341,7 @@ INTERNAL void game_loop()
     }
 }
 
-/** Process input and SDL events
-*/
+/** Process input and SDL events */
 INTERNAL void game_process_events()
 {
     // Store Mouse state
@@ -394,15 +390,13 @@ INTERNAL void game_process_events()
     }
 }
 
-/** Tick game logic. Delta time is in seconds.
-*/
+/** Tick game logic. Delta time is in seconds. */
 INTERNAL void game_update(real32 dt)
 {
     update_camera(camera, dt);
 }
 
-/** Process graphics and render them to the screen.
-*/
+/** Process graphics and render them to the screen. */
 INTERNAL void game_render()
 {
     // Clear opengl context's buffer
@@ -412,7 +406,7 @@ INTERNAL void game_render()
     // TODO Probably should make own shader for wireframe draws so that wireframe fragments aren't affected by lighting or textures
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // GL_LINE for wireframe, GL_FILL to fill interior of polygon
 
-    use_shader(shaders[0]);
+    gl_use_shader(shaders[0]);
 
         glUniformMatrix4fv(shaders[0].id_uniform_view, 1, GL_FALSE, glm::value_ptr(calculate_viewmatrix(camera)));
         glUniformMatrix4fv(shaders[0].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(matrix_projection));
@@ -445,14 +439,13 @@ INTERNAL void game_render()
     //     GL_DYNAMIC_DRAW);
     // kctta_clear_buffer();
 
-    use_shader(shaders[1]);
+    gl_use_shader(shaders[1]);
         glUniformMatrix4fv(shaders[1].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(matrix_projection_ortho));
+        glUniform3f(glGetUniformLocation(shaders[1].id_shader_program, "text_colour"), 0.f, 1.f, 0.f);
 
         matrix_model = glm::mat4(1.f);
         matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.f, 100.f));
-        //matrix_model = glm::scale(matrix_model, glm::vec3(1.f, 3.f, 1.f));
         glUniformMatrix4fv(shaders[1].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
-        glUniform3f(glGetUniformLocation(shaders[1].id_shader_program, "text_colour"), 0.f, 1.f, 0.f);
         gl_use_texture(tex_font_atlas);
         gl_render_mesh(meshes[2]);
     glUseProgram(0);

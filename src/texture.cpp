@@ -1,5 +1,4 @@
-/** Deletes texture object from GPU memory; resets texture_id, width, height, bit_depth to 0. 
-*/
+/** Deletes texture object from GPU memory; resets texture_id, width, height, bit_depth to 0. */
 INTERNAL void gl_delete_texture(Texture& texture)
 {
     if(texture.texture_id == 0)
@@ -16,8 +15,7 @@ INTERNAL void gl_delete_texture(Texture& texture)
 
 /** Loads texture from bitmap; generates a new texture object in GPU mem; store the id
     of the new texture object into texture.texture_id; sets texture parameters; copies texture data
-    into the texture object in GPU mem; and generates mip maps automatically. 
-*/
+    into the texture object in GPU mem; and generates mip maps automatically. */
 INTERNAL void gl_load_texture_from_bitmap(Texture&          texture,
                                           unsigned char*    bitmap,
                                           uint32            bitmap_width,
@@ -57,8 +55,7 @@ INTERNAL void gl_load_texture_from_bitmap(Texture&          texture,
 
 /** Loads texture at file_path; generates a new texture object in GPU mem; stores the id
     of the new texture object into texture.texture_id; sets texture parameters; copies 
-    texture data into the texture object in GPU mem; and generates mip maps automatically. 
-*/
+    texture data into the texture object in GPU mem; and generates mip maps automatically. */
 INTERNAL void gl_load_texture_from_file(Texture&    texture,
                                         const char* texture_file_path)
 {
@@ -74,8 +71,7 @@ INTERNAL void gl_load_texture_from_file(Texture&    texture,
 // Anything drawn after this point will use these textures
 /** If we have multiple texture samplers or multiple Texture Units, ensure sampler2D uniforms
     know which Texture Unit to access via:
-        glUnifrom1i(<texture_sampler_uniform_id>, <texture_unit_number>);
-*/
+        glUnifrom1i(<texture_sampler_uniform_id>, <texture_unit_number>); */
 INTERNAL void gl_use_texture(Texture& texture)
 {
     glActiveTexture(GL_TEXTURE0);

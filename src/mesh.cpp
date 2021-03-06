@@ -1,4 +1,8 @@
-/**  */
+/** Create a Mesh with the given vertices and indices. 
+    vertex_attrib_size: vertex coords size (e.g. 3 if x y z)
+    texture_attrib_size: texture coords size (e.g. 2 if u v)
+    draw_usage: affects optimization; GL_STATIC_DRAW buffer data 
+    only set once, GL_DYNAMIC_DRAW if buffer modified repeatedly */
 INTERNAL Mesh gl_create_mesh_array(real32* vertices, 
                                    uint32* indices,
                                    uint32 vertices_array_count,
@@ -47,12 +51,13 @@ INTERNAL Mesh gl_create_mesh_array(real32* vertices,
     return mesh;
 }
 
+/** Overwrite existing buffer data */
 INTERNAL void gl_rebind_buffers(Mesh& mesh,
                                 real32* vertices, 
                                 uint32* indices,
                                 uint32 vertices_array_count,
                                 uint32 indices_array_count,
-                                GLenum draw_usage = GL_STATIC_DRAW)
+                                GLenum draw_usage = GL_DYNAMIC_DRAW) // default to dynamic draw
 {
     if(mesh.id_vbo == 0 || mesh.id_ibo == 0)
     {
@@ -69,7 +74,7 @@ INTERNAL void gl_rebind_buffers(Mesh& mesh,
     glBindVertexArray(0);
 }
 
-/**  */
+/** Binds VAO and draws elements. Bind a shader program and texture before calling gl_render_mesh */
 INTERNAL void gl_render_mesh(Mesh& mesh)
 {
     if (mesh.index_count == 0) // Early out if index_count == 0, nothing to draw
@@ -87,8 +92,7 @@ INTERNAL void gl_render_mesh(Mesh& mesh)
 }
 
 /** Clearing GPU memory: glDeleteBuffers and glDeleteVertexArrays deletes the buffer
-    object and vertex array object off the GPU memory. 
-*/
+    object and vertex array object off the GPU memory. */
 INTERNAL void gl_delete_mesh(Mesh& mesh)
 {
     if (mesh.id_ibo != 0)

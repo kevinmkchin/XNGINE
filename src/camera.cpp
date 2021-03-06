@@ -1,4 +1,4 @@
-/**  */
+/** Update camera position, rotation, direction, and right, up vectors */
 INTERNAL void update_camera(Camera& camera, real32 dt)
 {
     // Check Mouse
@@ -49,7 +49,7 @@ INTERNAL void update_camera(Camera& camera, real32 dt)
     }
 }
 
-/**  */
+/** Returns a view matrix using the given camera as the observer */
 INTERNAL glm::mat4 calculate_viewmatrix(Camera& camera)
 {
     return glm::lookAt(camera.position,
