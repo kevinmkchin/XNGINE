@@ -4,10 +4,10 @@
 
 in vec2 tex_coord;
 
+out vec4 colour;
+
 uniform sampler2D font_atlas_sampler;
 uniform vec3 text_colour;
-
-out vec4 colour;
 
 void main()
 {

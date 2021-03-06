@@ -52,7 +52,8 @@ INTERNAL void update_camera(Camera& camera, real32 dt)
 /** Returns a view matrix using the given camera as the observer */
 INTERNAL glm::mat4 calculate_viewmatrix(Camera& camera)
 {
-    return glm::lookAt(camera.position,
-                       camera.position + camera.calculated_direction,
-                       camera.calculated_up);
+    camera.matrix_view = glm::lookAt(camera.position,
+                            camera.position + camera.calculated_direction,
+                            camera.calculated_up);
+    return camera.matrix_view;
 }

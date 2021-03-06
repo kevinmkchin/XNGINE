@@ -1,23 +1,20 @@
 /** OpenGL 3D Renderer
 
-done:
-    - Review Camera.cpp functions and clean up
-    - Review Mesh.cpp functions and clean up
-    - Review Shader.cpp functions and clean up
-
 TODO:
-    - Review main.cpp functions and clean up
-
-Backlog:
     - Quake-style console with extensible commands
         - use opengl textured quads for both the background and the text
+        - do instant show and hide first
+        - scrolling down and up can do later
         - shader hotloading/compiling during runtime
+Backlog:
     - WATCH handmadehero day 14 first: memory.cpp Memory management system 
     (allocate and deallocate functions that use a memory arena or something instead of doing malloc all the time)
     - WATCH handmadehero day 15
     - Phong Lighting
     - Write own math library and remove GLM
-    - Entity - pos, rot, scale, mesh, few boolean flags, collider, tags
+    - Entity - pos, rot, scale, mesh, few boolean flags, collider, tags\
+    - Resize event
+    - Frame lock
 
     THIS PROJECT IS A SINGLE TRANSLATION UNIT BUILD / UNITY BUILD
 */
@@ -62,24 +59,26 @@ GLOBAL_VAR bool is_running = true;
 GLOBAL_VAR SDL_Window* window = nullptr;
 GLOBAL_VAR SDL_GLContext opengl_context = nullptr;
 GLOBAL_VAR HWND whandle = nullptr;  // Win32 API Window Handle
-GLOBAL_VAR glm::mat4 matrix_projection;
-GLOBAL_VAR glm::mat4 matrix_projection_ortho;
+GLOBAL_VAR glm::mat4 g_matrix_projection_ortho;
 // -------------------------
 #include "data.cpp"
 #include "camera.cpp"
 #include "mesh.cpp"
 #include "shader.cpp"
 #include "texture.cpp"
+#include "console.cpp"
 
 Mesh meshes[3];
-ShaderProgram shaders[2];
+ShaderProgram shaders[3];
 Texture tex_brick;
 Texture tex_dirt;
 
 static const char* vertex_shader_path = "shaders/default.vert";
 static const char* frag_shader_path = "shaders/default.frag";
-static const char* ui_vs_path = "shaders/text_ui.vert";
-static const char* ui_fs_path = "shaders/text_ui.frag";
+static const char* ui_vs_path = "shaders/ui.vert";
+static const char* ui_fs_path = "shaders/ui.frag";
+static const char* text_vs_path = "shaders/text_ui.vert";
+static const char* text_fs_path = "shaders/text_ui.frag";
 TTAFont pogfont;
 Texture tex_font_atlas;
 
@@ -149,15 +148,13 @@ INTERNAL int8 game_run()
         textbuffer.vertices_array_count, textbuffer.indices_array_count, 2, 2);
     kctta_clear_buffer();
 
-
-    camera.position = glm::vec3(0.f, 0.f, 0.f);
-    camera.rotation = glm::vec3(0.f, 270.f, 0.f);
-
     ShaderProgram shader;
     gl_load_shader_program_from_file(shader, vertex_shader_path, frag_shader_path);
     shaders[0] = shader;
-    gl_load_shader_program_from_file(shader, ui_vs_path, ui_fs_path);
+    gl_load_shader_program_from_file(shader, text_vs_path, text_fs_path);
     shaders[1] = shader;
+    gl_load_shader_program_from_file(shader, ui_vs_path, ui_fs_path);
+    shaders[2] = shader;
 
     gl_load_texture_from_file(tex_brick, "data/textures/brick.png");
     gl_load_texture_from_file(tex_dirt, "data/textures/mqdefault.jpg");
@@ -169,8 +166,10 @@ INTERNAL int8 game_run()
         fields, then construct the model matrix in Game::render based on those fields. Yeah that's probably better.
     */
     real32 aspect_ratio = (real32)g_buffer_width / (real32)g_buffer_height;
-    matrix_projection = glm::perspective(45.f, aspect_ratio, 0.1f, 1000.f);
-    matrix_projection_ortho = glm::ortho(0.0f, (real32)g_buffer_width,(real32)g_buffer_height,0.0f, -100.f, 10.f);
+    camera.matrix_perspective = glm::perspective(45.f, aspect_ratio, 0.1f, 1000.f);
+    camera.position = glm::vec3(0.f, 0.f, 0.f);
+    camera.rotation = glm::vec3(0.f, 270.f, 0.f);
+    g_matrix_projection_ortho = glm::ortho(0.0f, (real32)g_buffer_width,(real32)g_buffer_height,0.0f, -0.1f, 0.f);
 
     game_loop();
     game_clean_up();
@@ -264,7 +263,7 @@ INTERNAL bool game_init()
         0 = immediate, 1 = vsync, -1 = adaptive vsync. Remark: If application requests adaptive vsync and the system does 
         not support it, this function will fail and return -1. In such a case, you should probably retry the call with 1 
         for the interval. */
-    if (SDL_GL_SetSwapInterval(0) == -1)
+    if (SDL_GL_SetSwapInterval(-1) == -1)
     {
         SDL_GL_SetSwapInterval(1);
     }
@@ -287,8 +286,6 @@ INTERNAL bool game_init()
     // Setup Viewport
     glViewport(0, 0, g_buffer_width, g_buffer_height);
 
-    // Enable depth test to see which triangles should be drawn over other triangles
-    glEnable(GL_DEPTH_TEST); 
     // Enable alpha blending
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // a * (rgb) + (1 - a) * (rgb) = final color output
@@ -301,6 +298,9 @@ INTERNAL bool game_init()
 
     // stb_image setting
     stbi_set_flip_vertically_on_load(true);
+
+    // init console
+    con_initialize();
 
     return true;
 }
@@ -372,7 +372,18 @@ INTERNAL void game_process_events()
 
             case SDL_KEYDOWN:
             {
+                if (event.key.keysym.sym == SDLK_BACKQUOTE)
+                {
+                    con_toggle();
+                    break;
+                }
+
                 // TODO register keydown for text input into dropdown console
+                if (con_shown())
+                {
+                    con_keydown();
+                    break;
+                }
 
                 if (event.key.keysym.sym == SDLK_ESCAPE)
                 {
@@ -394,22 +405,26 @@ INTERNAL void game_process_events()
 INTERNAL void game_update(real32 dt)
 {
     update_camera(camera, dt);
+
+    con_update(dt);
 }
 
 /** Process graphics and render them to the screen. */
 INTERNAL void game_render()
 {
-    // Clear opengl context's buffer
-    //glClearColor(0.39f, 0.582f, 0.926f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(0.39f, 0.582f, 0.926f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear opengl context's buffer
+
+// DEPTH TESTED
+    // Enable depth test to see which triangles should be drawn over other triangles
+    glEnable(GL_DEPTH_TEST);
+
 
     // TODO Probably should make own shader for wireframe draws so that wireframe fragments aren't affected by lighting or textures
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // GL_LINE for wireframe, GL_FILL to fill interior of polygon
-
     gl_use_shader(shaders[0]);
-
         glUniformMatrix4fv(shaders[0].id_uniform_view, 1, GL_FALSE, glm::value_ptr(calculate_viewmatrix(camera)));
-        glUniformMatrix4fv(shaders[0].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(matrix_projection));
+        glUniformMatrix4fv(shaders[0].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(camera.matrix_perspective));
 
         glm::mat4 matrix_model = glm::mat4(1.f);
         matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.5f, -1.3f));
@@ -424,8 +439,12 @@ INTERNAL void game_render()
         glUniformMatrix4fv(shaders[0].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
         gl_use_texture(tex_dirt);
         gl_render_mesh(meshes[1]);
-
     glUseProgram(0);
+
+// NOT DEPTH TESTED
+    glDisable(GL_DEPTH_TEST); 
+
+    con_render(shaders[2], shaders[1]);
 
     // test
     // kctta_move_cursor(100,100);
@@ -440,11 +459,11 @@ INTERNAL void game_render()
     // kctta_clear_buffer();
 
     gl_use_shader(shaders[1]);
-        glUniformMatrix4fv(shaders[1].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(matrix_projection_ortho));
+        glUniformMatrix4fv(shaders[1].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(g_matrix_projection_ortho));
         glUniform3f(glGetUniformLocation(shaders[1].id_shader_program, "text_colour"), 0.f, 1.f, 0.f);
 
         matrix_model = glm::mat4(1.f);
-        matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.f, 100.f));
+        matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.f, 0.f));
         glUniformMatrix4fv(shaders[1].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
         gl_use_texture(tex_font_atlas);
         gl_render_mesh(meshes[2]);
