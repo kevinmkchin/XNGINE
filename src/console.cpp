@@ -188,7 +188,7 @@ INTERNAL void con_command(char* text_command)
         int argcount = 0;
         std::vector<std::string> argslist;
         token = strtok(NULL, &delim);
-        while(token != NULL && argcount < 5)
+        while(token != NULL && argcount < 10)
         {
             std::string arg = std::string(token);
             argslist.push_back(arg);
@@ -196,29 +196,7 @@ INTERNAL void con_command(char* text_command)
             token = strtok(NULL, &delim);
         }
 
-        switch(argcount)
-        {
-            case 0:
-            {
-                cmd_ptr(0);
-            }break;
-            case 1:
-            {
-                cmd_ptr(1, argslist[0]);
-            }break;
-            case 2:
-            {
-                cmd_ptr(2, argslist[0], argslist[1]);
-            }break;
-            case 3:
-            {
-                cmd_ptr(3, argslist[0], argslist[1], argslist[2]);
-            }break;
-            case 4:
-            {
-                cmd_ptr(3, argslist[0], argslist[1], argslist[2], argslist[3]);
-            }break;
-        }
+        cmd_ptr(argslist);
     }
     else
     {
@@ -235,13 +213,13 @@ INTERNAL void con_toggle()
 
     if(con_state == CON_HIDDEN)
     {
-        con_command("pause");
+        b_is_update_running = false;
         SDL_SetRelativeMouseMode(SDL_FALSE);
         con_state = CON_SHOWING;
     }
     else if(con_state == CON_SHOWN)
     {
-        cmd_unpause();
+        b_is_update_running = true;
         SDL_SetRelativeMouseMode(SDL_TRUE);
         con_state = CON_HIDING;
     }

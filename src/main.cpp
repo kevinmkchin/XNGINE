@@ -1,22 +1,23 @@
 /** OpenGL 3D Renderer
 
 TODO:
-    - Quake-style console with extensible commands
-        - remember previously entered commands
-        - shader hotloading/compiling during runtime
-            - pause all update / render while shaders are being recompiled
-    - Texture GL_NEAREST option
+
 Backlog:
     - WATCH handmadehero day 14 first: memory.cpp Memory management system 
     (allocate and deallocate functions that use a memory arena or something instead of doing malloc all the time)
     - WATCH handmadehero day 15
     - Phong Lighting
     - Write own math library and remove GLM
-    - Entity - pos, rot, scale, mesh, few boolean flags, collider, tags\
+    - Entity - pos, rot, scale, mesh, few boolean flags, collider, tags
     - Resize event 
         https://stackoverflow.com/questions/20735637/resize-sdl2-window#:~:text=To%20resize%20a%20window%20in,0%2C%20windowWidth%2C%20windowHeight)%20.
         SDL_WINDOWEVENT_RESIZED https://wiki.libsdl.org/SDL_WindowEvent
     - Frame lock
+    - Texture GL_NEAREST option
+    - Console:
+        - remember previously entered commands
+        - shader hotloading/compiling during runtime - pause all update / render while shaders are being recompiled
+        - mouse picking entities
 
     THIS PROJECT IS A SINGLE TRANSLATION UNIT BUILD / UNITY BUILD
 */
@@ -35,7 +36,6 @@ Backlog:
 
 #include <gl/glew.h>
 #include <SDL.h>
-#include <Windows.h>
 #include <SDL_syswm.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -71,8 +71,8 @@ GLOBAL_VAR bool is_running = true;
 GLOBAL_VAR bool b_is_update_running = true;
 GLOBAL_VAR SDL_Window* window = nullptr;
 GLOBAL_VAR SDL_GLContext opengl_context = nullptr;
-GLOBAL_VAR HWND whandle = nullptr;  // Win32 API Window Handle
 GLOBAL_VAR glm::mat4 g_matrix_projection_ortho;
+GLOBAL_VAR bool g_b_wireframe = false;
 // -------------------------
 #include "data.cpp"
 #include "camera.cpp"
@@ -232,8 +232,6 @@ INTERNAL bool game_init()
     {
         con_printf("Couldn't get window information: %s\n", SDL_GetError());
     }
-    // Grab HWND from window info
-    whandle = sys_windows_info.info.win.window;
 
     // Set context for SDL to use. Let SDL know that this window is the window that the OpenGL context should be tied to; everything that is drawn should be drawn to this window.
     if ((opengl_context = SDL_GL_CreateContext(window)) == nullptr)
@@ -417,7 +415,14 @@ INTERNAL void game_render()
     glEnable(GL_DEPTH_TEST);
 
     // TODO Probably should make own shader for wireframe draws so that wireframe fragments aren't affected by lighting or textures
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // GL_LINE for wireframe, GL_FILL to fill interior of polygon
+    if(g_b_wireframe)
+    {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }
+    else
+    {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
     
     gl_use_shader(shaders[0]);
         glUniformMatrix4fv(shaders[0].id_uniform_view, 1, GL_FALSE, glm::value_ptr(calculate_viewmatrix(camera)));
@@ -441,6 +446,7 @@ INTERNAL void game_render()
 // NOT DEPTH TESTED
     glDisable(GL_DEPTH_TEST); 
 
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     con_render(shaders[2], shaders[1]);
 
     /* Swap our buffer to display the current contents of buffer on screen. 
