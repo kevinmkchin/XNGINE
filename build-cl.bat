@@ -21,7 +21,7 @@ rem Output Executable Name
 set OUTPUTEXE="opengldemo.exe"
 
 rem Linker Options
-set LINKEROPTIONS=/SUBSYSTEM:CONSOLE %ADDLIBPATHS% %ADDDEPENDENCIES%
+set LINKEROPTIONS=/SUBSYSTEM:WINDOWS %ADDLIBPATHS% %ADDDEPENDENCIES%
 
 if NOT exist build mkdir build
 pushd build
