@@ -36,6 +36,8 @@ const float TO_DEGREES = 57.2958f;      // in_radians * TO_DEGREES = in_degrees
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
 
+#define _CRT_SECURE_NO_WARNINGS
+
 /** GAME SPECIFIC **/
 #define WIDTH 1280
 #define HEIGHT 720

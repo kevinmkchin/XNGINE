@@ -192,7 +192,6 @@ INTERNAL void con_update_messages()
             row < CON_ROWS_MAX;
             ++row)
         {
-            // get line
             int line_len = 0;
             if(con_messages[msg_iterator] == '\n')
             {
@@ -210,7 +209,7 @@ INTERNAL void con_update_messages()
                     msg_iterator = CON_MAX_PRINT_MSGS - 1;
                 }
             }
-            // rebind vao
+            // add vao
             {
                 kctta_clear_buffer();
                 kctta_move_cursor(CON_INPUT_DRAW_X, CON_INPUT_DRAW_Y);
