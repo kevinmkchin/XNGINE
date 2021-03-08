@@ -1,11 +1,11 @@
 /** Update camera position, rotation, direction, and right, up vectors */
 INTERNAL void update_camera(Camera& camera, real32 dt)
 {
-    // TODO don't move if mouse delta is too big to be normal
-
-    // Check Mouse
-    camera.rotation.y += g_mouse_delta_x * camera.turnspeed;
-    camera.rotation.x += -g_mouse_delta_y * camera.turnspeed;
+    if(abs(g_mouse_delta_x) < 50.f || abs(g_mouse_delta_y) < 50.f) // don't move if mouse delta is too big to be normal
+    {
+        camera.rotation.y += g_mouse_delta_x * camera.turnspeed;
+        camera.rotation.x += -g_mouse_delta_y * camera.turnspeed;       
+    }
 
     if(camera.rotation.x > 89.f)
     {
@@ -24,30 +24,33 @@ INTERNAL void update_camera(Camera& camera, real32 dt)
     camera.calculated_right = glm::normalize(glm::cross(camera.calculated_direction, camera.world_up)); // right vector is cross product of direction and up direction of world
     camera.calculated_up = glm::normalize(glm::cross(camera.calculated_right, camera.calculated_direction)); // up vector is cross product of right vector and direction
 
-    // Check Inputs
-    if (g_keystate[SDL_SCANCODE_W])
+    if(con_is_hidden())
     {
-        camera.position += camera.calculated_direction * camera.movespeed * dt;
-    }
-    if (g_keystate[SDL_SCANCODE_A])
-    {
-        camera.position += -camera.calculated_right * camera.movespeed * dt;
-    }
-    if (g_keystate[SDL_SCANCODE_S])
-    {
-        camera.position += -camera.calculated_direction * camera.movespeed * dt;
-    }
-    if (g_keystate[SDL_SCANCODE_D])
-    {
-        camera.position += camera.calculated_right * camera.movespeed * dt;
-    }
-    if (g_keystate[SDL_SCANCODE_Q])
-    {
-        camera.position.y += -camera.movespeed * dt;
-    }
-    if (g_keystate[SDL_SCANCODE_E])
-    {
-        camera.position.y += camera.movespeed * dt;
+        // Check Inputs
+        if (g_keystate[SDL_SCANCODE_W])
+        {
+            camera.position += camera.calculated_direction * camera.movespeed * dt;
+        }
+        if (g_keystate[SDL_SCANCODE_A])
+        {
+            camera.position += -camera.calculated_right * camera.movespeed * dt;
+        }
+        if (g_keystate[SDL_SCANCODE_S])
+        {
+            camera.position += -camera.calculated_direction * camera.movespeed * dt;
+        }
+        if (g_keystate[SDL_SCANCODE_D])
+        {
+            camera.position += camera.calculated_right * camera.movespeed * dt;
+        }
+        if (g_keystate[SDL_SCANCODE_Q])
+        {
+            camera.position.y += -camera.movespeed * dt;
+        }
+        if (g_keystate[SDL_SCANCODE_E])
+        {
+            camera.position.y += camera.movespeed * dt;
+        }
     }
 }
 

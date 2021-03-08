@@ -1,16 +1,7 @@
 /** OpenGL 3D Renderer
 
-DONE:
-    - Quake-style console with extensible commands
-        - use opengl textured quads for both the background and the text
-        - console show hide
-        - command input
-        - message log
-        - print function, printf function
 TODO:
     - Quake-style console with extensible commands
-        - command function
-        - unlock mouse if console is open
         - remember previously entered commands
         - shader hotloading/compiling during runtime
             - pause all update / render while shaders are being recompiled
@@ -36,6 +27,8 @@ Backlog:
 #include <stdio.h>
 #include <string.h>
 #include <string>
+#include <vector>
+#include <map>
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -86,6 +79,7 @@ GLOBAL_VAR glm::mat4 g_matrix_projection_ortho;
 #include "mesh.cpp"
 #include "shader.cpp"
 #include "texture.cpp"
+#include "commands.cpp"
 #include "console.cpp"
 
 Mesh meshes[3];

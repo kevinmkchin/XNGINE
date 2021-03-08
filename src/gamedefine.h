@@ -1,6 +1,7 @@
 #ifndef __GAME_DEFINE__
 #define __GAME_DEFINE__
 #include <cstdint>
+#pragma warning(disable:4996) // disable C Run-Time library deprecation warnings
 
 /** DEFINES AND TYPEDEFS **/
 #define INTERNAL static             // static functions are internal to the translation unit
