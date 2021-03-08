@@ -1,3 +1,9 @@
+/**
+
+QUAKE-STYLE IN-GAME CONSOLE IMPLEMENTATION
+
+*/
+
 #define CON_MAX_PRINT_MSGS 8096
 #define CON_SCROLL_SPEED 2000.f
 #define CON_COLS_MAX 124        // char columns in line
@@ -59,6 +65,9 @@ Mesh        con_text_vaos[CON_ROWS_MAX] = {}; // one vao is one line
 
 INTERNAL void con_initialize()
 {
+    // ADD COMMANDS
+    con_register_cmds();
+
     // LOAD CONSOLE FONT
     BinaryFileHandle fontfile;
     FILE_read_file_binary(fontfile, "data/fonts/c64.ttf");
@@ -159,9 +168,62 @@ INTERNAL void con_printf(char* fmt, ...)
 
 INTERNAL void con_command(char* text_command)
 {
-    std::string cmd(text_command);
+    if(*text_command == '\0')
+    {
+        return;
+    }
+
+    std::string cmd = std::string(text_command);
     cmd = ">" + cmd + "\n";
     con_print(cmd.c_str());
+
+    char* token;
+    const char delim = ' ';
+    token = strtok(text_command, &delim);
+    cmd = std::string(token);
+    if (con_commands.find(cmd) != con_commands.end()) 
+    {
+        con_commandfunc cmd_ptr = con_commands.at(cmd);
+
+        int argcount = 0;
+        std::vector<std::string> argslist;
+        token = strtok(NULL, &delim);
+        while(token != NULL && argcount < 5)
+        {
+            std::string arg = std::string(token);
+            argslist.push_back(arg);
+            ++argcount;
+            token = strtok(NULL, &delim);
+        }
+
+        switch(argcount)
+        {
+            case 0:
+            {
+                cmd_ptr(0);
+            }break;
+            case 1:
+            {
+                cmd_ptr(1, argslist[0]);
+            }break;
+            case 2:
+            {
+                cmd_ptr(2, argslist[0], argslist[1]);
+            }break;
+            case 3:
+            {
+                cmd_ptr(3, argslist[0], argslist[1], argslist[2]);
+            }break;
+            case 4:
+            {
+                cmd_ptr(3, argslist[0], argslist[1], argslist[2], argslist[3]);
+            }break;
+        }
+    }
+    else
+    {
+        con_printf("'%s' is not a recognized command...\n", token);
+    }
 }
 
 INTERNAL void con_toggle()
@@ -173,12 +235,14 @@ INTERNAL void con_toggle()
 
     if(con_state == CON_HIDDEN)
     {
-        b_is_update_running = false;
+        con_command("pause");
+        SDL_SetRelativeMouseMode(SDL_FALSE);
         con_state = CON_SHOWING;
     }
     else if(con_state == CON_SHOWN)
     {
-        b_is_update_running = true;
+        cmd_unpause();
+        SDL_SetRelativeMouseMode(SDL_TRUE);
         con_state = CON_HIDING;
     }
 }
