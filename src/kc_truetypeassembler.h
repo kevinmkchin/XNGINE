@@ -177,8 +177,9 @@ kctta_internal void kctta_move_cursor(int x,
 
 /** Go to new line and set X location of cursor
 */
-kctta_internal void kctta_new_line(int      x, 
-                                   TTAFont* font);
+kctta_internal void kctta_new_line(int          x, 
+                                   TTAFont*     font,
+                                   unsigned int b_newline_below = 1);
 
 /** Assemble quads for a line of text and append to vertex buffer.
     line_of_text is the text you want to draw e.g. "some text I want to draw".
@@ -372,15 +373,27 @@ kctta_move_cursor(int x, int y)
 }
 
 kctta_internal void
-kctta_new_line(int x, TTAFont* font)
+kctta_new_line(int x, TTAFont* font, unsigned int b_newline_below)
 {
     kctta_cursor_x = x;
-    kctta_cursor_y += (int) (font->descender + font->linegap + font->ascender);
+    if(b_newline_below)
+    {
+        kctta_cursor_y += (int) (-font->descender + font->linegap + font->ascender);
+    }
+    else
+    {
+        kctta_cursor_y -= (int) (-font->descender + font->linegap + font->ascender);
+    }
 }
 
 kctta_internal void
 kctta_append_glyph(const char in_glyph, TTAFont* font, int font_size)
 {
+    if(KCTTA_MAX_CHAR_IN_BUFFER * 6 < kctta_vertex_count + 6) // Make sure we are not exceeding the array size
+    {
+        return;
+    }
+
     float scale = ((float) font_size) / (font->ascender - font->descender);
     TTAGlyph glyph = font->glyphs[in_glyph - KCTTA_ASCII_FROM];
     glyph.advance *= scale;
@@ -470,17 +483,21 @@ kctta_append_line(const char* line_of_text, TTAFont* font, int font_size, unsign
     int line_start_y = kctta_cursor_y;
     while(*line_of_text != '\0')
     {
-        if(*line_of_text == '\n')
+        if(*line_of_text != '\n')
+        {
+            if(KCTTA_MAX_CHAR_IN_BUFFER * 6 < kctta_vertex_count + 6) // Make sure we are not exceeding the array size
+            {
+                break;
+            }
+
+            kctta_append_glyph(*line_of_text, font, font_size);
+
+        }
+        else
         {
             kctta_new_line(line_start_x, font);
         }
 
-        if(KCTTA_MAX_CHAR_IN_BUFFER * 6 < kctta_vertex_count + 6) // Make sure we are not exceeding the array size
-        {
-            break;
-        }
-
-        kctta_append_glyph(*line_of_text, font, font_size);
         ++line_of_text;
     }
 

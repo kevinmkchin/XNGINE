@@ -1,6 +1,8 @@
 /** Update camera position, rotation, direction, and right, up vectors */
 INTERNAL void update_camera(Camera& camera, real32 dt)
 {
+    // TODO don't move if mouse delta is too big to be normal
+
     // Check Mouse
     camera.rotation.y += g_mouse_delta_x * camera.turnspeed;
     camera.rotation.x += -g_mouse_delta_y * camera.turnspeed;

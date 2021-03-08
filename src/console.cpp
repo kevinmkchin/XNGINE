@@ -1,7 +1,7 @@
-#define CON_HEIGHT 400.f
-#define CON_SCROLL_SPEED 1000.f
-#define CON_TEXT_SIZE 26
-#define CON_COLS_IN_LINE 128        // char columns in line
+#define CON_MAX_PRINT_MSGS 8096
+#define CON_SCROLL_SPEED 2000.f
+#define CON_COLS_MAX 124        // char columns in line
+#define CON_ROWS_MAX 27         // we can store more messages than this, but this is just rows that are being displayed
 enum ConState
 {
     CON_HIDING,
@@ -9,7 +9,6 @@ enum ConState
     CON_SHOWING,
     CON_SHOWN
 };
-
 GLuint con_id_vao = 0;
 GLuint con_id_vbo = 0;
 GLfloat con_vertex_buffer[] = {
@@ -27,33 +26,74 @@ GLfloat con_line_vertex_buffer[] = {
     1280.f, 400.f
 };
 
-bool con_b_initialized = false;
-char con_io_buffer[CON_COLS_IN_LINE]; // line of text buffer used for both input and output
-uint8 con_cursor = 0;
-uint8 con_io_buffer_count = 0;
-real32 con_y;
-ConState con_state = CON_HIDDEN;
-TTAFont* con_font;
+bool        con_b_initialized = false;
+ConState    con_state = CON_HIDDEN;
+real32      con_y;
 
-INTERNAL void con_initialize(TTAFont* console_font)
-{   
-    con_cursor = 0;
-    con_io_buffer_count = 0;
-    assert(CON_COLS_IN_LINE - 1 <= (--con_cursor));
-    assert(CON_COLS_IN_LINE - 1 <= (--con_io_buffer_count));
-    con_cursor = 0;
-    con_io_buffer_count = 0;
+float       CON_HEIGHT = 400.f;
+uint8       CON_TEXT_SIZE = 14;
+uint8       CON_TEXT_PADDING_BOTTOM = 4;
+uint16      CON_INPUT_DRAW_X = 4;
+uint16      CON_INPUT_DRAW_Y = (uint16) (CON_HEIGHT - (float) CON_TEXT_PADDING_BOTTOM);
 
+// Input character buffer
+char        con_input_buffer[CON_COLS_MAX]; // line of text buffer used for both input and output
+bool        con_b_input_buffer_dirty = false;
+uint8       con_input_cursor = 0;
+uint8       con_input_buffer_count = 0;
 
-    con_font = console_font;
+// Hidden character buffer
+char        con_messages[CON_MAX_PRINT_MSGS] = {};
+uint16      con_messages_read_cursor = 0;
+uint16      con_messages_write_cursor = 0;
+bool        con_b_messages_dirty = false;
 
+// Text visuals
+TTAFont     con_font_handle;
+Texture     con_text_atlas;
+// Input text & Messages VAOs
+Mesh        con_input_vao; // con_input_vao gets added to con_text_vaos (after eviction) if user "returns" command
+Mesh        con_text_vaos[CON_ROWS_MAX] = {}; // one vao is one line
+
+// TODO buffer to hold previous commands
+
+INTERNAL void con_initialize()
+{
+    // LOAD CONSOLE FONT
+    BinaryFileHandle fontfile;
+    FILE_read_file_binary(fontfile, "data/fonts/c64.ttf");
+        if(fontfile.memory)
+        {
+            kctta_init_font(&con_font_handle, (uint8*) fontfile.memory, CON_TEXT_SIZE);
+        }
+    FILE_free_file_binary(fontfile);
+    gl_load_texture_from_bitmap(con_text_atlas,
+                                con_font_handle.font_atlas.pixels,
+                                con_font_handle.font_atlas.width,
+                                con_font_handle.font_atlas.height,
+                                GL_RED, GL_RED);
+    free(con_font_handle.font_atlas.pixels);
+
+    // INIT TEXT Mesh OBJECTS
+    kctta_clear_buffer();
+    kctta_move_cursor(CON_INPUT_DRAW_X, CON_INPUT_DRAW_Y);
+    kctta_append_glyph('>', &con_font_handle, CON_TEXT_SIZE);
+    TTAVertexBuffer vb = kctta_grab_buffer();
+    con_input_vao = gl_create_mesh_array(vb.vertex_buffer, vb.index_buffer, 
+        vb.vertices_array_count, vb.indices_array_count, 2, 2, GL_DYNAMIC_DRAW);
+    // INIT MESSAGES Mesh OBJECTS
+    for(int i = 0; i < CON_ROWS_MAX; ++i)
+    {
+        con_text_vaos[i] = gl_create_mesh_array(NULL, NULL, 0, 0, 2, 2, GL_DYNAMIC_DRAW);
+    }
+
+    // INIT CONSOLE GUI
     con_vertex_buffer[8] = (float) g_buffer_width;
     con_vertex_buffer[12] = (float) g_buffer_width;
     con_vertex_buffer[20] = (float) g_buffer_width;
     con_vertex_buffer[5] = CON_HEIGHT;
     con_vertex_buffer[9] = CON_HEIGHT;
     con_vertex_buffer[21] = CON_HEIGHT;
-
     glGenVertexArrays(1, &con_id_vao);
     glBindVertexArray(con_id_vao);
         glGenBuffers(1, &con_id_vbo);
@@ -64,11 +104,9 @@ INTERNAL void con_initialize(TTAFont* console_font)
             glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(real32) * 4, (void*)(sizeof(real32) * 2));
             glEnableVertexAttribArray(1);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    con_line_vertex_buffer[1] = CON_HEIGHT - (float) CON_TEXT_SIZE;
+    con_line_vertex_buffer[1] = CON_HEIGHT - (float) CON_TEXT_SIZE - CON_TEXT_PADDING_BOTTOM;
     con_line_vertex_buffer[2] = (float) g_buffer_width;
-    con_line_vertex_buffer[3] = CON_HEIGHT - (float) CON_TEXT_SIZE;
-
+    con_line_vertex_buffer[3] = CON_HEIGHT - (float) CON_TEXT_SIZE - CON_TEXT_PADDING_BOTTOM;
     glGenVertexArrays(1, &con_line_id_vao);
     glBindVertexArray(con_line_id_vao);
         glGenBuffers(1, &con_line_id_vbo);
@@ -80,17 +118,50 @@ INTERNAL void con_initialize(TTAFont* console_font)
     glBindVertexArray(0);
 
     con_b_initialized = true;
+    con_print("Console initialized.\n");
 }
 
-INTERNAL void con_print(char* text)
+/** logs the message into the messages buffer */
+INTERNAL void con_print(const char* message)
 {
-    
+
+#ifdef DEBUG
+    printf(message);
+#endif
+
+    // commands get con_printed when returned
+    int i = 0;
+    while(*(message + i) != '\0')
+    {
+        con_messages[con_messages_write_cursor] = *(message + i);
+        ++con_messages_write_cursor;
+        if(con_messages_write_cursor >= CON_MAX_PRINT_MSGS)
+        {
+            con_messages_write_cursor = 0;
+        }
+        ++i;
+    }
+    con_messages_read_cursor = con_messages_write_cursor;
+    con_b_messages_dirty = true;
 }
 
-INTERNAL void con_printf(char* text, ...)
+INTERNAL void con_printf(char* fmt, ...)
 {
-    // format
-    // then call con_print
+    va_list argptr;
+
+    char message[1024];
+    va_start(argptr, fmt);
+    stbsp_vsprintf(message, fmt, argptr);
+    va_end(argptr);
+
+    con_print(message);
+}
+
+INTERNAL void con_command(char* text_command)
+{
+    std::string cmd(text_command);
+    cmd = ">" + cmd + "\n";
+    con_print(cmd.c_str());
 }
 
 INTERNAL void con_toggle()
@@ -112,6 +183,64 @@ INTERNAL void con_toggle()
     }
 }
 
+INTERNAL void con_update_messages()
+{
+    if(con_b_messages_dirty)
+    {
+        int msg_iterator = con_messages_read_cursor - 1;
+        for(int row = 0;
+            row < CON_ROWS_MAX;
+            ++row)
+        {
+            // get line
+            int line_len = 0;
+            if(con_messages[msg_iterator] == '\n')
+            {
+                ++line_len;
+                --msg_iterator;
+            }
+            for(char c = con_messages[msg_iterator];
+                c != '\n' && c != '\0'; 
+                c = con_messages[msg_iterator])
+            {
+                ++line_len;
+                --msg_iterator;
+                if(msg_iterator < 0)
+                {
+                    msg_iterator = CON_MAX_PRINT_MSGS - 1;
+                }
+            }
+            // rebind vao
+            {
+                kctta_clear_buffer();
+                kctta_move_cursor(CON_INPUT_DRAW_X, CON_INPUT_DRAW_Y);
+                for(int i = 0; i < line_len; ++i)
+                {
+                    int j = msg_iterator + i + 1;
+                    if(j >= CON_MAX_PRINT_MSGS)
+                    {
+                        j -= CON_MAX_PRINT_MSGS;
+                    }
+                    char c = con_messages[j];
+                    if(c != '\n')
+                    {
+                        kctta_append_glyph(c, &con_font_handle, CON_TEXT_SIZE);
+                    }
+                    else
+                    {
+                        kctta_new_line(CON_INPUT_DRAW_X, &con_font_handle);
+                    }
+                }
+                TTAVertexBuffer vb = kctta_grab_buffer();
+                gl_rebind_buffers(con_text_vaos[row], vb.vertex_buffer, vb.index_buffer, 
+                    vb.vertices_array_count, vb.indices_array_count);
+            }
+        }
+
+        con_b_messages_dirty = false;
+    }
+}
+
 INTERNAL void con_update(real32 dt)
 {
     if(!con_b_initialized || con_state == CON_HIDDEN)
@@ -123,7 +252,20 @@ INTERNAL void con_update(real32 dt)
     {
         case CON_SHOWN: 
         {
-            printf("%s\n", con_io_buffer);
+            if(con_b_input_buffer_dirty)
+            {
+                // update input vao
+                kctta_clear_buffer();
+                kctta_move_cursor(CON_INPUT_DRAW_X, CON_INPUT_DRAW_Y);
+                std::string input_text = ">" + std::string(con_input_buffer);
+                kctta_append_line(input_text.c_str(), &con_font_handle, CON_TEXT_SIZE);
+                TTAVertexBuffer vb = kctta_grab_buffer();
+                gl_rebind_buffers(con_input_vao, vb.vertex_buffer, vb.index_buffer, 
+                    vb.vertices_array_count, vb.indices_array_count);
+                con_b_input_buffer_dirty = false;
+            }
+
+            con_update_messages();
         } break;
         case CON_HIDING:
         {
@@ -142,6 +284,8 @@ INTERNAL void con_update(real32 dt)
                 con_y = CON_HEIGHT;
                 con_state = CON_SHOWN;
             }
+
+            con_update_messages();
         } break;
     }
 }
@@ -157,7 +301,7 @@ INTERNAL void con_render(ShaderProgram ui_shader, ShaderProgram text_shader)
     glm::mat4 con_transform = glm::mat4(1.f);
     con_transform = glm::translate(con_transform, glm::vec3(0.f, console_translation_y, 0.f));
     // render console
-    gl_use_shader(ui_shader);
+    glUseProgram(ui_shader.id_shader_program);
         GLint id_uniform_b_use_colour = glGetUniformLocation(ui_shader.id_shader_program, "b_use_colour");
         GLint id_uniform_ui_element_colour = glGetUniformLocation(ui_shader.id_shader_program, "ui_element_colour");
         glUniform1i(id_uniform_b_use_colour, true);
@@ -171,9 +315,88 @@ INTERNAL void con_render(ShaderProgram ui_shader, ShaderProgram text_shader)
             glDrawArrays(GL_LINES, 0, 2);
         glBindVertexArray(0);
         glUniform1i(id_uniform_b_use_colour, false);
-    gl_use_shader(text_shader);
+    glUseProgram(text_shader.id_shader_program);
         // RENDER CONSOLE TEXT
+        glUniformMatrix4fv(text_shader.id_uniform_projection, 1, GL_FALSE, glm::value_ptr(g_matrix_projection_ortho));
+        gl_use_texture(con_text_atlas);
+
+        // Input text visual
+        glUniform3f(glGetUniformLocation(text_shader.id_shader_program, "text_colour"), 1.f, 1.f, 1.f);
+        glUniformMatrix4fv(text_shader.id_uniform_model, 1, GL_FALSE, glm::value_ptr(con_transform));
+        if(con_input_vao.index_count > 0)
+        {
+            gl_render_mesh(con_input_vao);
+        }
+        // move transform matrix up a lil
+        con_transform[3][1] -= 30.f;
+
+        // Messages text visual
+        glUniform3f(glGetUniformLocation(text_shader.id_shader_program, "text_colour"), 0.8f, 0.8f, 0.8f);
+        for(int i = 0; i < CON_ROWS_MAX; ++i)
+        {
+            Mesh m = con_text_vaos[i];
+            if(m.index_count > 0)
+            {
+                glUniformMatrix4fv(text_shader.id_uniform_model, 1, GL_FALSE, glm::value_ptr(con_transform));
+                con_transform[3][1] -= (float) CON_TEXT_SIZE + 3.f;
+                gl_render_mesh(m);
+            }
+        }
     glUseProgram(0);
+}
+
+INTERNAL void con_scroll_up()
+{
+    int temp_cursor = con_messages_read_cursor - 1;
+    char c = con_messages[temp_cursor];
+    if(c == '\n')
+    {
+        --temp_cursor;
+        if(temp_cursor < 0)
+        {
+            temp_cursor += CON_MAX_PRINT_MSGS;
+        }
+        c = con_messages[temp_cursor];
+    }
+    while(c != '\n' && c != '\0' && temp_cursor != con_messages_write_cursor)
+    {
+        --temp_cursor;
+        if(temp_cursor < 0)
+        {
+            temp_cursor += CON_MAX_PRINT_MSGS;
+        }
+        c = con_messages[temp_cursor];
+    }
+    con_messages_read_cursor = temp_cursor + 1;
+    if(con_messages_read_cursor < 0)
+    {
+        con_messages_read_cursor += CON_MAX_PRINT_MSGS;
+    }
+    con_b_messages_dirty = true;
+}
+
+INTERNAL void con_scroll_down()
+{
+    if(con_messages_read_cursor != con_messages_write_cursor)
+    {
+        int temp_cursor = con_messages_read_cursor;
+        char c = con_messages[temp_cursor];
+        while(c != '\n' && c != '\0' && temp_cursor != con_messages_write_cursor - 1)
+        {
+            ++temp_cursor;
+            if(temp_cursor >= CON_MAX_PRINT_MSGS)
+            {
+                temp_cursor = 0;
+            }
+            c = con_messages[temp_cursor];
+        }
+        con_messages_read_cursor = temp_cursor + 1;
+        if(con_messages_read_cursor > CON_MAX_PRINT_MSGS)
+        {
+            con_messages_read_cursor = 0;
+        } 
+        con_b_messages_dirty = true;   
+    }
 }
 
 INTERNAL void con_keydown(SDL_KeyboardEvent& keyevent)
@@ -188,21 +411,44 @@ INTERNAL void con_keydown(SDL_KeyboardEvent& keyevent)
             con_toggle();
             return;
         }
+        // COMMAND
         case SDLK_RETURN:
         {
-            memset(con_io_buffer, 0, con_io_buffer_count);
-            con_cursor = 0;
-            con_io_buffer_count = 0;
             // take current input buffer and use that as command
+            con_command(con_input_buffer);
+            memset(con_input_buffer, 0, con_input_buffer_count);
+            con_input_cursor = 0;
+            con_input_buffer_count = 0;
+            con_b_input_buffer_dirty = true;
         }break;
+        // Delete char before cursor
         case SDLK_BACKSPACE:
         {
-            if(con_cursor > 0)
+            if(con_input_cursor > 0)
             {
-                --con_cursor;
-                con_io_buffer[con_cursor] = 0;
-                --con_io_buffer_count;
+                --con_input_cursor;
+                con_input_buffer[con_input_cursor] = 0;
+                --con_input_buffer_count;
+                con_b_input_buffer_dirty = true;
             }
+        }break;
+        // Move cursor left right
+        case SDLK_LEFT:
+        {
+
+        }break;
+        case SDLK_RIGHT:
+        {
+
+        }break;
+        // Scroll console logs
+        case SDLK_UP:
+        {
+            con_scroll_up();
+        }break;
+        case SDLK_DOWN:
+        {
+            con_scroll_down();
         }break;
     }
 
@@ -229,54 +475,18 @@ INTERNAL void con_keydown(SDL_KeyboardEvent& keyevent)
         {
             switch(keycode)
             {
-                case 48:
-                {
-                    keycode = 41;
-                }break;
-                case 54:
-                {
-                    keycode = 94;
-                }break;
-                case 55:
-                {
-                    keycode = 38;
-                }break;
-                case 56:
-                {
-                    keycode = 42;
-                }break;
-                case 57:
-                {
-                    keycode = 40;
-                }break;
-                case 45:
-                {
-                    keycode = 95;
-                }break;
-                case 61:
-                {
-                    keycode = 43;
-                }break;
-                case 39:
-                {
-                    keycode = 34;
-                }break;
-                case 59:
-                {
-                    keycode = 58;
-                }break;
-                case 44:
-                {
-                    keycode = 60;
-                }break;
-                case 46:
-                {
-                    keycode = 62;
-                }break;
-                case 47:
-                {
-                    keycode = 63;
-                }break;
+                case 48: { keycode = 41; } break;
+                case 54: { keycode = 94; } break;
+                case 55: { keycode = 38; } break;
+                case 56: { keycode = 42; } break;
+                case 57: { keycode = 40; } break;
+                case 45: { keycode = 95; } break;
+                case 61: { keycode = 43; } break;
+                case 39: { keycode = 34; } break;
+                case 59: { keycode = 58; } break;
+                case 44: { keycode = 60; } break;
+                case 46: { keycode = 62; } break;
+                case 47: { keycode = 63; } break;
             }   
         }
     }
@@ -284,11 +494,12 @@ INTERNAL void con_keydown(SDL_KeyboardEvent& keyevent)
     // CHECK INPUT
     if((ASCII_SPACE <= keycode && keycode <= ASCII_TILDE))
     {
-        if(con_io_buffer_count < CON_COLS_IN_LINE)
+        if(con_input_buffer_count < CON_COLS_MAX)
         {
-            con_io_buffer[con_cursor] = keycode;
-            ++con_cursor;
-            ++con_io_buffer_count;
+            con_input_buffer[con_input_cursor] = keycode;
+            ++con_input_cursor;
+            ++con_input_buffer_count;
+            con_b_input_buffer_dirty = true;
         }
     }
 }

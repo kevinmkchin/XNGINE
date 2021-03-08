@@ -1,10 +1,16 @@
 /** OpenGL 3D Renderer
 
-TODO:
+DONE:
     - Quake-style console with extensible commands
         - use opengl textured quads for both the background and the text
-        - do instant show and hide first
-        - scrolling down and up can do later
+        - console show hide
+        - command input
+        - message log
+        - print function, printf function
+TODO:
+    - Quake-style console with extensible commands
+        - command function
+        - unlock mouse if console is open
         - remember previously entered commands
         - shader hotloading/compiling during runtime
             - pause all update / render while shaders are being recompiled
@@ -23,6 +29,9 @@ Backlog:
 
     THIS PROJECT IS A SINGLE TRANSLATION UNIT BUILD / UNITY BUILD
 */
+#define DEBUG
+//#define RELEASE
+
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -38,15 +47,18 @@ Backlog:
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#define STB_SPRINTF_IMPLEMENTATION
+#include "stb_sprintf.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "stb_truetype.h"           // Sean Barrett's stb_truetype library
-#include "kc_truetypeassembler.h"   // KC TrueType Assembler
+#include "stb_truetype.h"
+#include "kc_truetypeassembler.h"
 
 #include "gamedefine.h" // defines and typedefs
 #include "core.h"
 #include "data.h"
+#include "console.h"
 // --- global variables  --- note: static variables are initialized to their default values
 GLOBAL_VAR uint32 g_buffer_width;
 GLOBAL_VAR uint32 g_buffer_height;
@@ -88,19 +100,6 @@ static const char* ui_vs_path = "shaders/ui.vert";
 static const char* ui_fs_path = "shaders/ui.frag";
 static const char* text_vs_path = "shaders/text_ui.vert";
 static const char* text_fs_path = "shaders/text_ui.frag";
-Texture tex_font_atlas;
-
-
-INTERNAL void load_font(TTAFont& font_handle, const char* font_file_path, int font_height_in_pixels)
-{
-    BinaryFileHandle fontfile;
-    FILE_read_file_binary(fontfile, font_file_path);
-        if(fontfile.memory)
-        {
-            kctta_init_font(&font_handle, (uint8*) fontfile.memory, font_height_in_pixels);
-        }
-    FILE_free_file_binary(fontfile);
-}
 
 INTERNAL void create_triangles()
 {
@@ -139,26 +138,6 @@ INTERNAL int8 game_run()
 
     create_triangles();
 
-
-    load_font(fonts[0], "data/fonts/c64.ttf", 30);
-        gl_load_texture_from_bitmap(tex_font_atlas,
-                                    fonts[0].font_atlas.pixels,
-                                    fonts[0].font_atlas.width,
-                                    fonts[0].font_atlas.height,
-                                    GL_RED, GL_RED);
-    free(fonts[0].font_atlas.pixels);
-
-    // init console
-    con_initialize(&fonts[0]);
-
-    kctta_use_index_buffer(1);
-    kctta_move_cursor(400, 300);
-    kctta_append_line("Amogus", &fonts[0], 24);
-    TTAVertexBuffer textbuffer = kctta_grab_buffer();
-    meshes[2] = gl_create_mesh_array(textbuffer.vertex_buffer, textbuffer.index_buffer, 
-        textbuffer.vertices_array_count, textbuffer.indices_array_count, 2, 2);
-    kctta_clear_buffer();
-
     ShaderProgram shader;
     gl_load_shader_program_from_file(shader, vertex_shader_path, frag_shader_path);
     shaders[0] = shader;
@@ -194,7 +173,7 @@ INTERNAL bool game_init()
     // Initialize SDL
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
     {
-        printf("SDL failed to initialize.");
+        printf("SDL failed to initialize.\n");
         return false;
     }
 
@@ -205,7 +184,6 @@ INTERNAL bool game_init()
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG); // allow forward compatibility
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1); // double buffering is on by default, but let's just call this anyway
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24); // depth buffer precision of 24 bits 
-
     // Setup SDL Window
     if ((window = SDL_CreateWindow(
         "test win",
@@ -216,7 +194,7 @@ INTERNAL bool game_init()
         SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
     )) == nullptr)
     {
-        printf("SDL window failed to create.");
+        printf("SDL window failed to create.\n");
         return false;
     }
 
@@ -253,12 +231,12 @@ INTERNAL bool game_init()
 #endif
         }
 
-        SDL_Log("This program is running SDL version %u.%u.%u on %s", sys_windows_info.version.major, 
+        con_printf("This program is running SDL version %u.%u.%u on %s\n", sys_windows_info.version.major, 
             sys_windows_info.version.minor, sys_windows_info.version.patch, subsystem);
     }
     else 
     {
-        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Couldn't get window information: %s", SDL_GetError());
+        con_printf("Couldn't get window information: %s\n", SDL_GetError());
     }
     // Grab HWND from window info
     whandle = sys_windows_info.info.win.window;
@@ -266,9 +244,10 @@ INTERNAL bool game_init()
     // Set context for SDL to use. Let SDL know that this window is the window that the OpenGL context should be tied to; everything that is drawn should be drawn to this window.
     if ((opengl_context = SDL_GL_CreateContext(window)) == nullptr)
     {
-        printf("Failed to create OpenGL Context with SDL.");
+        printf("Failed to create OpenGL Context with SDL.\n");
         return false;
     }
+    con_printf("OpenGL context created.\n");
 
     /** This makes our Buffer Swap (SDL_GL_SwapWindow) synchronized with the monitor's vertical refresh - basically vsync; 
         0 = immediate, 1 = vsync, -1 = adaptive vsync. Remark: If application requests adaptive vsync and the system does 
@@ -283,10 +262,11 @@ INTERNAL bool game_init()
     glewExperimental = GL_TRUE; // Enable us to access modern opengl extension features
     if (glewInit() != GLEW_OK)
     {
-        printf("GLEW failed to initialize.");
+        printf("GLEW failed to initialize.\n");
         game_clean_up();
         return false;
     }
+    con_printf("GLEW initialized.\n");
 
     /** Get the size of window's underlying drawable in pixels (for use with glViewport).
         Remark: This may differ from SDL_GetWindowSize() if we're rendering to a high-DPI drawable, i.e. the window was created 
@@ -296,6 +276,7 @@ INTERNAL bool game_init()
 
     // Setup Viewport
     glViewport(0, 0, g_buffer_width, g_buffer_height);
+    con_printf("Viewport initialized - x: %d y: %d\n", g_buffer_width, g_buffer_height);
 
     // Enable alpha blending
     glEnable(GL_BLEND);
@@ -309,6 +290,11 @@ INTERNAL bool game_init()
 
     // stb_image setting
     stbi_set_flip_vertically_on_load(true);
+    // kc_truetypeassembler setting
+    kctta_use_index_buffer(1);
+
+    // init console
+    con_initialize();
 
     return true;
 }
@@ -316,6 +302,8 @@ INTERNAL bool game_init()
 /** Clear memory and shut down */
 INTERNAL void game_clean_up()
 {
+    con_printf("Game shutting down...\n");
+
     gl_delete_texture(tex_brick);
     gl_delete_texture(tex_dirt);
     // clear shaders and delete shaders
@@ -428,7 +416,7 @@ INTERNAL void game_update(real32 dt)
 /** Process graphics and render them to the screen. */
 INTERNAL void game_render()
 {
-    glClearColor(0.39f, 0.582f, 0.926f, 1.f);
+    //glClearColor(0.39f, 0.582f, 0.926f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear opengl context's buffer
 
 // DEPTH TESTED
@@ -460,31 +448,6 @@ INTERNAL void game_render()
     glDisable(GL_DEPTH_TEST); 
 
     con_render(shaders[2], shaders[1]);
-
-    // test
-    // kctta_move_cursor(100,100);
-    // kctta_append_line("amogus", &fonts[0], 100);
-    // TTAVertexBuffer textbuffer = kctta_grab_buffer();
-    // gl_rebind_buffers(meshes[2], 
-    //     textbuffer.vertex_buffer, 
-    //     textbuffer.index_buffer, 
-    //     textbuffer.vertices_array_count, 
-    //     textbuffer.indices_array_count,
-    //     GL_DYNAMIC_DRAW);
-    // kctta_clear_buffer();
-
-    gl_use_shader(shaders[1]);
-        glUniformMatrix4fv(shaders[1].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(g_matrix_projection_ortho));
-        glUniform3f(glGetUniformLocation(shaders[1].id_shader_program, "text_colour"), 1.f, 1.f, 1.f);
-
-        matrix_model = glm::mat4(1.f);
-        //matrix_model = glm::translate(matrix_model, glm::vec3(-400.f, -300.f, 0.f));
-        //matrix_model = glm::scale(matrix_model, glm::vec3(4.f, 4.f, 0.f));
-        glUniformMatrix4fv(shaders[1].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
-        gl_use_texture(tex_font_atlas);
-        gl_render_mesh(meshes[2]);
-    glUseProgram(0);
-    //
 
     /* Swap our buffer to display the current contents of buffer on screen. 
     This is used with double-buffered OpenGL contexts, which are the default. */

@@ -62,3 +62,16 @@ struct Entity
     // Tags tags[4]; // primary, secondary, tertiary, quaternary tags
 };
 */
+
+/*
+// Data-oriented example:
+// enemy id is the index in the array
+struct Enemies
+{
+    vec3* pos;
+    uint16 pos_count;
+    vec3* rot;
+    collider* cols;
+    uint16 col_count;
+};
+*/
