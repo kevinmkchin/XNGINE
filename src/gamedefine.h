@@ -33,9 +33,19 @@ const float TO_DEGREES = 57.2958f;      // in_radians * TO_DEGREES = in_degrees
 #define ASCII_SPACE 32
 #define ASCII_TILDE 126
 
+/** HELPER FUNCTIONS **/
+#define TYPEHASH(T) typeid(T).hash_code()
 #define array_count(arr) (sizeof(arr) / (sizeof(arr[0])))
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
+INTERNAL bool is_number(std::string str)
+{
+    size_t len = str.length();
+    for (int i = 0; i < len; ++i)
+        if ((!isdigit(str[i]) && str[i] != '.') || (str[i] == '.' && len == 1)) // . is okay if not the only char
+            return false;
+    return true;
+}
 
 /** GAME SPECIFIC **/
 #define WIDTH 1280
