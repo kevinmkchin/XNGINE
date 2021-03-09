@@ -114,7 +114,10 @@ INTERNAL void cmd_invokestage4(ConCommandMeta cmd_meta, std::vector<std::string>
             int i = atoi(argslist[3].c_str());
             cmd_finallyinvoke4args(cmd_meta.command_func, first, second, third, i);
         }
-        return;
+        else
+        {
+            con_print("Invalid arguments: argument 4 must be an integer.\n");
+        }
     }
     else if(argtype == TYPEHASH(float))
     {
@@ -122,16 +125,17 @@ INTERNAL void cmd_invokestage4(ConCommandMeta cmd_meta, std::vector<std::string>
         {
             float f = (float) atof(argslist[3].c_str());
             cmd_finallyinvoke4args(cmd_meta.command_func, first, second, third, f);
-            return;
+        }
+        else
+        {
+            con_print("Invalid arguments: argument 4 must be a float.\n");
         }
     }
     else if(argtype == TYPEHASH(std::string))
     {
         std::string str = argslist[3];
         cmd_finallyinvoke4args(cmd_meta.command_func, first, second, third, str);
-        return;
     }
-    con_print("Invalid arguments...\n");
 }
 template<typename T1, typename T2>
 INTERNAL void cmd_invokestage3(ConCommandMeta cmd_meta, std::vector<std::string> argslist, T1 first, T2 second)
@@ -149,7 +153,10 @@ INTERNAL void cmd_invokestage3(ConCommandMeta cmd_meta, std::vector<std::string>
         {
             int i = atoi(argslist[2].c_str());
             cmd_invokestage4(cmd_meta, argslist, first, second, i);
-            return;
+        }
+        else
+        {
+            con_print("Invalid arguments: argument 3 must be an integer.\n");
         }
     }
     else if(argtype == TYPEHASH(float))
@@ -158,16 +165,17 @@ INTERNAL void cmd_invokestage3(ConCommandMeta cmd_meta, std::vector<std::string>
         {
             float f = (float) atof(argslist[2].c_str());
             cmd_invokestage4(cmd_meta, argslist, first, second, f);
-            return;
+        }
+        else
+        {
+            con_print("Invalid arguments: argument 3 must be a float.\n");
         }
     }
     else if(argtype == TYPEHASH(std::string))
     {
         std::string str = argslist[2];
         cmd_invokestage4(cmd_meta, argslist, first, second, str);
-        return;
     }
-    con_print("Invalid arguments...\n");
 }
 template<typename T1>
 INTERNAL void cmd_invokestage2(ConCommandMeta cmd_meta, std::vector<std::string> argslist, T1 first)
@@ -185,7 +193,10 @@ INTERNAL void cmd_invokestage2(ConCommandMeta cmd_meta, std::vector<std::string>
         {
             int i = atoi(argslist[1].c_str());
             cmd_invokestage3(cmd_meta, argslist, first, i);
-            return;
+        }
+        else
+        {
+            con_print("Invalid arguments: argument 2 must be an integer.\n");
         }
     }
     else if(argtype == TYPEHASH(float))
@@ -194,16 +205,17 @@ INTERNAL void cmd_invokestage2(ConCommandMeta cmd_meta, std::vector<std::string>
         {
             float f = (float) atof(argslist[1].c_str());
             cmd_invokestage3(cmd_meta, argslist, first, f);
-            return;
+        }
+        else
+        {
+            con_print("Invalid arguments: argument 2 must be a float.\n");
         }
     }
     else if(argtype == TYPEHASH(std::string))
     {
         std::string str = argslist[1];
         cmd_invokestage3(cmd_meta, argslist, first, str);
-        return;
     }
-    con_print("Invalid arguments...\n");
 }
 
 INTERNAL void COMMAND_INVOKE(ConCommandMeta cmd_meta, std::vector<std::string> argslist)
@@ -221,7 +233,10 @@ INTERNAL void COMMAND_INVOKE(ConCommandMeta cmd_meta, std::vector<std::string> a
         {
             int i = atoi(argslist[0].c_str());
             cmd_invokestage2(cmd_meta, argslist, i);
-            return;
+        }
+        else
+        {
+            con_print("Invalid arguments: argument 1 must be an integer.\n");
         }
     }
     else if(argtype == TYPEHASH(float))
@@ -230,14 +245,15 @@ INTERNAL void COMMAND_INVOKE(ConCommandMeta cmd_meta, std::vector<std::string> a
         {
             float f = (float) atof(argslist[0].c_str());
             cmd_invokestage2(cmd_meta, argslist, f);
-            return;
+        }
+        else
+        {
+            con_print("Invalid arguments: argument 1 must be a float.\n");
         }
     }
     else if(argtype == TYPEHASH(std::string))
     {
         std::string str = argslist[0];
         cmd_invokestage2(cmd_meta, argslist, str);
-        return;
     }
-    con_print("Invalid arguments...\n");
 }
