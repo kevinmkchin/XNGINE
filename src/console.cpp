@@ -1,6 +1,15 @@
 /**
 
-QUAKE-STYLE IN-GAME CONSOLE IMPLEMENTATION
+    QUAKE-STYLE IN-GAME CONSOLE IMPLEMENTATION
+    
+    There are two parts to the in-game console:
+
+    1.  console.h/cpp:
+        console.h is the interface that the rest of the game uses to communicate with console.cpp,
+        console.cpp handles the console visuals, inputs, outputs, and logic related to console messages
+
+    2.  command.h/cpp:
+        command.h/cpp handles the actual invocation of console commands
 
 */
 
@@ -183,12 +192,13 @@ INTERNAL void con_command(char* text_command)
     cmd = std::string(token);
     if (con_commands.find(cmd) != con_commands.end()) 
     {
-        con_commandfunc cmd_ptr = con_commands.at(cmd);
+        ConCommandMeta cmd_meta = con_commands.at(cmd);
 
+        // get list of args
         int argcount = 0;
         std::vector<std::string> argslist;
         token = strtok(NULL, &delim);
-        while(token != NULL && argcount < 10)
+        while(token != NULL && argcount < 4)
         {
             std::string arg = std::string(token);
             argslist.push_back(arg);
@@ -196,11 +206,19 @@ INTERNAL void con_command(char* text_command)
             token = strtok(NULL, &delim);
         }
 
-        cmd_ptr(argslist);
+        // invoke command
+        if(cmd_meta.arg_types.size() == argcount)
+        {
+            COMMAND_INVOKE(cmd_meta, argslist);
+        }
+        else
+        {
+            con_printf("%s takes %zd arguments...\n", cmd, cmd_meta.arg_types.size());
+        }
     }
     else
     {
-        con_printf("'%s' is not a recognized command...\n", token);
+        con_printf("'%s' is not a recognized command...\n", cmd);
     }
 }
 

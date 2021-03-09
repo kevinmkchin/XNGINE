@@ -26,6 +26,7 @@ Backlog:
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <string>
 #include <vector>
@@ -65,7 +66,7 @@ GLOBAL_VAR int32 g_curr_mouse_pos_y = INDEX_NONE;
 GLOBAL_VAR int32 g_mouse_delta_x;
 GLOBAL_VAR int32 g_mouse_delta_y;
 
-GLOBAL_VAR Camera camera;
+GLOBAL_VAR Camera g_camera;
 
 GLOBAL_VAR bool is_running = true;
 GLOBAL_VAR bool b_is_update_running = true;
@@ -150,9 +151,9 @@ INTERNAL int8 game_run()
         fields, then construct the model matrix in Game::render based on those fields. Yeah that's probably better.
     */
     real32 aspect_ratio = (real32)g_buffer_width / (real32)g_buffer_height;
-    camera.matrix_perspective = glm::perspective(45.f, aspect_ratio, 0.1f, 1000.f);
-    camera.position = glm::vec3(0.f, 0.f, 0.f);
-    camera.rotation = glm::vec3(0.f, 270.f, 0.f);
+    g_camera.matrix_perspective = glm::perspective(45.f, aspect_ratio, 0.1f, 1000.f);
+    g_camera.position = glm::vec3(0.f, 0.f, 0.f);
+    g_camera.rotation = glm::vec3(0.f, 270.f, 0.f);
     g_matrix_projection_ortho = glm::ortho(0.0f, (real32)g_buffer_width,(real32)g_buffer_height,0.0f, -0.1f, 0.f);
 
     game_loop();
@@ -401,7 +402,7 @@ INTERNAL void game_update(real32 dt)
 
     if(b_is_update_running)
     {
-        update_camera(camera, dt);
+        update_camera(g_camera, dt);
     }
 }
 
@@ -425,8 +426,8 @@ INTERNAL void game_render()
     }
     
     gl_use_shader(shaders[0]);
-        glUniformMatrix4fv(shaders[0].id_uniform_view, 1, GL_FALSE, glm::value_ptr(calculate_viewmatrix(camera)));
-        glUniformMatrix4fv(shaders[0].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(camera.matrix_perspective));
+        glUniformMatrix4fv(shaders[0].id_uniform_view, 1, GL_FALSE, glm::value_ptr(calculate_viewmatrix(g_camera)));
+        glUniformMatrix4fv(shaders[0].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(g_camera.matrix_perspective));
 
         glm::mat4 matrix_model = glm::mat4(1.f);
         matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.5f, -1.3f));
