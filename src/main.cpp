@@ -372,7 +372,6 @@ INTERNAL void game_process_events()
                     break;
                 }
 
-                // TODO register keydown for text input into dropdown console
                 if (con_is_shown())
                 {
                     con_keydown(event.key);
@@ -388,7 +387,7 @@ INTERNAL void game_process_events()
                 if (event.key.keysym.sym == SDLK_z)
                 {
                     SDL_SetRelativeMouseMode((SDL_bool) !b_relative_mouse);
-                    printf("mouse grab = %s\n", !b_relative_mouse ? "true" : "false");
+                    con_printf("mouse grab = %s\n", !b_relative_mouse ? "true" : "false");
                 } 
             } break;
         }

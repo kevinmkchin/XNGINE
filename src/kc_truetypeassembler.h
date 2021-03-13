@@ -53,28 +53,28 @@ USAGE:
 USAGE EXAMPLE (Pseudocode):
 
 Do only once:
-    Optional:   kctta_use_index_buffer(b_use = 1);                                  <-- Set this to true if you are using indexed draws
+    Optional:   kctta_use_index_buffer(b_use = 1);                        <-- Set this to true if you are using indexed draws
                             |
                             V
-    Required:   kctta_init_font(font_handle, font_buffer, font_height_in_pixels);   <-- DO ONLY ONCE PER FONT (or per font resolution)
+    Required:   kctta_init_font(font_handle, font_buffer, font_height);   <-- DO ONLY ONCE PER FONT (or per font resolution)
 
 Loop:
-    Optional:   kctta_move_cursor(x = 640, y = 360);                                <-- Set the cursor to x y (where to start drawing)
+    Optional:   kctta_move_cursor(x = 640, y = 360);                      <-- Set the cursor to x y (where to start drawing)
                             |
                             V
-    Required:   kctta_append_line("some text", font_handle, b_reset_cursor_after_append);   <-- text to draw
+    Required:   kctta_append_line("some text", font_handle, font_size);   <-- text to draw
                             |
                             V
-    Optional:   kctta_new_line(x = 640, font);                                      <-- Go to next line, set cursor x to 640
+    Optional:   kctta_new_line(x = 640, font);                            <-- Go to next line, set cursor x to 640
                             |
                             V
-    Optional:   kctta_append_line("next lin", font_handle, b_reset_cursor_after_append);    <-- next line to draw
+    Optional:   kctta_append_line("next lin", font_handle, font_size);    <-- next line to draw
                             |
                             V
-    Optional:   kctta_append_glyph('e', font_handle);                               <-- Can append individual glyphs also
+    Optional:   kctta_append_glyph('e', font_handle, font_size);          <-- Can append individual glyphs also
                             |
                             V
-    Required:   TTAVertexBuffer %grabbedbuffer% = kctta_grab_buffer();              <-- Grabs the buffer
+    Required:   TTAVertexBuffer %grabbedbuffer% = kctta_grab_buffer();    <-- Grabs the buffer
                             |
                             V
     Required:   * create/bind Vertex Array Object and Vertex Buffer Objects on GPU using your graphics API and %grabbedbuffer%
@@ -85,9 +85,61 @@ Loop:
                                                     to the VAO and VBO on the GPU.
 
 
-USAGE EXAMPLE (Actual Code using OpenGL):
+USAGE EXAMPLE (C code using OpenGL):
 
+    #define TEXT_SIZE 30
 
+    unsigned char* font_file;
+    // Read the font file on disk (e.g. "arial.ttf") into a byte buffer in memory (e.g. font_file) using your own method
+    // If you are using SDL, you can use SDL_RW. You could also use stdio.h's file operations (fopen, fread, fclose, etc.).
+    
+    kctta_use_index_buffer(1); // Enable this if you are using Indexed Drawing
+    TTAFont font_handle;
+    kctta_init_font(&font_handle, font_file, TEXT_SIZE);
+    // TEXT_SIZE in init_font doesn't need to be the same as the TEXT_SIZE we use when we call append_line or glyph
+    // Now font_handle has all the info we need.
+
+    kctta_clear_buffer();
+    kctta_move_cursor(100, 100);
+    kctta_append_line("Hello, world!", &font_handle);
+
+    TTAVertexBuffer vb = kctta_grab_buffer();
+
+    // That's it. That's all you need to interact with this library. Everything below is just
+    // using the vertex buffer from the library to actually get the text drawing in OpenGL.
+
+    GLuint VAO_ID, VBO_ID, IBO_ID, TextureID;
+    // Creating the VAO for our text in the GPU memory
+    glBindVertexArray(VAO_ID);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO_ID);
+            glBufferData(GL_ARRAY_BUFFER,
+                         vb.vertices_array_count * 4,
+                         vb.vertex_buffer,
+                         GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_ID);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                         vb.indices_array_count * 4,
+                         vb.index_buffer,
+                         GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    // Creating the font texture in GPU memory
+    glGenTextures(1, &TextureID);     
+    glBindTexture(GL_TEXTURE_2D, TextureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 
+                     font_handle.font_atlas.width,
+                     font_handle.font_atlas.height, 
+                     0, source_format, GL_UNSIGNED_BYTE, 
+                     font_handle.font_atlas.pixels);
+    glActiveTexture(GL_TEXTURE0);
+    // Draw call
+    glUseProgram(SHADER PROGRAM FOR TEXT); // The text shader should use an orthographic projection matrix
+    glBindVertexArray(mesh.id_vao);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.id_ibo);
+            glDrawElements(GL_TRIANGLES, vb.indices_array_count, GL_UNSIGNED_INT, nullptr);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glUseProgram(0);
 
 TODO:
     - Kerning
@@ -105,8 +157,8 @@ Maybe:
 #define KCTTA_GLYPH_COUNT KCTTA_ASCII_TO - KCTTA_ASCII_FROM + 1
 #define KCTTA_MAX_FONT_RESOLUTION 100   // maximum font resolution when initializing font
 #define KCTTA_DESIRED_ATLAS_WIDTH 400   // width of the font atlas
-#define KCTTA_AT_PAD_X 1         // x padding between the glyph textures on the texture atlas
-#define KCTTA_AT_PAD_Y 1         // y padding between the glyph textures on the texture atlas
+#define KCTTA_AT_PAD_X 1                // x padding between the glyph textures on the texture atlas
+#define KCTTA_AT_PAD_Y 1                // y padding between the glyph textures on the texture atlas
 
 /** Stores a pointer to the vertex buffer assembly array and the count of vertices in the 
     array (total length of array would be count of vertices * 4).
@@ -136,15 +188,8 @@ typedef struct
 */
 typedef struct 
 {
-    float           advance;
-    int             width;
-    int             height;
-    float           offset_x;
-    float           offset_y;
-    float           min_u;
-    float           min_v;
-    float           max_u;
-    float           max_v;
+    int             width,height;
+    float           advance,offset_x,offset_y,min_u,min_v,max_u,max_v;
     char            codepoint;
 } TTAGlyph;
 

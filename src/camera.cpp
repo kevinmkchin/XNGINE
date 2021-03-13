@@ -1,7 +1,7 @@
 /** Update camera position, rotation, direction, and right, up vectors */
 INTERNAL void update_camera(Camera& camera, real32 dt)
 {
-    if(abs(g_mouse_delta_x) < 50.f || abs(g_mouse_delta_y) < 50.f) // don't move if mouse delta is too big to be normal
+    if(abs(g_mouse_delta_x) < 50.f && abs(g_mouse_delta_y) < 50.f) // don't move if mouse delta is too big to be normal
     {
         camera.rotation.y += g_mouse_delta_x * camera.turnspeed;
         camera.rotation.x += -g_mouse_delta_y * camera.turnspeed;       
