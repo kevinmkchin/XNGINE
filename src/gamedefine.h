@@ -34,10 +34,17 @@ const float TO_DEGREES = 57.2958f;      // in_radians * TO_DEGREES = in_degrees
 #define ASCII_TILDE 126
 
 /** HELPER FUNCTIONS **/
+#if SLOW_BUILD
+#define ASSERT(predicate) if(!predicate) {*(int*)0 = 0;}
+else
+#define ASSERT(predicate)
+#endif
+
 #define TYPEHASH(T) typeid(T).hash_code()
 #define array_count(arr) (sizeof(arr) / (sizeof(arr[0])))
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
+
 INTERNAL bool is_number(std::string str)
 {
     size_t len = str.length();
