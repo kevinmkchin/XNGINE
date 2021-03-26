@@ -1,6 +1,6 @@
 INTERNAL void con_initialize(TTAFont* console_font_handle, Texture console_font_atlas);
 INTERNAL void con_print(const char* message);
-INTERNAL void con_printf(char* fmt, ...);
+INTERNAL void con_printf(const char* fmt, ...);
 INTERNAL void con_command(char* text_command);
 INTERNAL void con_toggle();
 INTERNAL void con_update(real32 dt);
