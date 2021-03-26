@@ -8,7 +8,7 @@ I create a backup of the project at every new feature/implementation to keep a r
 
 ## How to Build and Run
 ### Windows
-- Run build-cmake.bat
+- Run build-win64-msvc.bat (msvc build requires 64 bit msvc compiler)
 - Run run.bat (with argument "vs" if you want to launch Visual Studio to debug)
 - Either set the working directory of the executable to be /data or move the contents of /data to where the executable is located
 - Profit
