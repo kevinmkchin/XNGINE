@@ -151,7 +151,7 @@ INTERNAL void con_print(const char* message)
     con_b_messages_dirty = true;
 }
 
-INTERNAL void con_printf(char* fmt, ...)
+INTERNAL void con_printf(const char* fmt, ...)
 {
     va_list argptr;
 
