@@ -2,11 +2,12 @@
 rem kevinmkchin's build file for OpenGLDemo
 echo Build started: %time%
 
-
 rem *****************************
 rem Source Code to Build
 set SOURCE=..\src\main_win64.cpp
 rem *****************************
+
+set PREPROCDEFINES = -DINTERNAL_BUILD=1 -DSLOW_BUILD=1
 
 rem Additional Include Directories - preceded by /I
 set ADDINCLUDES=/I"..\libs\GLEW\include" /I"..\libs\SDL\include" /I"..\libs\GLM"
@@ -26,7 +27,7 @@ set LINKEROPTIONS=/SUBSYSTEM:CONSOLE %ADDLIBPATHS% %ADDDEPENDENCIES%
 if NOT exist build mkdir build
 pushd build
 if NOT exist %OUTPUTDIR% mkdir %OUTPUTDIR%
-cl -Zi /EHsc /W3 /std:c++14 /Fe%OUTPUTDIR%%OUTPUTEXE% %ADDINCLUDES% %SOURCE% /link %LINKEROPTIONS%
+cl %PREPROCDEFINES% -Zi /EHsc /W3 /std:c++14 /Fe%OUTPUTDIR%%OUTPUTEXE% %ADDINCLUDES% %SOURCE% /link %LINKEROPTIONS%
 popd
 
 echo Build finished: %time%

@@ -23,14 +23,20 @@ Backlog:
         - shader hotloading/compiling during runtime - pause all update / render while shaders are being recompiled
         - mouse picking entities
 
-    THIS PROJECT IS A SINGLE TRANSLATION UNIT BUILD / UNITY BUILD
-*/
-#define DEBUG
-#ifndef DEBUG
-#define RELEASE
-#endif
+THIS PROJECT IS A SINGLE TRANSLATION UNIT BUILD / UNITY BUILD
 
-#include <assert.h>
+BUILD MODES
+
+    INTERNAL_BUILD:
+        0 - Build for public release
+        1 - Build for developer only
+
+    SLOW_BUILD:
+        0 - No slow code allowed
+        1 - Slow code fine
+
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

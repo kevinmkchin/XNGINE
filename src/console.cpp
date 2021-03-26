@@ -131,7 +131,7 @@ INTERNAL void con_initialize(TTAFont* console_font_handle, Texture console_font_
 INTERNAL void con_print(const char* message)
 {
 
-#ifdef DEBUG
+#if INTERNAL_BUILD
     printf(message);
 #endif
 
