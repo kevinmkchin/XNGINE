@@ -140,6 +140,26 @@ INTERNAL inline int64 platform_get_ticks()
     return ticks.QuadPart;
 }
 
+INTERNAL inline void platform_load_font(TTAFont* font_handle,
+                                        Texture& font_atlas,
+                                        const char* font_path,
+                                        uint8 font_size)
+{
+    BinaryFileHandle fontfile;
+    FILE_read_file_binary(fontfile, font_path);
+        if(fontfile.memory)
+        {
+            kctta_init_font(font_handle, (uint8*) fontfile.memory, font_size);
+        }
+    FILE_free_file_binary(fontfile);
+    gl_load_texture_from_bitmap(font_atlas,
+                                font_handle->font_atlas.pixels,
+                                font_handle->font_atlas.width,
+                                font_handle->font_atlas.height,
+                                GL_RED, GL_RED);
+    free(font_handle->font_atlas.pixels);
+}
+
 INTERNAL int8 game_run();
 INTERNAL bool game_init();
 INTERNAL void game_loop();
@@ -268,7 +288,7 @@ INTERNAL bool game_init()
         0 = immediate, 1 = vsync, -1 = adaptive vsync. Remark: If application requests adaptive vsync and the system does 
         not support it, this function will fail and return -1. In such a case, you should probably retry the call with 1 
         for the interval. */
-    if (SDL_GL_SetSwapInterval(-1) == -1)
+    if (SDL_GL_SetSwapInterval(0) == -1)
     {
         SDL_GL_SetSwapInterval(1);
     }
@@ -309,19 +329,7 @@ INTERNAL bool game_init()
     kctta_use_index_buffer(1);
 
     // LOAD FONTS
-    BinaryFileHandle fontfile;
-    FILE_read_file_binary(fontfile, "data/fonts/c64.ttf");
-        if(fontfile.memory)
-        {
-            kctta_init_font(&g_font_handle_c64, (uint8*) fontfile.memory, CON_TEXT_SIZE);
-        }
-    FILE_free_file_binary(fontfile);
-    gl_load_texture_from_bitmap(g_font_atlas_c64,
-                                g_font_handle_c64.font_atlas.pixels,
-                                g_font_handle_c64.font_atlas.width,
-                                g_font_handle_c64.font_atlas.height,
-                                GL_RED, GL_RED);
-    free(g_font_handle_c64.font_atlas.pixels);
+    platform_load_font(&g_font_handle_c64, g_font_atlas_c64, "data/fonts/c64.ttf", CON_TEXT_SIZE);
 
     con_initialize(&g_font_handle_c64, g_font_atlas_c64);
     profiler_initialize(&g_font_handle_c64, g_font_atlas_c64);
