@@ -53,4 +53,5 @@ INTERNAL void con_register_cmds()
     ADD_COMMAND_NOARG("togglewireframe", cmd_wireframe);
     ADD_COMMAND_TWOARG("add", cmd_add, float, float);
     ADD_COMMAND_ONEARG("sensitivity", cmd_sensitivity, float);
+    ADD_COMMAND_ONEARG("profiler", cmd_profiler_set_level, int);
 }

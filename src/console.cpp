@@ -64,38 +64,26 @@ uint16      con_messages_write_cursor = 0;
 bool        con_b_messages_dirty = false;
 
 // Text visuals
-TTAFont     con_font_handle;
-Texture     con_text_atlas;
+TTAFont*    con_font_handle;
+Texture     con_font_atlas;
 // Input text & Messages VAOs
 Mesh        con_input_vao; // con_input_vao gets added to con_text_vaos (after eviction) if user "returns" command
 Mesh        con_text_vaos[CON_ROWS_MAX] = {}; // one vao is one line
 
 // TODO buffer to hold previous commands
 
-INTERNAL void con_initialize()
+INTERNAL void con_initialize(TTAFont* console_font_handle, Texture console_font_atlas)
 {
     // ADD COMMANDS
     con_register_cmds();
 
-    // LOAD CONSOLE FONT
-    BinaryFileHandle fontfile;
-    FILE_read_file_binary(fontfile, "data/fonts/c64.ttf");
-        if(fontfile.memory)
-        {
-            kctta_init_font(&con_font_handle, (uint8*) fontfile.memory, CON_TEXT_SIZE);
-        }
-    FILE_free_file_binary(fontfile);
-    gl_load_texture_from_bitmap(con_text_atlas,
-                                con_font_handle.font_atlas.pixels,
-                                con_font_handle.font_atlas.width,
-                                con_font_handle.font_atlas.height,
-                                GL_RED, GL_RED);
-    free(con_font_handle.font_atlas.pixels);
+    con_font_handle = console_font_handle;
+    con_font_atlas = console_font_atlas;
 
     // INIT TEXT Mesh OBJECTS
     kctta_clear_buffer();
     kctta_move_cursor(CON_INPUT_DRAW_X, CON_INPUT_DRAW_Y);
-    kctta_append_glyph('>', &con_font_handle, CON_TEXT_SIZE);
+    kctta_append_glyph('>', con_font_handle, CON_TEXT_SIZE);
     TTAVertexBuffer vb = kctta_grab_buffer();
     con_input_vao = gl_create_mesh_array(vb.vertex_buffer, vb.index_buffer, 
         vb.vertices_array_count, vb.indices_array_count, 2, 2, GL_DYNAMIC_DRAW);
@@ -284,11 +272,11 @@ INTERNAL void con_update_messages()
                     char c = con_messages[j];
                     if(c != '\n')
                     {
-                        kctta_append_glyph(c, &con_font_handle, CON_TEXT_SIZE);
+                        kctta_append_glyph(c, con_font_handle, CON_TEXT_SIZE);
                     }
                     else
                     {
-                        kctta_new_line(CON_INPUT_DRAW_X, &con_font_handle);
+                        kctta_new_line(CON_INPUT_DRAW_X, con_font_handle);
                     }
                 }
                 TTAVertexBuffer vb = kctta_grab_buffer();
@@ -318,7 +306,7 @@ INTERNAL void con_update(real32 dt)
                 kctta_clear_buffer();
                 kctta_move_cursor(CON_INPUT_DRAW_X, CON_INPUT_DRAW_Y);
                 std::string input_text = ">" + std::string(con_input_buffer);
-                kctta_append_line(input_text.c_str(), &con_font_handle, CON_TEXT_SIZE);
+                kctta_append_line(input_text.c_str(), con_font_handle, CON_TEXT_SIZE);
                 TTAVertexBuffer vb = kctta_grab_buffer();
                 gl_rebind_buffers(con_input_vao, vb.vertex_buffer, vb.index_buffer, 
                     vb.vertices_array_count, vb.indices_array_count);
@@ -374,11 +362,10 @@ INTERNAL void con_render(ShaderProgram ui_shader, ShaderProgram text_shader)
             glUniform4f(id_uniform_ui_element_colour, 0.8f, 0.8f, 0.8f, 1.f);
             glDrawArrays(GL_LINES, 0, 2);
         glBindVertexArray(0);
-        glUniform1i(id_uniform_b_use_colour, false);
     glUseProgram(text_shader.id_shader_program);
         // RENDER CONSOLE TEXT
         glUniformMatrix4fv(text_shader.id_uniform_projection, 1, GL_FALSE, glm::value_ptr(g_matrix_projection_ortho));
-        gl_use_texture(con_text_atlas);
+        gl_use_texture(con_font_atlas);
 
         // Input text visual
         glUniform3f(glGetUniformLocation(text_shader.id_shader_program, "text_colour"), 1.f, 1.f, 1.f);

@@ -5,7 +5,7 @@ echo Build started: %time%
 
 rem *****************************
 rem Source Code to Build
-set SOURCE=..\src\main.cpp
+set SOURCE=..\src\main_win64.cpp
 rem *****************************
 
 rem Additional Include Directories - preceded by /I
@@ -21,7 +21,7 @@ rem Output Executable Name
 set OUTPUTEXE="opengldemo.exe"
 
 rem Linker Options
-set LINKEROPTIONS=/SUBSYSTEM:WINDOWS %ADDLIBPATHS% %ADDDEPENDENCIES%
+set LINKEROPTIONS=/SUBSYSTEM:CONSOLE %ADDLIBPATHS% %ADDDEPENDENCIES%
 
 if NOT exist build mkdir build
 pushd build

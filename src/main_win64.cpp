@@ -13,7 +13,11 @@ Backlog:
         https://stackoverflow.com/questions/20735637/resize-sdl2-window#:~:text=To%20resize%20a%20window%20in,0%2C%20windowWidth%2C%20windowHeight)%20.
         SDL_WINDOWEVENT_RESIZED https://wiki.libsdl.org/SDL_WindowEvent
     - Frame lock
+    - Make shader not require certain uniform matrices like model view and projection
     - Texture GL_NEAREST option
+    - Texture do something like source engine
+        - Build simple polygons and shapes, and the textures get wrapped
+          automatically(1 unit in vertices is 1 unit in texture uv)
     - Console:
         - remember previously entered commands
         - shader hotloading/compiling during runtime - pause all update / render while shaders are being recompiled
@@ -22,7 +26,9 @@ Backlog:
     THIS PROJECT IS A SINGLE TRANSLATION UNIT BUILD / UNITY BUILD
 */
 #define DEBUG
-//#define RELEASE
+#ifndef DEBUG
+#define RELEASE
+#endif
 
 #include <assert.h>
 #include <stdio.h>
@@ -38,6 +44,7 @@ Backlog:
 #include <gl/glew.h>
 #include <SDL.h>
 #include <SDL_syswm.h>
+#include <profileapi.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -80,14 +87,19 @@ GLOBAL_VAR bool g_b_wireframe = false;
 #include "mesh.cpp"
 #include "shader.cpp"
 #include "texture.cpp"
+#include "profiler.cpp"
 #include "commands.cpp"
 #include "console.cpp"
 
 Mesh meshes[3];
 ShaderProgram shaders[3];
-TTAFont fonts[1];
 Texture tex_brick;
 Texture tex_dirt;
+
+// - Fonts -
+TTAFont g_font_handle_c64;
+Texture g_font_atlas_c64;
+// ---------
 
 static const char* vertex_shader_path = "shaders/default.vert";
 static const char* frag_shader_path = "shaders/default.frag";
@@ -117,6 +129,16 @@ INTERNAL void create_triangles()
     meshes[1] = gl_create_mesh_array(vertices, indices, 20, 12);
 }
 
+INTERNAL inline int64 platform_get_ticks()
+{
+    // win64 version of get ticks
+    LARGE_INTEGER ticks;
+    if (!QueryPerformanceCounter(&ticks))
+    {
+        return -1;
+    }
+    return ticks.QuadPart;
+}
 
 INTERNAL int8 game_run();
 INTERNAL bool game_init();
@@ -286,8 +308,23 @@ INTERNAL bool game_init()
     // kc_truetypeassembler setting
     kctta_use_index_buffer(1);
 
-    // init console
-    con_initialize();
+    // LOAD FONTS
+    BinaryFileHandle fontfile;
+    FILE_read_file_binary(fontfile, "data/fonts/c64.ttf");
+        if(fontfile.memory)
+        {
+            kctta_init_font(&g_font_handle_c64, (uint8*) fontfile.memory, CON_TEXT_SIZE);
+        }
+    FILE_free_file_binary(fontfile);
+    gl_load_texture_from_bitmap(g_font_atlas_c64,
+                                g_font_handle_c64.font_atlas.pixels,
+                                g_font_handle_c64.font_atlas.width,
+                                g_font_handle_c64.font_atlas.height,
+                                GL_RED, GL_RED);
+    free(g_font_handle_c64.font_atlas.pixels);
+
+    con_initialize(&g_font_handle_c64, g_font_atlas_c64);
+    profiler_initialize(&g_font_handle_c64, g_font_atlas_c64);
 
     return true;
 }
@@ -317,15 +354,22 @@ INTERNAL void game_clean_up()
 /** Game loop with fixed timestep - Input, Logic, Render */
 INTERNAL void game_loop()
 {
-    real32 last_tick = (real32)SDL_GetTicks();  // time (in milliseconds since SDL init) of the last tick
+    LARGE_INTEGER perf_counter_frequency_result;
+    QueryPerformanceFrequency(&perf_counter_frequency_result);
+    int64 perf_counter_frequency = perf_counter_frequency_result.QuadPart;
+
+    // Loop
+    int64 last_tick = platform_get_ticks(); // cpu cycles count of last tick
     while (is_running)
     {
         game_process_events();
         if (is_running == false) { break; }
-        real32 this_tick = (real32)SDL_GetTicks();
-        real32 delta_time_ms = this_tick - last_tick;
-        game_update(delta_time_ms / 1000.f);
-        last_tick = this_tick; // TODO is this right?
+        int64 this_tick = platform_get_ticks();
+        int64 delta_tick = this_tick - last_tick;
+        real32 deltatime_secs = (real32) delta_tick / (real32) perf_counter_frequency;
+        last_tick = this_tick;
+        perf_gameloop_elapsed_secs = deltatime_secs;
+        game_update(deltatime_secs);
         game_render();
     }
 }
@@ -445,8 +489,9 @@ INTERNAL void game_render()
 
 // NOT DEPTH TESTED
     glDisable(GL_DEPTH_TEST); 
-
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    profiler_render(shaders[2], shaders[1]);
     con_render(shaders[2], shaders[1]);
 
     /* Swap our buffer to display the current contents of buffer on screen. 
