@@ -48,7 +48,7 @@ INTERNAL bool is_number(std::string str)
 }
 
 /** GAME SPECIFIC **/
-#define WIDTH 1280
-#define HEIGHT 720
+#define WIDTH 1792
+#define HEIGHT 1008
 
 #endif
