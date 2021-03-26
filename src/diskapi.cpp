@@ -1,3 +1,10 @@
+/**
+
+    Platform independent FILE operations to the harddrive disk
+    Should work on Windows, MacOSX, Linux
+
+*/
+
 INTERNAL void FILE_free_file_binary(BinaryFileHandle& binary_file_to_free)
 {
     free(binary_file_to_free.memory);
