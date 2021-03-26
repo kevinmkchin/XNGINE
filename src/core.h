@@ -1,5 +1,35 @@
 #pragma once
-// Core game engine objects
+
+/**
+
+    Types to hold data in memory
+
+*/
+
+/** Handle for a file in memory */
+struct BinaryFileHandle 
+{
+    uint64  size    = 0;    // size of file in memory
+    void*   memory  = NULL; // pointer to file in memory
+};
+
+/** Handle for an UNSIGNED BYTE bitmap in memory */
+struct BitmapHandle : BinaryFileHandle
+{
+    // uint64       size
+    // void*        memory
+    uint32          width       = 0;    // image width
+    uint32          height      = 0;    // image height
+    uint8           bit_depth   = 0;    // bit depth of bitmap in bytes (e.g. bit depth = 3 means there are 3 bytes in the bitmap per pixel)
+};
+
+
+
+/** 
+
+    Core game engine objects
+
+*/
 
 /** Handle for Texture stored in GPU memory */
 struct Texture

@@ -58,7 +58,6 @@ Backlog:
 
 #include "gamedefine.h" // defines and typedefs
 #include "core.h"
-#include "data.h"
 #include "console.h"
 // --- global variables  --- note: static variables are initialized to their default values
 GLOBAL_VAR uint32 g_buffer_width;
@@ -82,7 +81,7 @@ GLOBAL_VAR SDL_GLContext opengl_context = nullptr;
 GLOBAL_VAR glm::mat4 g_matrix_projection_ortho;
 GLOBAL_VAR bool g_b_wireframe = false;
 // -------------------------
-#include "data.cpp"
+#include "diskapi.cpp"
 #include "camera.cpp"
 #include "mesh.cpp"
 #include "shader.cpp"
@@ -96,10 +95,10 @@ ShaderProgram shaders[3];
 Texture tex_brick;
 Texture tex_dirt;
 
-// - Fonts -
+// --- Fonts ---
 TTAFont g_font_handle_c64;
 Texture g_font_atlas_c64;
-// ---------
+// -------------
 
 static const char* vertex_shader_path = "shaders/default.vert";
 static const char* frag_shader_path = "shaders/default.frag";

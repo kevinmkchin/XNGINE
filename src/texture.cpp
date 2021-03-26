@@ -61,7 +61,7 @@ INTERNAL void gl_load_texture_from_file(Texture&    texture,
 {
     BitmapHandle texture_handle;
     FILE_read_image(texture_handle, texture_file_path);
-        gl_load_texture_from_bitmap(texture, texture_handle.memory, texture_handle.width, 
+        gl_load_texture_from_bitmap(texture, (unsigned char*)texture_handle.memory, texture_handle.width, 
             texture_handle.height, GL_RGBA, (texture_handle.bit_depth == 3 ? GL_RGB : GL_RGBA));
     FILE_free_image(texture_handle); // texture data has been copied to GPU memory, so we can free image from memory
 }

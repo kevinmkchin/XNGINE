@@ -63,7 +63,7 @@ INTERNAL std::string FILE_read_file_string(const char* file_path)
 
 INTERNAL void FILE_free_image(BitmapHandle& image_handle)
 {
-    free(image_handle.memory);
+    FILE_free_file_binary(image_handle);
     image_handle.width = 0;
     image_handle.height = 0;
     image_handle.bit_depth = 0;
