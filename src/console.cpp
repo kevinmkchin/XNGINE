@@ -349,7 +349,7 @@ INTERNAL void con_render(ShaderProgram ui_shader, ShaderProgram text_shader)
     glm::mat4 con_transform = glm::mat4(1.f);
     con_transform = glm::translate(con_transform, glm::vec3(0.f, console_translation_y, 0.f));
     // render console
-    glUseProgram(ui_shader.id_shader_program);
+    gl_use_shader(ui_shader);
         GLint id_uniform_b_use_colour = glGetUniformLocation(ui_shader.id_shader_program, "b_use_colour");
         GLint id_uniform_ui_element_colour = glGetUniformLocation(ui_shader.id_shader_program, "ui_element_colour");
         glUniform1i(id_uniform_b_use_colour, true);
@@ -362,7 +362,7 @@ INTERNAL void con_render(ShaderProgram ui_shader, ShaderProgram text_shader)
             glUniform4f(id_uniform_ui_element_colour, 0.8f, 0.8f, 0.8f, 1.f);
             glDrawArrays(GL_LINES, 0, 2);
         glBindVertexArray(0);
-    glUseProgram(text_shader.id_shader_program);
+    gl_use_shader(text_shader);
         // RENDER CONSOLE TEXT
         glUniformMatrix4fv(text_shader.id_uniform_projection, 1, GL_FALSE, glm::value_ptr(g_matrix_projection_ortho));
         gl_use_texture(con_font_atlas);

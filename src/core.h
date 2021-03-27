@@ -31,13 +31,13 @@ struct BitmapHandle : BinaryFileHandle
 
 */
 
-/** Handle for Texture stored in GPU memory */
-struct Texture
+/** Handle for Shader Program stored in GPU memory */
+struct ShaderProgram
 {
-    GLuint      texture_id  = 0;        // ID for the texture in GPU memory
-    int32       width       = 0;        // Width of the texture
-    int32       height      = 0;        // Height of the texture
-    GLenum      format      = GL_NONE;  // format / bitdepth of texture (GL_RGB would be 3 byte bit depth)
+    GLuint  id_shader_program        = 0;    // id of this shader program in GPU memory
+    GLint   id_uniform_model         = 0;    // location id for the model matrix uniform variable
+    GLint   id_uniform_view          = 0;    // location id for the view matrix uniform variable
+    GLint   id_uniform_projection    = 0;    // location id for hte projection matrix uniform variable
 };
 
 /** Stores mesh { VAO, VBO, IBO } info. Handle for VAO on GPU memory */
@@ -48,6 +48,15 @@ struct Mesh
     uint32  id_vbo          = 0;
     uint32  id_ibo          = 0;
     int32   index_count     = 0;
+};
+
+/** Handle for Texture stored in GPU memory */
+struct Texture
+{
+    GLuint      texture_id  = 0;        // ID for the texture in GPU memory
+    int32       width       = 0;        // Width of the texture
+    int32       height      = 0;        // Height of the texture
+    GLenum      format      = GL_NONE;  // format / bitdepth of texture (GL_RGB would be 3 byte bit depth)
 };
 
 /** Camera properties */
@@ -66,15 +75,6 @@ struct Camera
 
     glm::mat4   matrix_perspective; // Perspective projection matrix
     glm::mat4   matrix_view;        // Last calculated view matrix
-};
-
-/** Handle for Shader Program stored in GPU memory */
-struct ShaderProgram
-{
-    uint32 id_shader_program        = 0;    // id of this shader program in GPU memory
-    uint32 id_uniform_model         = 0;    // location id for the model matrix uniform variable
-    uint32 id_uniform_view          = 0;    // location id for the view matrix uniform variable
-    uint32 id_uniform_projection    = 0;    // location id for hte projection matrix uniform variable
 };
 
 /**  */

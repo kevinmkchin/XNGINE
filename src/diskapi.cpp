@@ -1,7 +1,6 @@
 /**
 
-    Platform independent FILE operations to the harddrive disk
-    Should work on Windows, MacOSX, Linux
+    FILE operations to disk
 
 */
 

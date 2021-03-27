@@ -88,26 +88,9 @@ GLOBAL_VAR glm::mat4 g_matrix_projection_ortho;
 GLOBAL_VAR bool g_b_wireframe = false;
 // -------------------------
 #include "diskapi.cpp"
+#include "opengl.cpp"
 #include "camera.cpp"
-#include "mesh.cpp"
-#include "shader.cpp"
-#include "texture.cpp"
 #include "profiler.cpp"
-
-INTERNAL inline void platform_vsync(int vsync)
-{
-    /** This makes our Buffer Swap (SDL_GL_SwapWindow) synchronized with the monitor's 
-    vertical refresh - basically vsync; 0 = immediate, 1 = vsync, -1 = adaptive vsync. 
-    Remark: If application requests adaptive vsync and the system does not support it, 
-    this function will fail and return -1. In such a case, you should probably retry 
-    the call with 1 for the interval. */
-    switch(vsync){ // 0 = immediate (no vsync), 1 = vsync, 2 = adaptive vsync
-        case 0:{SDL_GL_SetSwapInterval(0);}break;
-        case 1:{SDL_GL_SetSwapInterval(1);}break;
-        case 2:{if(SDL_GL_SetSwapInterval(-1)==-1) SDL_GL_SetSwapInterval(1);}break;
-        default:{con_print("Invalid vsync option; 0 = immediate, 1 = vsync, 2 = adaptive vsync");}break;
-    }
-}
 #include "commands.cpp"
 #include "console.cpp"
 
@@ -128,28 +111,7 @@ static const char* ui_fs_path = "shaders/ui.frag";
 static const char* text_vs_path = "shaders/text_ui.vert";
 static const char* text_fs_path = "shaders/text_ui.frag";
 
-INTERNAL void create_triangles()
-{
-    uint32 indices[12] = { 
-        0, 3, 1,
-        1, 3, 2,
-        2, 3, 0,
-        0, 1, 2
-    };
-
-    GLfloat vertices[20] = {
-    //  x     y     z    u    v
-        -1.f, -1.f, 0.f, 0.f, 0.f,
-        0.f, -1.f, 1.f, 0.5f, 0.f,
-        1.f, -1.f, 0.f, 1.f, 0.f,
-        0.f, 1.f, 0.f, 0.5f, 1.f
-    };
-
-    meshes[0] = gl_create_mesh_array(vertices, indices, 20, 12);
-    meshes[1] = gl_create_mesh_array(vertices, indices, 20, 12);
-}
-
-INTERNAL inline int64 platform_get_ticks()
+INTERNAL inline int64 win64_get_ticks()
 {
     // win64 version of get ticks
     LARGE_INTEGER ticks;
@@ -160,7 +122,7 @@ INTERNAL inline int64 platform_get_ticks()
     return ticks.QuadPart;
 }
 
-INTERNAL inline void platform_load_font(TTAFont* font_handle,
+INTERNAL inline void win64_load_font(TTAFont* font_handle,
                                         Texture& font_atlas,
                                         const char* font_path,
                                         uint8 font_size)
@@ -180,48 +142,30 @@ INTERNAL inline void platform_load_font(TTAFont* font_handle,
     free(font_handle->font_atlas.pixels);
 }
 
-INTERNAL int8 game_run();
-INTERNAL bool game_init();
-INTERNAL void game_loop();
-INTERNAL void game_process_events();
-INTERNAL void game_update(real32 dt);
-INTERNAL void game_render();
-INTERNAL void game_clean_up();
-
-/** Start the game procedure */
-INTERNAL int8 game_run()
+INTERNAL inline void sdl_vsync(int vsync)
 {
-    if (game_init() == false) return 1;
+    /** This makes our Buffer Swap (SDL_GL_SwapWindow) synchronized with the monitor's 
+    vertical refresh - basically vsync; 0 = immediate, 1 = vsync, -1 = adaptive vsync. 
+    Remark: If application requests adaptive vsync and the system does not support it, 
+    this function will fail and return -1. In such a case, you should probably retry 
+    the call with 1 for the interval. */
+    switch(vsync){ // 0 = immediate (no vsync), 1 = vsync, 2 = adaptive vsync
+        case 0:{SDL_GL_SetSwapInterval(0);}break;
+        case 1:{SDL_GL_SetSwapInterval(1);}break;
+        case 2:{if(SDL_GL_SetSwapInterval(-1)==-1) SDL_GL_SetSwapInterval(1);}break;
+        default:{con_print("Invalid vsync option; 0 = immediate, 1 = vsync, 2 = adaptive vsync");}break;
+    }
+}
 
-    create_triangles();
-
-    ShaderProgram shader;
-    gl_load_shader_program_from_file(shader, vertex_shader_path, frag_shader_path);
-    shaders[0] = shader;
-    gl_load_shader_program_from_file(shader, text_vs_path, text_fs_path);
-    shaders[1] = shader;
-    gl_load_shader_program_from_file(shader, ui_vs_path, ui_fs_path);
-    shaders[2] = shader;
-
-    gl_load_texture_from_file(tex_brick, "data/textures/brick.png");
-    gl_load_texture_from_file(tex_dirt, "data/textures/mqdefault.jpg");
-
-    /** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)
-        The model matrix, right now, is in Game::render because we want to be able to update the object's transform on tick. However, ideally, the 
-        model matrix creation and transformation should be done in Game::update because that's where we should be updating the object's transformation.
-        That matrix can be stored inside the game object class alongside the VAO. Or we could simply update the game object's position, rotation, scale
-        fields, then construct the model matrix in Game::render based on those fields. Yeah that's probably better.
-    */
-    real32 aspect_ratio = (real32)g_buffer_width / (real32)g_buffer_height;
-    g_camera.matrix_perspective = glm::perspective(45.f, aspect_ratio, 0.1f, 1000.f);
-    g_camera.position = glm::vec3(0.f, 0.f, 0.f);
-    g_camera.rotation = glm::vec3(0.f, 270.f, 0.f);
-    g_matrix_projection_ortho = glm::ortho(0.0f, (real32)g_buffer_width,(real32)g_buffer_height,0.0f, -0.1f, 0.f);
-
-    game_loop();
-    game_clean_up();
-
-    return 0;
+INTERNAL inline void gl_update_viewport_size()
+{
+    /** Get the size of window's underlying drawable in pixels (for use with glViewport).
+    Remark: This may differ from SDL_GetWindowSize() if we're rendering to a high-DPI drawable, i.e. the window was created 
+    with SDL_WINDOW_ALLOW_HIGHDPI on a platform with high-DPI support (Apple calls this "Retina"), and not disabled by the 
+    SDL_HINT_VIDEO_HIGHDPI_DISABLED hint. */
+    SDL_GL_GetDrawableSize(window, (int*)&g_buffer_width, (int*)&g_buffer_height);
+    glViewport(0, 0, g_buffer_width, g_buffer_height);
+    con_printf("Viewport updated - x: %d y: %d\n", g_buffer_width, g_buffer_height);
 }
 
 /** Create window, set up OpenGL context, initialize SDL and GLEW */
@@ -254,8 +198,6 @@ INTERNAL bool game_init()
         printf("SDL window failed to create.\n");
         return false;
     }
-
-    //SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 
     /** GRABBING WINDOW INFORMATION - https://wiki.libsdl.org/SDL_GetWindowWMInfo
     *   Remarks: You must include SDL_syswm.h for the declaration of SDL_SysWMinfo. The info structure must 
@@ -309,85 +251,27 @@ INTERNAL bool game_init()
     if (glewInit() != GLEW_OK)
     {
         printf("GLEW failed to initialize.\n");
-        game_clean_up();
         return false;
     }
     con_printf("GLEW initialized.\n");
 
-    /** Get the size of window's underlying drawable in pixels (for use with glViewport).
-        Remark: This may differ from SDL_GetWindowSize() if we're rendering to a high-DPI drawable, i.e. the window was created 
-        with SDL_WINDOW_ALLOW_HIGHDPI on a platform with high-DPI support (Apple calls this "Retina"), and not disabled by the 
-        SDL_HINT_VIDEO_HIGHDPI_DISABLED hint. */
-    SDL_GL_GetDrawableSize(window, (int*)&g_buffer_width, (int*)&g_buffer_height);
-
-    // Setup Viewport
-    glViewport(0, 0, g_buffer_width, g_buffer_height);
-    con_printf("Viewport initialized - x: %d y: %d\n", g_buffer_width, g_buffer_height);
-
-    // Enable alpha blending
-    glEnable(GL_BLEND);
+    gl_update_viewport_size();
+    glEnable(GL_BLEND); // Enable alpha blending
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // a * (rgb) + (1 - a) * (rgb) = final color output
     glBlendEquation(GL_FUNC_ADD);
-    
-
-    platform_vsync(0);                         // vsync
+    sdl_vsync(0);                               // vsync
     SDL_SetRelativeMouseMode(SDL_TRUE);         // Lock mouse to window
     g_keystate = SDL_GetKeyboardState(nullptr); // Grab keystate array
     stbi_set_flip_vertically_on_load(true);     // stb_image setting
     kctta_use_index_buffer(1);                  // kc_truetypeassembler setting
 
     // LOAD FONTS
-    platform_load_font(&g_font_handle_c64, g_font_atlas_c64, "data/fonts/c64.ttf", CON_TEXT_SIZE);
+    win64_load_font(&g_font_handle_c64, g_font_atlas_c64, "data/fonts/c64.ttf", CON_TEXT_SIZE);
 
     con_initialize(&g_font_handle_c64, g_font_atlas_c64);
     profiler_initialize(&g_font_handle_c64, g_font_atlas_c64);
 
     return true;
-}
-
-/** Clear memory and shut down */
-INTERNAL void game_clean_up()
-{
-    con_printf("Game shutting down...\n");
-
-    gl_delete_texture(tex_brick);
-    gl_delete_texture(tex_dirt);
-    // clear shaders and delete shaders
-    for (int i = 0; i < array_count(meshes); ++i)
-    {
-        gl_delete_mesh(meshes[i]);
-    }
-    for (int i = 0; i < array_count(shaders); ++i)
-    {
-        gl_delete_shader(shaders[i]);
-    }
-
-    SDL_DestroyWindow(window);
-    SDL_GL_DeleteContext(opengl_context);
-    SDL_Quit();
-}
-
-/** Game loop with fixed timestep - Input, Logic, Render */
-INTERNAL void game_loop()
-{
-    LARGE_INTEGER perf_counter_frequency_result;
-    QueryPerformanceFrequency(&perf_counter_frequency_result);
-    int64 perf_counter_frequency = perf_counter_frequency_result.QuadPart;
-
-    // Loop
-    int64 last_tick = platform_get_ticks(); // cpu cycles count of last tick
-    while (is_running)
-    {
-        game_process_events();
-        if (is_running == false) { break; }
-        int64 this_tick = platform_get_ticks();
-        int64 delta_tick = this_tick - last_tick;
-        real32 deltatime_secs = (real32) delta_tick / (real32) perf_counter_frequency;
-        last_tick = this_tick;
-        perf_gameloop_elapsed_secs = deltatime_secs;
-        game_update(deltatime_secs);
-        game_render();
-    }
 }
 
 /** Process input and SDL events */
@@ -417,6 +301,25 @@ INTERNAL void game_process_events()
             case SDL_QUIT:
             {
                 is_running = false;
+            } break;
+
+            case SDL_WINDOWEVENT:
+            {
+                switch(event.window.event)
+                {
+                    case SDL_WINDOWEVENT_RESIZED:
+                    {
+                        gl_update_viewport_size();
+                        calculate_perspectivematrix(g_camera, 90.f);
+                        g_matrix_projection_ortho = glm::ortho(0.0f, (real32)g_buffer_width,(real32)g_buffer_height,0.0f, -0.1f, 0.f);
+                    } break;
+                    case SDL_WINDOWEVENT_SIZE_CHANGED:
+                    {
+                        gl_update_viewport_size();
+                        calculate_perspectivematrix(g_camera, 90.f);
+                        g_matrix_projection_ortho = glm::ortho(0.0f, (real32)g_buffer_width,(real32)g_buffer_height,0.0f, -0.1f, 0.f);
+                    } break;
+                }
             } break;
 
             case SDL_KEYDOWN:
@@ -517,5 +420,83 @@ INTERNAL void game_render()
 
 int main(int argc, char* argv[]) // Our main entry point MUST be in this form when using SDL
 {
-    return game_run();
+    if (game_init() == false) return 1;
+
+
+    uint32 indices[12] = { 
+        0, 3, 1,
+        1, 3, 2,
+        2, 3, 0,
+        0, 1, 2
+    };
+
+    GLfloat vertices[20] = {
+    //  x     y     z    u    v
+        -1.f, -1.f, 0.f, 0.f, 0.f,
+        0.f, -1.f, 1.f, 0.5f, 0.f,
+        1.f, -1.f, 0.f, 1.f, 0.f,
+        0.f, 1.f, 0.f, 0.5f, 1.f
+    };
+
+    meshes[0] = gl_create_mesh_array(vertices, indices, 20, 12);
+    meshes[1] = gl_create_mesh_array(vertices, indices, 20, 12);
+
+    ShaderProgram shader;
+    gl_load_shader_program_from_file(shader, vertex_shader_path, frag_shader_path);
+    shaders[0] = shader;
+    gl_load_shader_program_from_file(shader, text_vs_path, text_fs_path);
+    shaders[1] = shader;
+    gl_load_shader_program_from_file(shader, ui_vs_path, ui_fs_path);
+    shaders[2] = shader;
+    gl_load_texture_from_file(tex_brick, "data/textures/brick.png");
+    gl_load_texture_from_file(tex_dirt, "data/textures/mqdefault.jpg");
+
+    /** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)
+        The model matrix, right now, is in Game::render because we want to be able to update the object's transform on tick. However, ideally, the 
+        model matrix creation and transformation should be done in Game::update because that's where we should be updating the object's transformation.
+        That matrix can be stored inside the game object class alongside the VAO. Or we could simply update the game object's position, rotation, scale
+        fields, then construct the model matrix in Game::render based on those fields. Yeah that's probably better.
+    */
+    g_camera.position = glm::vec3(0.f, 0.f, 0.f);
+    g_camera.rotation = glm::vec3(0.f, 270.f, 0.f);
+    calculate_perspectivematrix(g_camera, 90.f);
+    g_matrix_projection_ortho = glm::ortho(0.0f, (real32)g_buffer_width,(real32)g_buffer_height,0.0f, -0.1f, 0.f);
+
+
+    // Game Loop
+    LARGE_INTEGER perf_counter_frequency_result;
+    QueryPerformanceFrequency(&perf_counter_frequency_result);
+    int64 perf_counter_frequency = perf_counter_frequency_result.QuadPart;
+    int64 last_tick = win64_get_ticks(); // cpu cycles count of last tick
+    while (is_running)
+    {
+        game_process_events();
+        if (is_running == false) { break; }
+        int64 this_tick = win64_get_ticks();
+        int64 delta_tick = this_tick - last_tick;
+        real32 deltatime_secs = (real32) delta_tick / (real32) perf_counter_frequency;
+        last_tick = this_tick;
+        perf_gameloop_elapsed_secs = deltatime_secs;
+        game_update(deltatime_secs);
+        game_render();
+    }
+
+    con_printf("Game shutting down...\n");
+
+    // Cleanup
+    gl_delete_texture(tex_brick);
+    gl_delete_texture(tex_dirt);
+    for (int i = 0; i < array_count(meshes); ++i)
+    {
+        gl_delete_mesh(meshes[i]);
+    }
+    for (int i = 0; i < array_count(shaders); ++i)
+    {
+        gl_delete_shader(shaders[i]);
+    }
+    SDL_DestroyWindow(window);
+    SDL_GL_DeleteContext(opengl_context);
+    SDL_Quit();
+
+    return 0;
 }
