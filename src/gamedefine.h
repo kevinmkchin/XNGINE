@@ -45,11 +45,11 @@ else
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
 
-INTERNAL bool is_number(std::string str)
+INTERNAL inline bool is_number(std::string str)
 {
     size_t len = str.length();
     for (int i = 0; i < len; ++i)
-        if ((!isdigit(str[i]) && str[i] != '.') || (str[i] == '.' && len == 1)) // . is okay if not the only char
+        if (false == (isdigit(str[i]) || (str[i] == '.' && len != 1) || (str[i] == '-' && i == 0)))
             return false;
     return true;
 }

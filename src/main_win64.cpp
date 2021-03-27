@@ -93,6 +93,21 @@ GLOBAL_VAR bool g_b_wireframe = false;
 #include "shader.cpp"
 #include "texture.cpp"
 #include "profiler.cpp"
+
+INTERNAL inline void platform_vsync(int vsync)
+{
+    /** This makes our Buffer Swap (SDL_GL_SwapWindow) synchronized with the monitor's 
+    vertical refresh - basically vsync; 0 = immediate, 1 = vsync, -1 = adaptive vsync. 
+    Remark: If application requests adaptive vsync and the system does not support it, 
+    this function will fail and return -1. In such a case, you should probably retry 
+    the call with 1 for the interval. */
+    switch(vsync){ // 0 = immediate (no vsync), 1 = vsync, 2 = adaptive vsync
+        case 0:{SDL_GL_SetSwapInterval(0);}break;
+        case 1:{SDL_GL_SetSwapInterval(1);}break;
+        case 2:{if(SDL_GL_SetSwapInterval(-1)==-1) SDL_GL_SetSwapInterval(1);}break;
+        default:{con_print("Invalid vsync option; 0 = immediate, 1 = vsync, 2 = adaptive vsync");}break;
+    }
+}
 #include "commands.cpp"
 #include "console.cpp"
 
@@ -289,15 +304,6 @@ INTERNAL bool game_init()
     }
     con_printf("OpenGL context created.\n");
 
-    /** This makes our Buffer Swap (SDL_GL_SwapWindow) synchronized with the monitor's vertical refresh - basically vsync; 
-        0 = immediate, 1 = vsync, -1 = adaptive vsync. Remark: If application requests adaptive vsync and the system does 
-        not support it, this function will fail and return -1. In such a case, you should probably retry the call with 1 
-        for the interval. */
-    if (SDL_GL_SetSwapInterval(0) == -1)
-    {
-        SDL_GL_SetSwapInterval(1);
-    }
-
     // Initialize GLEW
     glewExperimental = GL_TRUE; // Enable us to access modern opengl extension features
     if (glewInit() != GLEW_OK)
@@ -323,15 +329,12 @@ INTERNAL bool game_init()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // a * (rgb) + (1 - a) * (rgb) = final color output
     glBlendEquation(GL_FUNC_ADD);
     
-    // Lock mouse to window
-    SDL_SetRelativeMouseMode(SDL_TRUE);
-    // Grab keystate array
-    g_keystate = SDL_GetKeyboardState(nullptr);
 
-    // stb_image setting
-    stbi_set_flip_vertically_on_load(true);
-    // kc_truetypeassembler setting
-    kctta_use_index_buffer(1);
+    platform_vsync(0);                         // vsync
+    SDL_SetRelativeMouseMode(SDL_TRUE);         // Lock mouse to window
+    g_keystate = SDL_GetKeyboardState(nullptr); // Grab keystate array
+    stbi_set_flip_vertically_on_load(true);     // stb_image setting
+    kctta_use_index_buffer(1);                  // kc_truetypeassembler setting
 
     // LOAD FONTS
     platform_load_font(&g_font_handle_c64, g_font_atlas_c64, "data/fonts/c64.ttf", CON_TEXT_SIZE);
