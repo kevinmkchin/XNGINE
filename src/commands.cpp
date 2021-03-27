@@ -73,6 +73,23 @@ INTERNAL void cmd_help()
     con_print("\n======\n");
 }
 
+INTERNAL void sdl_vsync(int vsync);
+
+INTERNAL void sdl_fullscreen(int fullscreen)
+{
+    switch(fullscreen)
+    {
+        case 0:{SDL_SetWindowFullscreen(window, 0);}break;
+        case 1:{SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);}break;
+        case 2:{SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);}break;
+    }
+}
+
+INTERNAL void sdl_set_window_size(int w, int h)
+{
+    SDL_SetWindowSize(window, w, h);
+}
+
 // find entities where x attribute is true or has x attribute
 
 // goto entity
@@ -88,5 +105,7 @@ INTERNAL void con_register_cmds()
     ADD_COMMAND_TWOARG("add", cmd_add, float, float);
     ADD_COMMAND_ONEARG("sensitivity", cmd_sensitivity, float);
     ADD_COMMAND_ONEARG("profiler", cmd_profiler_set_level, int);
-    ADD_COMMAND_ONEARG("vsync", platform_vsync, int);
+    ADD_COMMAND_ONEARG("vsync", sdl_vsync, int);
+    ADD_COMMAND_ONEARG("fullscreen", sdl_fullscreen, int);
+    ADD_COMMAND_TWOARG("windowsize", sdl_set_window_size, int, int);
 }

@@ -54,6 +54,13 @@ INTERNAL void update_camera(Camera& camera, real32 dt)
     }
 }
 
+INTERNAL glm::mat4 calculate_perspectivematrix(Camera& camera, real32 fov)
+{
+    real32 aspect_ratio = (real32)g_buffer_width / (real32)g_buffer_height;
+    camera.matrix_perspective = glm::perspective(fov/2.f, aspect_ratio, 0.1f, 1000.f);
+    return camera.matrix_perspective;
+}
+
 /** Returns a view matrix using the given camera as the observer */
 INTERNAL glm::mat4 calculate_viewmatrix(Camera& camera)
 {

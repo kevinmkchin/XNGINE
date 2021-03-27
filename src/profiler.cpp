@@ -49,7 +49,7 @@ INTERNAL void profiler_render(ShaderProgram ui_shader, ShaderProgram text_shader
 
         glm::mat4 perf_frametime_transform = glm::mat4(1.f);
 
-        glUseProgram(text_shader.id_shader_program);
+        gl_use_shader(text_shader);
             glUniformMatrix4fv(text_shader.id_uniform_projection, 1, GL_FALSE, glm::value_ptr(g_matrix_projection_ortho));
             gl_use_texture(perf_font_atlas);
             glUniform3f(glGetUniformLocation(text_shader.id_shader_program, "text_colour"), 1.f, 1.f, 1.f);
