@@ -46,7 +46,7 @@ ConState    con_state = CON_HIDDEN;
 real32      con_y;
 
 float       CON_HEIGHT = 400.f;
-uint8       CON_TEXT_SIZE = 14;
+uint8       CON_TEXT_SIZE = 20;
 uint8       CON_TEXT_PADDING_BOTTOM = 4;
 uint16      CON_INPUT_DRAW_X = 4;
 uint16      CON_INPUT_DRAW_Y = (uint16) (CON_HEIGHT - (float) CON_TEXT_PADDING_BOTTOM);
