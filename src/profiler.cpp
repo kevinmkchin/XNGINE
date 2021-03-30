@@ -21,7 +21,7 @@ INTERNAL void profiler_initialize(TTAFont* in_perf_font_handle, Texture in_perf_
 {
     perf_font_handle = in_perf_font_handle;
     perf_font_atlas = in_perf_font_atlas;
-    perf_frametime_vao = gl_create_mesh_array(0, 0, 0, 0, 2, 2, GL_DYNAMIC_DRAW);
+    perf_frametime_vao = gl_create_mesh_array(0, 0, 0, 0, 2, 2, 0, GL_DYNAMIC_DRAW);
 }
 
 INTERNAL void profiler_render(ShaderProgram ui_shader, ShaderProgram text_shader)

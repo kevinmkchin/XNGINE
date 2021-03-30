@@ -70,6 +70,13 @@ INTERNAL void gl_create_shader_program(ShaderProgram& shader, const char* vertex
     shader.id_uniform_model = glGetUniformLocation(shader.id_shader_program, "matrix_model");
     shader.id_uniform_view = glGetUniformLocation(shader.id_shader_program, "matrix_view");
     shader.id_uniform_projection = glGetUniformLocation(shader.id_shader_program, "matrix_projection");
+    shader.id_uniform_observer_pos = glGetUniformLocation(shader.id_shader_program, "observer_pos");
+    shader.id_uniform_ambient_intensity = glGetUniformLocation(shader.id_shader_program, "directional_light.ambient_intensity");
+    shader.id_uniform_ambient_colour = glGetUniformLocation(shader.id_shader_program, "directional_light.colour");
+    shader.id_uniform_diffuse_intensity = glGetUniformLocation(shader.id_shader_program, "directional_light.diffuse_intensity");
+    shader.id_uniform_light_direction = glGetUniformLocation(shader.id_shader_program, "directional_light.direction");
+    shader.id_uniform_specular_intensity = glGetUniformLocation(shader.id_shader_program, "material.specular_intensity");
+    shader.id_uniform_shininess = glGetUniformLocation(shader.id_shader_program, "material.shininess");
 }
 
 INTERNAL void gl_load_shader_program_from_file(ShaderProgram& shader, const char* vertex_path, const char* fragment_path)
@@ -121,9 +128,10 @@ INTERNAL Mesh gl_create_mesh_array(real32* vertices,
                                    uint32 indices_array_count,
                                    uint8 vertex_attrib_size = 3,
                                    uint8 texture_attrib_size = 2,
+                                   uint8 normal_attrib_size = 3,
                                    GLenum draw_usage = GL_STATIC_DRAW)
 {
-    uint8 stride = vertex_attrib_size + texture_attrib_size;
+    uint8 stride = vertex_attrib_size + texture_attrib_size + normal_attrib_size;
 
     Mesh mesh;
     // Need to store to index_count because we need the count of indices when we are drawing in Mesh::render_mesh
@@ -151,6 +159,11 @@ INTERNAL Mesh gl_create_mesh_array(real32* vertices,
             glEnableVertexAttribArray(0); // Enabling location in VAO for the attribute
             glVertexAttribPointer(1, texture_attrib_size, GL_FLOAT, GL_FALSE, sizeof(real32) * stride, (void*)(sizeof(real32) * vertex_attrib_size)); // uv coord pointer
             glEnableVertexAttribArray(1);
+            if(normal_attrib_size > 0)
+            {
+                glVertexAttribPointer(2, normal_attrib_size, GL_FLOAT, GL_FALSE, sizeof(real32) * stride, (void*)(sizeof(real32) * (vertex_attrib_size + texture_attrib_size))); // normal pointer
+                glEnableVertexAttribArray(2);
+            }
         glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind the VBO
 
         // Index Buffer Object
@@ -310,4 +323,31 @@ INTERNAL void gl_use_texture(Texture& texture)
 {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture.texture_id); 
+}
+
+
+/**
+    
+    Lighting
+
+*/
+
+INTERNAL void gl_bind_directional_light(DirectionalLight& light,
+                                        GLint ambient_intensity_location,
+                                        GLint colour_location,
+                                        GLint diffuse_intensity_location,
+                                        GLint direction_location)
+{
+    glUniform1f(ambient_intensity_location, light.ambient_intensity);
+    glUniform3f(colour_location, light.colour.x, light.colour.y, light.colour.z);
+    glUniform1f(diffuse_intensity_location, light.diffuse_intensity);
+    glUniform3f(direction_location, light.direction.x, light.direction.y, light.direction.z);
+}
+
+INTERNAL void gl_bind_material(Material& material,
+                               GLint specular_intensity_location,
+                               GLint shiniess_location)
+{
+    glUniform1f(specular_intensity_location, material.specular_intensity);
+    glUniform1f(shiniess_location, material.shininess);
 }

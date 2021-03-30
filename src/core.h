@@ -16,11 +16,11 @@ struct BinaryFileHandle
 /** Handle for an UNSIGNED BYTE bitmap in memory */
 struct BitmapHandle : BinaryFileHandle
 {
-    // uint64       size
-    // void*        memory
-    uint32          width       = 0;    // image width
-    uint32          height      = 0;    // image height
-    uint8           bit_depth   = 0;    // bit depth of bitmap in bytes (e.g. bit depth = 3 means there are 3 bytes in the bitmap per pixel)
+    // uint64 size
+    // void* memory
+    uint32  width = 0;      // image width
+    uint32  height = 0;     // image height
+    uint8   bit_depth = 0;  // bit depth of bitmap in bytes (e.g. bit depth = 3 means there are 3 bytes in the bitmap per pixel)
 };
 
 
@@ -34,10 +34,20 @@ struct BitmapHandle : BinaryFileHandle
 /** Handle for Shader Program stored in GPU memory */
 struct ShaderProgram
 {
-    GLuint  id_shader_program        = 0;    // id of this shader program in GPU memory
-    GLint   id_uniform_model         = 0;    // location id for the model matrix uniform variable
-    GLint   id_uniform_view          = 0;    // location id for the view matrix uniform variable
-    GLint   id_uniform_projection    = 0;    // location id for hte projection matrix uniform variable
+    GLuint  id_shader_program = 0;    // id of this shader program in GPU memory\
+
+    GLint   id_uniform_model = 0;    // location id for the model matrix uniform variable
+    GLint   id_uniform_view = 0;    // location id for the view matrix uniform variable
+    GLint   id_uniform_projection = 0;    // location id for hte projection matrix uniform variable
+
+    GLint   id_uniform_observer_pos = 0;
+
+    GLint   id_uniform_ambient_intensity = 0;
+    GLint   id_uniform_ambient_colour = 0;
+    GLint   id_uniform_diffuse_intensity = 0;
+    GLint   id_uniform_light_direction = 0;
+    GLint   id_uniform_specular_intensity = 0;
+    GLint   id_uniform_shininess = 0;
 };
 
 /** Stores mesh { VAO, VBO, IBO } info. Handle for VAO on GPU memory */
@@ -75,6 +85,24 @@ struct Camera
 
     glm::mat4   matrix_perspective; // Perspective projection matrix
     glm::mat4   matrix_view;        // Last calculated view matrix
+};
+
+struct Material
+{
+    real32 specular_intensity = 0.f;
+    real32 shininess = 1.f;
+};
+
+struct Light
+{
+    glm::vec3   colour              = glm::vec3(1.f, 1.f, 1.f);
+    real32      ambient_intensity   = 0.2f;
+};
+
+struct DirectionalLight : Light
+{
+    glm::vec3   direction           = glm::vec3(0.f, -1.f, 0.f);
+    real32      diffuse_intensity   = 1.0f;  
 };
 
 /**  */

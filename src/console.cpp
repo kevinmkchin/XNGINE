@@ -86,11 +86,11 @@ INTERNAL void con_initialize(TTAFont* console_font_handle, Texture console_font_
     kctta_append_glyph('>', con_font_handle, CON_TEXT_SIZE);
     TTAVertexBuffer vb = kctta_grab_buffer();
     con_input_vao = gl_create_mesh_array(vb.vertex_buffer, vb.index_buffer, 
-        vb.vertices_array_count, vb.indices_array_count, 2, 2, GL_DYNAMIC_DRAW);
+        vb.vertices_array_count, vb.indices_array_count, 2, 2, 0, GL_DYNAMIC_DRAW);
     // INIT MESSAGES Mesh OBJECTS
     for(int i = 0; i < CON_ROWS_MAX; ++i)
     {
-        con_text_vaos[i] = gl_create_mesh_array(NULL, NULL, 0, 0, 2, 2, GL_DYNAMIC_DRAW);
+        con_text_vaos[i] = gl_create_mesh_array(NULL, NULL, 0, 0, 2, 2, 0, GL_DYNAMIC_DRAW);
     }
 
     // INIT CONSOLE GUI

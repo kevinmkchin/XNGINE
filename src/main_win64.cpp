@@ -3,15 +3,8 @@
 TODO:
 
 Backlog:
-    - WATCH handmadehero day 14 first: memory.cpp Memory management system 
-    (allocate and deallocate functions that use a memory arena or something instead of doing malloc all the time)
-    - WATCH handmadehero day 15
-    - Phong Lighting
     - Write own math library and remove GLM
     - Entity - pos, rot, scale, mesh, few boolean flags, collider, tags
-    - Resize event 
-        https://stackoverflow.com/questions/20735637/resize-sdl2-window#:~:text=To%20resize%20a%20window%20in,0%2C%20windowWidth%2C%20windowHeight)%20.
-        SDL_WINDOWEVENT_RESIZED https://wiki.libsdl.org/SDL_WindowEvent
     - Frame lock
     - Make shader not require certain uniform matrices like model view and projection
     - Texture GL_NEAREST option
@@ -98,6 +91,9 @@ Mesh meshes[3];
 ShaderProgram shaders[3];
 Texture tex_brick;
 Texture tex_dirt;
+DirectionalLight main_light;
+Material material_shiny = { 1.f, 32.f };
+Material material_dull = { 0.5f, 4.f };
 
 // --- Fonts ---
 TTAFont g_font_handle_c64;
@@ -256,8 +252,7 @@ INTERNAL bool game_init()
     con_printf("GLEW initialized.\n");
 
     gl_update_viewport_size();
-    glEnable(GL_BLEND); // Enable alpha blending
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // a * (rgb) + (1 - a) * (rgb) = final color output
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // alpha blending func: a * (rgb) + (1 - a) * (rgb) = final color output
     glBlendEquation(GL_FUNC_ADD);
     sdl_vsync(0);                               // vsync
     SDL_SetRelativeMouseMode(SDL_TRUE);         // Lock mouse to window
@@ -375,8 +370,8 @@ INTERNAL void game_render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear opengl context's buffer
 
 // DEPTH TESTED
+    glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
-
     // TODO Probably should make own shader for wireframe draws so that wireframe fragments aren't affected by lighting or textures
     if(g_b_wireframe)
     {
@@ -390,12 +385,19 @@ INTERNAL void game_render()
     gl_use_shader(shaders[0]);
         glUniformMatrix4fv(shaders[0].id_uniform_view, 1, GL_FALSE, glm::value_ptr(calculate_viewmatrix(g_camera)));
         glUniformMatrix4fv(shaders[0].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(g_camera.matrix_perspective));
+        gl_bind_directional_light(main_light, 
+                                  shaders[0].id_uniform_ambient_intensity, 
+                                  shaders[0].id_uniform_ambient_colour, 
+                                  shaders[0].id_uniform_diffuse_intensity,
+                                  shaders[0].id_uniform_light_direction);
+        glUniform3f(shaders[0].id_uniform_observer_pos, g_camera.position.x, g_camera.position.y, g_camera.position.z);
 
         glm::mat4 matrix_model = glm::mat4(1.f);
         matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.5f, -1.3f));
         matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f)); // scale in each axis by the respective values of the vector
         glUniformMatrix4fv(shaders[0].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
         gl_use_texture(tex_brick);
+        gl_bind_material(material_shiny, shaders[0].id_uniform_specular_intensity, shaders[0].id_uniform_shininess);
         gl_render_mesh(meshes[0]);
 
         matrix_model = glm::mat4(1.f);
@@ -403,10 +405,12 @@ INTERNAL void game_render()
         matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f));
         glUniformMatrix4fv(shaders[0].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
         gl_use_texture(tex_dirt);
+        gl_bind_material(material_dull, shaders[0].id_uniform_specular_intensity, shaders[0].id_uniform_shininess);
         gl_render_mesh(meshes[1]);
     glUseProgram(0);
 
 // NOT DEPTH TESTED
+    glEnable(GL_BLEND);
     glDisable(GL_DEPTH_TEST); 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -416,6 +420,52 @@ INTERNAL void game_render()
     /* Swap our buffer to display the current contents of buffer on screen. 
     This is used with double-buffered OpenGL contexts, which are the default. */
     SDL_GL_SwapWindow(window);
+}
+
+void calc_average_normals(uint32* indices,
+                          uint32 indices_count,
+                          real32* vertices,
+                          uint32 vertices_count,
+                          uint32 vertex_size,
+                          uint32 normal_offset)
+{
+    for(mi i = 0; i < indices_count; i += 3)
+    {
+        uint32 in0 = indices[i] * vertex_size;
+        uint32 in1 = indices[i+1] * vertex_size;
+        uint32 in2 = indices[i+2] * vertex_size;
+        glm::vec3 v0 = glm::vec3(vertices[in1] - vertices[in0],
+                                 vertices[in1+1] - vertices[in0+1],
+                                 vertices[in1+2] - vertices[in0+2]);
+        glm::vec3 v1 = glm::vec3(vertices[in2] - vertices[in0],
+                                 vertices[in2+1] - vertices[in0+1],
+                                 vertices[in2+2] - vertices[in0+2]);
+        glm::vec3 normal = glm::normalize(glm::cross(v0, v1));
+
+        in0 += normal_offset;
+        in1 += normal_offset;
+        in2 += normal_offset;
+        vertices[in0] += normal.x;
+        vertices[in0+1] += normal.y;
+        vertices[in0+2] += normal.z;
+        vertices[in1] += normal.x;
+        vertices[in1+1] += normal.y;
+        vertices[in1+2] += normal.z;
+        vertices[in2] += normal.x;
+        vertices[in2+1] += normal.y;
+        vertices[in2+2] += normal.z;
+    }
+
+    for(mi i = 0; i < vertices_count/vertex_size; ++i)
+    {
+        uint32 v_normal_offset = (int32)i * vertex_size + normal_offset;
+        glm::vec3 norm_vec = glm::normalize(glm::vec3(vertices[v_normal_offset],
+                                                      vertices[v_normal_offset+1],
+                                                      vertices[v_normal_offset+2]));
+        vertices[v_normal_offset] = norm_vec.x;
+        vertices[v_normal_offset+1] = norm_vec.y;
+        vertices[v_normal_offset+2] = norm_vec.z;
+    }
 }
 
 int main(int argc, char* argv[]) // Our main entry point MUST be in this form when using SDL
@@ -430,16 +480,18 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
         0, 1, 2
     };
 
-    GLfloat vertices[20] = {
-    //  x     y     z    u    v
-        -1.f, -1.f, 0.f, 0.f, 0.f,
-        0.f, -1.f, 1.f, 0.5f, 0.f,
-        1.f, -1.f, 0.f, 1.f, 0.f,
-        0.f, 1.f, 0.f, 0.5f, 1.f
+    GLfloat vertices[32] = {
+    //  x     y     z    u    v    normals
+        -1.f, -1.f, -0.6f, 0.f, 0.f, 0.f, 0.f, 0.f,
+        0.f, -1.f, 1.f, 0.5f, 0.f, 0.f, 0.f, 0.f,
+        1.f, -1.f, -0.6f, 1.f, 0.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.5f, 1.f, 0.f, 0.f, 0.f
     };
 
-    meshes[0] = gl_create_mesh_array(vertices, indices, 20, 12);
-    meshes[1] = gl_create_mesh_array(vertices, indices, 20, 12);
+    calc_average_normals(indices, 12, vertices, 32, 8, 5);
+
+    meshes[0] = gl_create_mesh_array(vertices, indices, 32, 12);
+    meshes[1] = gl_create_mesh_array(vertices, indices, 32, 12);
 
     ShaderProgram shader;
     gl_load_shader_program_from_file(shader, vertex_shader_path, frag_shader_path);
@@ -449,7 +501,10 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     gl_load_shader_program_from_file(shader, ui_vs_path, ui_fs_path);
     shaders[2] = shader;
     gl_load_texture_from_file(tex_brick, "data/textures/brick.png");
-    gl_load_texture_from_file(tex_dirt, "data/textures/mqdefault.jpg");
+    gl_load_texture_from_file(tex_dirt, "data/textures/dirt.png");
+
+    main_light.direction = glm::vec3(2.f, -1.f, -2.f);
+    main_light.diffuse_intensity = 0.3f;
 
     /** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)
         The model matrix, right now, is in Game::render because we want to be able to update the object's transform on tick. However, ideally, the 
