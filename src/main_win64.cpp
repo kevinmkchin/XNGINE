@@ -88,7 +88,9 @@ GLOBAL_VAR bool g_b_wireframe = false;
 #include "console.cpp"
 
 Mesh meshes[3];
-ShaderProgram shaders[3];
+ShaderProgram shader_common;
+ShaderProgram shader_text;
+ShaderProgram shader_ui;
 Texture tex_brick;
 Texture tex_dirt;
 DirectionalLight main_light;
@@ -382,30 +384,30 @@ INTERNAL void game_render()
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
     
-    gl_use_shader(shaders[0]);
-        glUniformMatrix4fv(shaders[0].id_uniform_view, 1, GL_FALSE, glm::value_ptr(calculate_viewmatrix(g_camera)));
-        glUniformMatrix4fv(shaders[0].id_uniform_projection, 1, GL_FALSE, glm::value_ptr(g_camera.matrix_perspective));
+    gl_use_shader(shader_common);
+        glUniformMatrix4fv(shader_common.id_uniform_view, 1, GL_FALSE, glm::value_ptr(calculate_viewmatrix(g_camera)));
+        glUniformMatrix4fv(shader_common.id_uniform_projection, 1, GL_FALSE, glm::value_ptr(g_camera.matrix_perspective));
         gl_bind_directional_light(main_light, 
-                                  shaders[0].id_uniform_ambient_intensity, 
-                                  shaders[0].id_uniform_ambient_colour, 
-                                  shaders[0].id_uniform_diffuse_intensity,
-                                  shaders[0].id_uniform_light_direction);
-        glUniform3f(shaders[0].id_uniform_observer_pos, g_camera.position.x, g_camera.position.y, g_camera.position.z);
+                                  shader_common.id_uniform_ambient_intensity, 
+                                  shader_common.id_uniform_ambient_colour, 
+                                  shader_common.id_uniform_diffuse_intensity,
+                                  shader_common.id_uniform_light_direction);
+        glUniform3f(shader_common.id_uniform_observer_pos, g_camera.position.x, g_camera.position.y, g_camera.position.z);
 
         glm::mat4 matrix_model = glm::mat4(1.f);
         matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.5f, -1.3f));
         matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f)); // scale in each axis by the respective values of the vector
-        glUniformMatrix4fv(shaders[0].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
+        glUniformMatrix4fv(shader_common.id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
         gl_use_texture(tex_brick);
-        gl_bind_material(material_shiny, shaders[0].id_uniform_specular_intensity, shaders[0].id_uniform_shininess);
+        gl_bind_material(material_shiny, shader_common.id_uniform_specular_intensity, shader_common.id_uniform_shininess);
         gl_render_mesh(meshes[0]);
 
         matrix_model = glm::mat4(1.f);
         matrix_model = glm::translate(matrix_model, glm::vec3(0.f, -0.5f, -1.3f));
         matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f));
-        glUniformMatrix4fv(shaders[0].id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
+        glUniformMatrix4fv(shader_common.id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
         gl_use_texture(tex_dirt);
-        gl_bind_material(material_dull, shaders[0].id_uniform_specular_intensity, shaders[0].id_uniform_shininess);
+        gl_bind_material(material_dull, shader_common.id_uniform_specular_intensity, shader_common.id_uniform_shininess);
         gl_render_mesh(meshes[1]);
     glUseProgram(0);
 
@@ -414,8 +416,8 @@ INTERNAL void game_render()
     glDisable(GL_DEPTH_TEST); 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    profiler_render(shaders[2], shaders[1]);
-    con_render(shaders[2], shaders[1]);
+    profiler_render(shader_ui, shader_text);
+    con_render(shader_ui, shader_text);
 
     /* Swap our buffer to display the current contents of buffer on screen. 
     This is used with double-buffered OpenGL contexts, which are the default. */
@@ -495,11 +497,11 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
 
     ShaderProgram shader;
     gl_load_shader_program_from_file(shader, vertex_shader_path, frag_shader_path);
-    shaders[0] = shader;
+    shader_common = shader;
     gl_load_shader_program_from_file(shader, text_vs_path, text_fs_path);
-    shaders[1] = shader;
+    shader_text = shader;
     gl_load_shader_program_from_file(shader, ui_vs_path, ui_fs_path);
-    shaders[2] = shader;
+    shader_ui = shader;
     gl_load_texture_from_file(tex_brick, "data/textures/brick.png");
     gl_load_texture_from_file(tex_dirt, "data/textures/dirt.png");
 
@@ -545,10 +547,10 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     {
         gl_delete_mesh(meshes[i]);
     }
-    for (int i = 0; i < array_count(shaders); ++i)
-    {
-        gl_delete_shader(shaders[i]);
-    }
+    gl_delete_shader(shader_common);
+    gl_delete_shader(shader_text);
+    gl_delete_shader(shader_ui);
+
     SDL_DestroyWindow(window);
     SDL_GL_DeleteContext(opengl_context);
     SDL_Quit();
