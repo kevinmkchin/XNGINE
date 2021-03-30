@@ -50,6 +50,15 @@ struct ShaderProgram
     GLint   id_uniform_shininess = 0;
 };
 
+/*
+struct ShaderGroup
+{
+    CommonShader
+    TextShader
+    UIShader
+};
+*/
+
 /** Stores mesh { VAO, VBO, IBO } info. Handle for VAO on GPU memory */
 struct Mesh
 {
@@ -97,12 +106,21 @@ struct Light
 {
     glm::vec3   colour              = glm::vec3(1.f, 1.f, 1.f);
     real32      ambient_intensity   = 0.2f;
+    real32      diffuse_intensity   = 1.0f;  
 };
 
 struct DirectionalLight : Light
 {
     glm::vec3   direction           = glm::vec3(0.f, -1.f, 0.f);
-    real32      diffuse_intensity   = 1.0f;  
+};
+
+struct PointLight : Light
+{
+    glm::vec3   position = glm::vec3(0.f, 0.f, 0.f);
+    // Attenuation coefficients
+    GLfloat     att_constant = 1.0f;
+    GLfloat     att_linear = 0.f;
+    GLfloat     att_quadratic = 0.f;
 };
 
 /**  */
