@@ -261,7 +261,7 @@ INTERNAL bool game_init()
     kctta_use_index_buffer(1);                  // kc_truetypeassembler setting
 
     // LOAD FONTS
-    win64_load_font(&g_font_handle_c64, g_font_atlas_c64, "data/fonts/c64.ttf", CON_TEXT_SIZE);
+    win64_load_font(&g_font_handle_c64, g_font_atlas_c64, "data/fonts/SourceCodePro.ttf", CON_TEXT_SIZE);
 
     con_initialize(&g_font_handle_c64, g_font_atlas_c64);
     profiler_initialize(&g_font_handle_c64, g_font_atlas_c64);
