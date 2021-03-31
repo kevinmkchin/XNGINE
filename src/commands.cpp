@@ -40,6 +40,16 @@ INTERNAL void cmd_sensitivity(float sens)
     g_camera.turnspeed = sens;
 }
 
+INTERNAL void cmd_camera_speed(float speed)
+{
+    g_camera.movespeed = speed;
+}
+
+INTERNAL void cmd_exit()
+{
+    is_running = false;
+}
+
 INTERNAL void cmd_help()
 {
     con_print("Commands in commmands.cpp\n");
@@ -99,16 +109,20 @@ INTERNAL void sdl_set_window_size(int w, int h)
 INTERNAL void con_register_cmds()
 {
     ADD_COMMAND_NOARG("help", cmd_help);
+    ADD_COMMAND_NOARG("exit", cmd_exit);
     ADD_COMMAND_NOARG("pause", cmd_pause);
     ADD_COMMAND_NOARG("unpause", cmd_unpause);
-    ADD_COMMAND_NOARG("togglewireframe", cmd_wireframe);
-    ADD_COMMAND_TWOARG("add", cmd_add, float, float);
-    ADD_COMMAND_ONEARG("sensitivity", cmd_sensitivity, float);
-    ADD_COMMAND_ONEARG("vsync", sdl_vsync, int);
+
     ADD_COMMAND_ONEARG("fullscreen", sdl_fullscreen, int);
     ADD_COMMAND_TWOARG("windowsize", sdl_set_window_size, int, int);
+    ADD_COMMAND_ONEARG("vsync", sdl_vsync, int);
+
+    ADD_COMMAND_TWOARG("add", cmd_add, float, float);
+    ADD_COMMAND_ONEARG("sensitivity", cmd_sensitivity, float);
+    ADD_COMMAND_ONEARG("camspeed", cmd_camera_speed, float);
 
     ADD_COMMAND_ONEARG("profiler", profiler_set_level, int);
     ADD_COMMAND_ONEARG("debug", debugger_set_debug_level, int);
     ADD_COMMAND_NOARG("toggle_debug_pointlights", debugger_toggle_debug_pointlights);
+    ADD_COMMAND_NOARG("togglewireframe", cmd_wireframe);
 }

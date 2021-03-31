@@ -79,7 +79,7 @@ INTERNAL void debug_render_pointlight(PerspectiveShader& shader, PointLight& pli
     }
 }
 
-int debugger_level = 1;
+int debugger_level = 0;
 bool debugger_b_debug_pointlights = true;
 PointLight* debugger_point_lights = 0x0;
 uint8 debugger_point_lights_count;
