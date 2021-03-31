@@ -104,8 +104,11 @@ INTERNAL void con_register_cmds()
     ADD_COMMAND_NOARG("togglewireframe", cmd_wireframe);
     ADD_COMMAND_TWOARG("add", cmd_add, float, float);
     ADD_COMMAND_ONEARG("sensitivity", cmd_sensitivity, float);
-    ADD_COMMAND_ONEARG("profiler", cmd_profiler_set_level, int);
     ADD_COMMAND_ONEARG("vsync", sdl_vsync, int);
     ADD_COMMAND_ONEARG("fullscreen", sdl_fullscreen, int);
     ADD_COMMAND_TWOARG("windowsize", sdl_set_window_size, int, int);
+
+    ADD_COMMAND_ONEARG("profiler", profiler_set_level, int);
+    ADD_COMMAND_ONEARG("debug", debugger_set_debug_level, int);
+    ADD_COMMAND_NOARG("toggle_debug_pointlights", debugger_toggle_debug_pointlights);
 }

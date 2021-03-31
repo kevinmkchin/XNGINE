@@ -26,8 +26,9 @@ typedef double      real64;
 
 typedef size_t      mi;         // memory index
 
-const float TO_RADIANS = 0.0174532925f; // in_degrees * TO_RADIANS = in_radians
-const float TO_DEGREES = 57.2958f;      // in_radians * TO_DEGREES = in_degrees
+const real32 KC_PI = 3.1415926535f;
+const real32 TO_RADIANS = 0.0174532925f; // in_degrees * TO_RADIANS = in_radians
+const real32 TO_DEGREES = 57.2958f;      // in_radians * TO_DEGREES = in_degrees
 
 #define INDEX_NONE -1
 #define ASCII_SPACE 32
@@ -44,6 +45,7 @@ else
 #define array_count(arr) (sizeof(arr) / (sizeof(arr[0])))
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
+#define clamp(x, lower, upper) max((lower), min((upper), (x)));
 
 INTERNAL inline bool is_number(std::string str)
 {
