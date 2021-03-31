@@ -56,8 +56,8 @@ BUILD MODES
 #include "kc_truetypeassembler.h"
 
 #include "gamedefine.h" // defines and typedefs
-#include "core.h"
 #include "console.h"
+#include "core.h"
 // --- global variables  --- note: static variables are initialized to their default values
 GLOBAL_VAR uint32 g_buffer_width;
 GLOBAL_VAR uint32 g_buffer_height;
@@ -88,9 +88,9 @@ GLOBAL_VAR bool g_b_wireframe = false;
 #include "console.cpp"
 
 Mesh meshes[3];
-ShaderProgram shader_common;
-ShaderProgram shader_text;
-ShaderProgram shader_ui;
+LightingShader shader_common;
+OrthographicShader shader_text;
+OrthographicShader shader_ui;
 Texture tex_brick;
 Texture tex_dirt;
 DirectionalLight main_light;
@@ -385,29 +385,26 @@ INTERNAL void game_render()
     }
     
     gl_use_shader(shader_common);
-        glUniformMatrix4fv(shader_common.id_uniform_view, 1, GL_FALSE, glm::value_ptr(calculate_viewmatrix(g_camera)));
-        glUniformMatrix4fv(shader_common.id_uniform_projection, 1, GL_FALSE, glm::value_ptr(g_camera.matrix_perspective));
-        gl_bind_directional_light(main_light, 
-                                  shader_common.id_uniform_ambient_intensity, 
-                                  shader_common.id_uniform_ambient_colour, 
-                                  shader_common.id_uniform_diffuse_intensity,
-                                  shader_common.id_uniform_light_direction);
+        calculate_viewmatrix(g_camera);
+        gl_bind_view_matrix(shader_common, glm::value_ptr(g_camera.matrix_view));
+        gl_bind_projection_matrix(shader_common, glm::value_ptr(g_camera.matrix_perspective));
+        gl_bind_directional_light(shader_common, main_light);
         glUniform3f(shader_common.id_uniform_observer_pos, g_camera.position.x, g_camera.position.y, g_camera.position.z);
 
         glm::mat4 matrix_model = glm::mat4(1.f);
         matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.5f, -1.3f));
         matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f)); // scale in each axis by the respective values of the vector
-        glUniformMatrix4fv(shader_common.id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
+        gl_bind_model_matrix(shader_common, glm::value_ptr(matrix_model));
         gl_use_texture(tex_brick);
-        gl_bind_material(material_shiny, shader_common.id_uniform_specular_intensity, shader_common.id_uniform_shininess);
+        gl_bind_material(shader_common, material_shiny);
         gl_render_mesh(meshes[0]);
 
         matrix_model = glm::mat4(1.f);
         matrix_model = glm::translate(matrix_model, glm::vec3(0.f, -0.5f, -1.3f));
         matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f));
-        glUniformMatrix4fv(shader_common.id_uniform_model, 1, GL_FALSE, glm::value_ptr(matrix_model));
+        gl_bind_model_matrix(shader_common, glm::value_ptr(matrix_model));
         gl_use_texture(tex_dirt);
-        gl_bind_material(material_dull, shader_common.id_uniform_specular_intensity, shader_common.id_uniform_shininess);
+        gl_bind_material(shader_common, material_dull);
         gl_render_mesh(meshes[1]);
     glUseProgram(0);
 
@@ -495,13 +492,9 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     meshes[0] = gl_create_mesh_array(vertices, indices, 32, 12);
     meshes[1] = gl_create_mesh_array(vertices, indices, 32, 12);
 
-    ShaderProgram shader;
-    gl_load_shader_program_from_file(shader, vertex_shader_path, frag_shader_path);
-    shader_common = shader;
-    gl_load_shader_program_from_file(shader, text_vs_path, text_fs_path);
-    shader_text = shader;
-    gl_load_shader_program_from_file(shader, ui_vs_path, ui_fs_path);
-    shader_ui = shader;
+    gl_load_shader_program_from_file(shader_common, vertex_shader_path, frag_shader_path);
+    gl_load_shader_program_from_file(shader_text, text_vs_path, text_fs_path);
+    gl_load_shader_program_from_file(shader_ui, ui_vs_path, ui_fs_path);
     gl_load_texture_from_file(tex_brick, "data/textures/brick.png");
     gl_load_texture_from_file(tex_dirt, "data/textures/dirt.png");
 

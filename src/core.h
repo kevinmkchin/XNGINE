@@ -23,8 +23,6 @@ struct BitmapHandle : BinaryFileHandle
     uint8   bit_depth = 0;  // bit depth of bitmap in bytes (e.g. bit depth = 3 means there are 3 bytes in the bitmap per pixel)
 };
 
-
-
 /** 
 
     Core game engine objects
@@ -32,13 +30,55 @@ struct BitmapHandle : BinaryFileHandle
 */
 
 /** Handle for Shader Program stored in GPU memory */
-struct ShaderProgram
+struct BaseShader
 {
-    GLuint  id_shader_program = 0;    // id of this shader program in GPU memory\
+    GLuint  id_shader_program = 0;    // id of this shader program in GPU memory
 
     GLint   id_uniform_model = 0;    // location id for the model matrix uniform variable
-    GLint   id_uniform_view = 0;    // location id for the view matrix uniform variable
-    GLint   id_uniform_projection = 0;    // location id for hte projection matrix uniform variable
+
+    GLint uniform_location(const char* uniform_name)
+    {
+        GLint location = glGetUniformLocation(id_shader_program, uniform_name);
+        if (location == 0xffffffff) {
+            con_printf("Warning! Unable to get the location of uniform '%s' for shader id %d...\n", uniform_name, id_shader_program);
+        }
+        return location;
+    }
+
+    virtual void load_uniforms()
+    {
+        id_uniform_model = uniform_location("matrix_model");
+    }
+};
+
+struct PerspectiveShader : BaseShader
+{
+    GLint id_uniform_proj_perspective = 0; // location id for the perspective projection matrix
+    GLint id_uniform_view = 0;    // location id for the view matrix uniform variable
+
+    virtual void load_uniforms() override
+    {
+        BaseShader::load_uniforms();
+        id_uniform_proj_perspective = uniform_location("matrix_proj_perspective");
+        id_uniform_view = uniform_location("matrix_view");
+    }
+};
+
+struct OrthographicShader : BaseShader
+{
+    GLint id_uniform_proj_orthographic = 0; // location id for the perspective projection matrix
+
+    virtual void load_uniforms() override
+    {
+        BaseShader::load_uniforms();
+        id_uniform_proj_orthographic = uniform_location("matrix_proj_orthographic");
+    }
+};
+
+struct LightingShader : PerspectiveShader
+{
+    GLOBAL_VAR const unsigned int MAX_POINT_LIGHTS = 2;
+    GLOBAL_VAR const unsigned int MAX_SPOT_LIGHTS = 2;
 
     GLint   id_uniform_observer_pos = 0;
 
@@ -46,8 +86,48 @@ struct ShaderProgram
     GLint   id_uniform_ambient_colour = 0;
     GLint   id_uniform_diffuse_intensity = 0;
     GLint   id_uniform_light_direction = 0;
+
     GLint   id_uniform_specular_intensity = 0;
     GLint   id_uniform_shininess = 0;
+
+    virtual void load_uniforms() override
+    {
+        PerspectiveShader::load_uniforms();
+        id_uniform_observer_pos = uniform_location("observer_pos");
+        id_uniform_ambient_intensity = uniform_location("directional_light.ambient_intensity");
+        id_uniform_ambient_colour = uniform_location("directional_light.colour");
+        id_uniform_diffuse_intensity = uniform_location("directional_light.diffuse_intensity");
+        id_uniform_light_direction = uniform_location("directional_light.direction");
+        id_uniform_specular_intensity = uniform_location("material.specular_intensity");
+        id_uniform_shininess = uniform_location("material.shininess");
+    }
+};
+
+struct Material
+{
+    real32 specular_intensity = 0.f;
+    real32 shininess = 1.f;
+};
+
+struct Light
+{
+    glm::vec3   colour              = glm::vec3(1.f, 1.f, 1.f);
+    real32      ambient_intensity   = 0.2f;
+    real32      diffuse_intensity   = 1.0f;  
+};
+
+struct DirectionalLight : Light
+{
+    glm::vec3   direction           = glm::vec3(0.f, -1.f, 0.f);
+};
+
+struct PointLight : Light
+{
+    glm::vec3   position = glm::vec3(0.f, 0.f, 0.f);
+    // Attenuation coefficients
+    GLfloat     att_constant = 1.0f;
+    GLfloat     att_linear = 0.f;
+    GLfloat     att_quadratic = 0.f;
 };
 
 /*
@@ -94,33 +174,6 @@ struct Camera
 
     glm::mat4   matrix_perspective; // Perspective projection matrix
     glm::mat4   matrix_view;        // Last calculated view matrix
-};
-
-struct Material
-{
-    real32 specular_intensity = 0.f;
-    real32 shininess = 1.f;
-};
-
-struct Light
-{
-    glm::vec3   colour              = glm::vec3(1.f, 1.f, 1.f);
-    real32      ambient_intensity   = 0.2f;
-    real32      diffuse_intensity   = 1.0f;  
-};
-
-struct DirectionalLight : Light
-{
-    glm::vec3   direction           = glm::vec3(0.f, -1.f, 0.f);
-};
-
-struct PointLight : Light
-{
-    glm::vec3   position = glm::vec3(0.f, 0.f, 0.f);
-    // Attenuation coefficients
-    GLfloat     att_constant = 1.0f;
-    GLfloat     att_linear = 0.f;
-    GLfloat     att_quadratic = 0.f;
 };
 
 /**  */

@@ -7,7 +7,7 @@ in vec2 tex_coord;
 out vec4 colour;
 
 uniform bool b_use_colour = false;
-uniform sampler2D font_atlas_sampler;
+uniform sampler2D texture_sampler_0;
 uniform vec4 ui_element_colour;
 
 void main()
@@ -18,6 +18,6 @@ void main()
     }
     else
     {
-        colour = texture(font_atlas_sampler, tex_coord);
+        colour = texture(texture_sampler_0, tex_coord);
     }
 }
