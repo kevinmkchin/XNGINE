@@ -244,7 +244,7 @@ INTERNAL void gl_rebind_buffers(Mesh& mesh,
 }
 
 /** Binds VAO and draws elements. Bind a shader program and texture before calling gl_render_mesh */
-INTERNAL void gl_render_mesh(Mesh& mesh)
+INTERNAL void gl_render_mesh(Mesh& mesh, GLenum mode = GL_TRIANGLES)
 {
     if (mesh.index_count == 0) // Early out if index_count == 0, nothing to draw
     {
@@ -255,7 +255,7 @@ INTERNAL void gl_render_mesh(Mesh& mesh)
     // Bind VAO, bind VBO, draw elements(indexed draw)
     glBindVertexArray(mesh.id_vao);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.id_ibo);
-            glDrawElements(GL_TRIANGLES, mesh.index_count, GL_UNSIGNED_INT, nullptr); // Last param could be pointer to indices but no need cuz IBO is already bound
+            glDrawElements(mode, mesh.index_count, GL_UNSIGNED_INT, nullptr); // Last param could be pointer to indices but no need cuz IBO is already bound
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 }
