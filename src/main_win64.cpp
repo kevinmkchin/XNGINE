@@ -103,8 +103,8 @@ TTAFont g_font_handle_c64;
 Texture g_font_atlas_c64;
 // -------------
 
-static const char* vertex_shader_path = "shaders/default.vert";
-static const char* frag_shader_path = "shaders/default.frag";
+static const char* vertex_shader_path = "shaders/default_phong.vert";
+static const char* frag_shader_path = "shaders/default_phong.frag";
 static const char* ui_vs_path = "shaders/ui.vert";
 static const char* ui_fs_path = "shaders/ui.frag";
 static const char* text_vs_path = "shaders/text_ui.vert";
