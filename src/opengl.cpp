@@ -118,12 +118,34 @@ INTERNAL void gl_bind_projection_matrix(OrthographicShader& shader, const GLfloa
     glUniformMatrix4fv(shader.id_uniform_proj_orthographic, 1, GL_FALSE, matrix);
 }
 
+INTERNAL void gl_bind_camera_position(LightingShader& shader, Camera& camera)
+{
+    glUniform3f(shader.id_uniform_observer_pos, camera.position.x, camera.position.y, camera.position.z);
+}
+
 INTERNAL void gl_bind_directional_light(LightingShader& shader, DirectionalLight& light)
 {
-    glUniform1f(shader.id_uniform_ambient_intensity,    light.ambient_intensity);
-    glUniform3f(shader.id_uniform_ambient_colour,       light.colour.x, light.colour.y, light.colour.z);
-    glUniform1f(shader.id_uniform_diffuse_intensity,    light.diffuse_intensity);
-    glUniform3f(shader.id_uniform_light_direction,      light.direction.x, light.direction.y, light.direction.z);
+    glUniform3f(shader.id_uniform_directional_light.colour, light.colour.x, light.colour.y, light.colour.z);
+    glUniform1f(shader.id_uniform_directional_light.ambient_intensity, light.ambient_intensity);
+    glUniform1f(shader.id_uniform_directional_light.diffuse_intensity, light.diffuse_intensity);
+    glUniform3f(shader.id_uniform_directional_light.direction, light.direction.x, light.direction.y, light.direction.z);
+}
+
+INTERNAL void gl_bind_point_lights(LightingShader& shader, PointLight* plights, uint8 count)
+{
+    count = min(count, LightingShader::MAX_POINT_LIGHTS);
+    glUniform1i(shader.id_uniform_point_light_count, count);
+    for(mi i = 0; i < count; ++i)
+    {
+        glUniform3f(shader.id_uniform_point_light[i].colour, plights[i].colour.x, plights[i].colour.y, plights[i].colour.z);
+        glUniform1f(shader.id_uniform_point_light[i].ambient_intensity, plights[i].ambient_intensity);
+        glUniform1f(shader.id_uniform_point_light[i].diffuse_intensity, plights[i].diffuse_intensity);
+
+        glUniform3f(shader.id_uniform_point_light[i].position, plights[i].position.x, plights[i].position.y, plights[i].position.z);
+        glUniform1f(shader.id_uniform_point_light[i].att_constant, plights[i].att_constant);
+        glUniform1f(shader.id_uniform_point_light[i].att_linear, plights[i].att_linear);
+        glUniform1f(shader.id_uniform_point_light[i].att_quadratic, plights[i].att_quadratic);
+    }
 }
 
 INTERNAL void gl_bind_material(LightingShader& shader, Material& material)

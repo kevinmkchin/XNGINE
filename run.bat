@@ -6,6 +6,8 @@ IF "%1"=="vs" (
     devenv build\debug\opengldemo.exe
 ) ELSE (
     pushd build\debug\
-    opengldemo.exe
+    START /D ..\..\data opengldemo.exe
     popd
 )
+
+rem %~dp0
