@@ -10,12 +10,12 @@ out vec3 frag_pos;
 
 uniform mat4 matrix_model;
 uniform mat4 matrix_view;
-uniform mat4 matrix_projection;
+uniform mat4 matrix_proj_perspective;
 
 void main()
 {
     vec4 world_position = matrix_model * vec4(pos, 1.0);
-    gl_Position = matrix_projection * matrix_view * matrix_model * vec4(pos, 1.0);
+    gl_Position = matrix_proj_perspective * matrix_view * matrix_model * vec4(pos, 1.0);
     tex_coord = in_tex_coord;
     // using model matrix to account for normal being affected by rotation and scale
     // making model matrix a mat3 is fine because we can discard translation when thinking bout normals

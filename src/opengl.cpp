@@ -25,20 +25,20 @@ INTERNAL void gl_compile_shader(uint32 program_id, const char* shader_code, GLen
     if (!result)
     {
         glGetProgramInfoLog(id_shader, sizeof(eLog), nullptr, eLog);
-        printf("Error compiling the %d shader: '%s' \n", shader_type, eLog);
+        con_printf("Error compiling the %d shader: '%s' \n", shader_type, eLog);
         return;
     }
     // Attach to program
     glAttachShader(program_id, id_shader);
 }
 
-INTERNAL void gl_create_shader_program(ShaderProgram& shader, const char* vertex_shader_str, const char* fragment_shader_str)
+INTERNAL void gl_create_shader_program(BaseShader& shader, const char* vertex_shader_str, const char* fragment_shader_str)
 {
     // Create an empty shader program and get the id
     shader.id_shader_program = glCreateProgram();
     if (!shader.id_shader_program)
     {
-        printf("Failed to create shader program! Aborting.\n");
+        con_printf("Failed to create shader program! Aborting.\n");
         return;
     }
     // Compile and attach the shaders
@@ -53,7 +53,7 @@ INTERNAL void gl_create_shader_program(ShaderProgram& shader, const char* vertex
     if (!result)
     {
         glGetProgramInfoLog(shader.id_shader_program, sizeof(eLog), nullptr, eLog);
-        printf("Error linking program: '%s'! Aborting.\n", eLog);
+        con_printf("Error linking program: '%s'! Aborting.\n", eLog);
         return;
     }
     // Validate the program will work
@@ -62,24 +62,14 @@ INTERNAL void gl_create_shader_program(ShaderProgram& shader, const char* vertex
     if (!result)
     {
         glGetProgramInfoLog(shader.id_shader_program, sizeof(eLog), nullptr, eLog);
-        printf("Error validating program: '%s'! Aborting.\n", eLog);
+        con_printf("Error validating program: '%s'! Aborting.\n", eLog);
         return;
     }
 
-    // UNIFORM VARIABLES
-    shader.id_uniform_model = glGetUniformLocation(shader.id_shader_program, "matrix_model");
-    shader.id_uniform_view = glGetUniformLocation(shader.id_shader_program, "matrix_view");
-    shader.id_uniform_projection = glGetUniformLocation(shader.id_shader_program, "matrix_projection");
-    shader.id_uniform_observer_pos = glGetUniformLocation(shader.id_shader_program, "observer_pos");
-    shader.id_uniform_ambient_intensity = glGetUniformLocation(shader.id_shader_program, "directional_light.ambient_intensity");
-    shader.id_uniform_ambient_colour = glGetUniformLocation(shader.id_shader_program, "directional_light.colour");
-    shader.id_uniform_diffuse_intensity = glGetUniformLocation(shader.id_shader_program, "directional_light.diffuse_intensity");
-    shader.id_uniform_light_direction = glGetUniformLocation(shader.id_shader_program, "directional_light.direction");
-    shader.id_uniform_specular_intensity = glGetUniformLocation(shader.id_shader_program, "material.specular_intensity");
-    shader.id_uniform_shininess = glGetUniformLocation(shader.id_shader_program, "material.shininess");
+    shader.load_uniforms();
 }
 
-INTERNAL void gl_load_shader_program_from_file(ShaderProgram& shader, const char* vertex_path, const char* fragment_path)
+INTERNAL void gl_load_shader_program_from_file(BaseShader& shader, const char* vertex_path, const char* fragment_path)
 {
     std::string v = FILE_read_file_string(vertex_path);
     std::string f = FILE_read_file_string(fragment_path);
@@ -87,29 +77,61 @@ INTERNAL void gl_load_shader_program_from_file(ShaderProgram& shader, const char
 }
 
 /** Telling opengl to start using this shader program */
-INTERNAL void gl_use_shader(ShaderProgram& shader)
+INTERNAL void gl_use_shader(BaseShader& shader)
 {
     if (shader.id_shader_program == 0)
     {
-        printf("WARNING: Passed an unloaded shader program to gl_use_shader! Aborting.\n");
+        con_printf("WARNING: Passed an unloaded shader program to gl_use_shader! Aborting.\n");
         return;
     }
     glUseProgram(shader.id_shader_program);
 }
 
 /** Delete the shader program off GPU memory */
-INTERNAL void gl_delete_shader(ShaderProgram& shader)
+INTERNAL void gl_delete_shader(BaseShader& shader)
 {
     if (shader.id_shader_program == 0)
     {
-        printf("WARNING: Passed an unloaded shader program to gl_delete_shader! Aboring.\n");
+        con_printf("WARNING: Passed an unloaded shader program to gl_delete_shader! Aboring.\n");
         return;
     }
     glDeleteProgram(shader.id_shader_program);
-    shader.id_shader_program = 0;
-    shader.id_uniform_model = 0;
-    shader.id_uniform_projection = 0;
 }
+
+INTERNAL void gl_bind_model_matrix(BaseShader& shader, const GLfloat* matrix)
+{
+    glUniformMatrix4fv(shader.id_uniform_model, 1, GL_FALSE, matrix);
+}
+
+INTERNAL void gl_bind_view_matrix(PerspectiveShader& shader, const GLfloat* matrix)
+{
+    glUniformMatrix4fv(shader.id_uniform_view, 1, GL_FALSE, matrix);
+}
+
+INTERNAL void gl_bind_projection_matrix(PerspectiveShader& shader, const GLfloat* matrix)
+{
+    glUniformMatrix4fv(shader.id_uniform_proj_perspective, 1, GL_FALSE, matrix);
+}
+
+INTERNAL void gl_bind_projection_matrix(OrthographicShader& shader, const GLfloat* matrix)
+{
+    glUniformMatrix4fv(shader.id_uniform_proj_orthographic, 1, GL_FALSE, matrix);
+}
+
+INTERNAL void gl_bind_directional_light(LightingShader& shader, DirectionalLight& light)
+{
+    glUniform1f(shader.id_uniform_ambient_intensity,    light.ambient_intensity);
+    glUniform3f(shader.id_uniform_ambient_colour,       light.colour.x, light.colour.y, light.colour.z);
+    glUniform1f(shader.id_uniform_diffuse_intensity,    light.diffuse_intensity);
+    glUniform3f(shader.id_uniform_light_direction,      light.direction.x, light.direction.y, light.direction.z);
+}
+
+INTERNAL void gl_bind_material(LightingShader& shader, Material& material)
+{
+    glUniform1f(shader.id_uniform_specular_intensity, material.specular_intensity);
+    glUniform1f(shader.id_uniform_shininess, material.shininess);
+}
+
 
 /**
 
@@ -204,7 +226,7 @@ INTERNAL void gl_render_mesh(Mesh& mesh)
 {
     if (mesh.index_count == 0) // Early out if index_count == 0, nothing to draw
     {
-        printf("WARNING: Attempting to render a mesh with 0 index count!\n");
+        con_printf("WARNING: Attempting to render a mesh with 0 index count!\n");
         return;
     }
 
@@ -250,7 +272,7 @@ INTERNAL void gl_delete_texture(Texture& texture)
 {
     if(texture.texture_id == 0)
     {
-        printf("WARNING: Attempting to clear a texture with id: 0. This means this texture hasn't been loaded!\n");
+        con_printf("WARNING: Attempting to clear a texture with id: 0. This means this texture hasn't been loaded!\n");
         return;
     }
     glDeleteTextures(1, &texture.texture_id);
@@ -272,7 +294,7 @@ INTERNAL void gl_load_texture_from_bitmap(Texture&          texture,
 {
     if(texture.texture_id != 0)
     {
-        printf("WARNING: Trying to load a Texture when there is already a texture loaded! Clearing texture first...\n");
+        con_printf("WARNING: Trying to load a Texture when there is already a texture loaded! Clearing texture first...\n");
         gl_delete_texture(texture);
     }
 
@@ -323,31 +345,4 @@ INTERNAL void gl_use_texture(Texture& texture)
 {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture.texture_id); 
-}
-
-
-/**
-    
-    Lighting
-
-*/
-
-INTERNAL void gl_bind_directional_light(DirectionalLight& light,
-                                        GLint ambient_intensity_location,
-                                        GLint colour_location,
-                                        GLint diffuse_intensity_location,
-                                        GLint direction_location)
-{
-    glUniform1f(ambient_intensity_location, light.ambient_intensity);
-    glUniform3f(colour_location, light.colour.x, light.colour.y, light.colour.z);
-    glUniform1f(diffuse_intensity_location, light.diffuse_intensity);
-    glUniform3f(direction_location, light.direction.x, light.direction.y, light.direction.z);
-}
-
-INTERNAL void gl_bind_material(Material& material,
-                               GLint specular_intensity_location,
-                               GLint shiniess_location)
-{
-    glUniform1f(specular_intensity_location, material.specular_intensity);
-    glUniform1f(shiniess_location, material.shininess);
 }

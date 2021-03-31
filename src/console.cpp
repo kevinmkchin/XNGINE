@@ -338,7 +338,7 @@ INTERNAL void con_update(real32 dt)
     }
 }
 
-INTERNAL void con_render(ShaderProgram ui_shader, ShaderProgram text_shader)
+INTERNAL void con_render(OrthographicShader ui_shader, OrthographicShader text_shader)
 {
     if(!con_b_initialized || con_state == CON_HIDDEN)
     {
@@ -350,11 +350,11 @@ INTERNAL void con_render(ShaderProgram ui_shader, ShaderProgram text_shader)
     con_transform = glm::translate(con_transform, glm::vec3(0.f, console_translation_y, 0.f));
     // render console
     gl_use_shader(ui_shader);
-        GLint id_uniform_b_use_colour = glGetUniformLocation(ui_shader.id_shader_program, "b_use_colour");
-        GLint id_uniform_ui_element_colour = glGetUniformLocation(ui_shader.id_shader_program, "ui_element_colour");
+        GLint id_uniform_b_use_colour = ui_shader.uniform_location("b_use_colour");
+        GLint id_uniform_ui_element_colour = ui_shader.uniform_location("ui_element_colour");
         glUniform1i(id_uniform_b_use_colour, true);
-        glUniformMatrix4fv(ui_shader.id_uniform_model, 1, GL_FALSE, glm::value_ptr(con_transform));
-        glUniformMatrix4fv(ui_shader.id_uniform_projection, 1, GL_FALSE, glm::value_ptr(g_matrix_projection_ortho));
+        gl_bind_model_matrix(ui_shader, glm::value_ptr(con_transform));
+        gl_bind_projection_matrix(ui_shader, glm::value_ptr(g_matrix_projection_ortho));
         glBindVertexArray(con_id_vao);
             glUniform4f(id_uniform_ui_element_colour, 0.1f, 0.1f, 0.1f, 0.7f);
             glDrawArrays(GL_TRIANGLES, 0, 6); // Last param could be pointer to indices but no need cuz IBO is already bound
@@ -364,12 +364,12 @@ INTERNAL void con_render(ShaderProgram ui_shader, ShaderProgram text_shader)
         glBindVertexArray(0);
     gl_use_shader(text_shader);
         // RENDER CONSOLE TEXT
-        glUniformMatrix4fv(text_shader.id_uniform_projection, 1, GL_FALSE, glm::value_ptr(g_matrix_projection_ortho));
+        gl_bind_projection_matrix(text_shader, glm::value_ptr(g_matrix_projection_ortho));
         gl_use_texture(con_font_atlas);
 
         // Input text visual
-        glUniform3f(glGetUniformLocation(text_shader.id_shader_program, "text_colour"), 1.f, 1.f, 1.f);
-        glUniformMatrix4fv(text_shader.id_uniform_model, 1, GL_FALSE, glm::value_ptr(con_transform));
+        glUniform3f(text_shader.uniform_location("text_colour"), 1.f, 1.f, 1.f);
+        gl_bind_model_matrix(text_shader, glm::value_ptr(con_transform));
         if(con_input_vao.index_count > 0)
         {
             gl_render_mesh(con_input_vao);
@@ -378,13 +378,13 @@ INTERNAL void con_render(ShaderProgram ui_shader, ShaderProgram text_shader)
         con_transform[3][1] -= 30.f;
 
         // Messages text visual
-        glUniform3f(glGetUniformLocation(text_shader.id_shader_program, "text_colour"), 0.8f, 0.8f, 0.8f);
+        glUniform3f(text_shader.uniform_location("text_colour"), 0.8f, 0.8f, 0.8f);
         for(int i = 0; i < CON_ROWS_MAX; ++i)
         {
             Mesh m = con_text_vaos[i];
             if(m.index_count > 0)
             {
-                glUniformMatrix4fv(text_shader.id_uniform_model, 1, GL_FALSE, glm::value_ptr(con_transform));
+                gl_bind_model_matrix(text_shader, glm::value_ptr(con_transform));
                 con_transform[3][1] -= (float) CON_TEXT_SIZE + 3.f;
                 gl_render_mesh(m);
             }

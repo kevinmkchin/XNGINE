@@ -1,7 +1,7 @@
 GLOBAL_VAR int      perf_profiler_level = 0;
 GLOBAL_VAR real32   perf_gameloop_elapsed_secs = 0.f;
 
-uint8   PERF_TEXT_SIZE = 14;
+uint8   PERF_TEXT_SIZE = 17;
 uint16  PERF_DRAW_X = 4;
 uint16  PERF_DRAW_Y = PERF_TEXT_SIZE + 3;
 
@@ -24,7 +24,7 @@ INTERNAL void profiler_initialize(TTAFont* in_perf_font_handle, Texture in_perf_
     perf_frametime_vao = gl_create_mesh_array(0, 0, 0, 0, 2, 2, 0, GL_DYNAMIC_DRAW);
 }
 
-INTERNAL void profiler_render(ShaderProgram ui_shader, ShaderProgram text_shader)
+INTERNAL void profiler_render(OrthographicShader ui_shader, OrthographicShader text_shader)
 {
     if(!perf_profiler_level)
     {
@@ -50,10 +50,11 @@ INTERNAL void profiler_render(ShaderProgram ui_shader, ShaderProgram text_shader
         glm::mat4 perf_frametime_transform = glm::mat4(1.f);
 
         gl_use_shader(text_shader);
-            glUniformMatrix4fv(text_shader.id_uniform_projection, 1, GL_FALSE, glm::value_ptr(g_matrix_projection_ortho));
+            gl_bind_projection_matrix(text_shader, glm::value_ptr(g_matrix_projection_ortho));
             gl_use_texture(perf_font_atlas);
-            glUniform3f(glGetUniformLocation(text_shader.id_shader_program, "text_colour"), 1.f, 1.f, 1.f);
-            glUniformMatrix4fv(text_shader.id_uniform_model, 1, GL_FALSE, glm::value_ptr(perf_frametime_transform));
+            // TODO(Kevin): get uniform location for arbitrary uniform names? or create function to bind this colour
+            glUniform3f(text_shader.uniform_location("text_colour"), 1.f, 1.f, 1.f);
+            gl_bind_model_matrix(text_shader, glm::value_ptr(perf_frametime_transform));
             if(perf_frametime_vao.index_count > 0)
             {
                 gl_render_mesh(perf_frametime_vao);
