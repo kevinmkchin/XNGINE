@@ -77,15 +77,30 @@ struct OrthographicShader : BaseShader
 
 struct LightingShader : PerspectiveShader
 {
-    GLOBAL_VAR const unsigned int MAX_POINT_LIGHTS = 2;
+    GLOBAL_VAR const unsigned int MAX_POINT_LIGHTS = 4;
     GLOBAL_VAR const unsigned int MAX_SPOT_LIGHTS = 2;
 
     GLint   id_uniform_observer_pos = 0;
 
-    GLint   id_uniform_ambient_intensity = 0;
-    GLint   id_uniform_ambient_colour = 0;
-    GLint   id_uniform_diffuse_intensity = 0;
-    GLint   id_uniform_light_direction = 0;
+    struct {
+        GLint colour;
+        GLint ambient_intensity;
+        GLint diffuse_intensity;
+
+        GLint direction;
+    } id_uniform_directional_light;
+
+    GLint   id_uniform_point_light_count = 0;
+    struct {
+        GLint colour;
+        GLint ambient_intensity;
+        GLint diffuse_intensity;
+
+        GLint position;
+        GLint att_constant;
+        GLint att_linear;
+        GLint att_quadratic;
+    } id_uniform_point_light[MAX_POINT_LIGHTS];
 
     GLint   id_uniform_specular_intensity = 0;
     GLint   id_uniform_shininess = 0;
@@ -94,10 +109,29 @@ struct LightingShader : PerspectiveShader
     {
         PerspectiveShader::load_uniforms();
         id_uniform_observer_pos = uniform_location("observer_pos");
-        id_uniform_ambient_intensity = uniform_location("directional_light.ambient_intensity");
-        id_uniform_ambient_colour = uniform_location("directional_light.colour");
-        id_uniform_diffuse_intensity = uniform_location("directional_light.diffuse_intensity");
-        id_uniform_light_direction = uniform_location("directional_light.direction");
+        id_uniform_directional_light.colour = uniform_location("directional_light.colour");
+        id_uniform_directional_light.ambient_intensity = uniform_location("directional_light.ambient_intensity");
+        id_uniform_directional_light.diffuse_intensity = uniform_location("directional_light.diffuse_intensity");
+        id_uniform_directional_light.direction = uniform_location("directional_light.direction");
+        id_uniform_point_light_count = uniform_location("point_light_count");
+        for(mi i = 0; i < MAX_POINT_LIGHTS; ++i)
+        {
+            char loc_buffer[128] = {'\0'};
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "point_light[%d].colour", i);
+            id_uniform_point_light[i].colour = uniform_location(loc_buffer);
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "point_light[%d].ambient_intensity", i);
+            id_uniform_point_light[i].ambient_intensity = uniform_location(loc_buffer);
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "point_light[%d].diffuse_intensity", i);
+            id_uniform_point_light[i].diffuse_intensity = uniform_location(loc_buffer);
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "point_light[%d].position", i);
+            id_uniform_point_light[i].position = uniform_location(loc_buffer);
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "point_light[%d].att_constant", i);
+            id_uniform_point_light[i].att_constant = uniform_location(loc_buffer);
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "point_light[%d].att_linear", i);
+            id_uniform_point_light[i].att_linear = uniform_location(loc_buffer);
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "point_light[%d].att_quadratic", i);
+            id_uniform_point_light[i].att_quadratic = uniform_location(loc_buffer);
+        }
         id_uniform_specular_intensity = uniform_location("material.specular_intensity");
         id_uniform_shininess = uniform_location("material.shininess");
     }

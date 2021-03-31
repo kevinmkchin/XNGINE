@@ -6,7 +6,6 @@ Backlog:
     - Write own math library and remove GLM
     - Entity - pos, rot, scale, mesh, few boolean flags, collider, tags
     - Frame lock
-    - Make shader not require certain uniform matrices like model view and projection
     - Texture GL_NEAREST option
     - Texture do something like source engine
         - Build simple polygons and shapes, and the textures get wrapped
@@ -15,6 +14,7 @@ Backlog:
         - remember previously entered commands
         - shader hotloading/compiling during runtime - pause all update / render while shaders are being recompiled
         - mouse picking entities
+    - Point light attenuation range debug toggle through console
 
 THIS PROJECT IS A SINGLE TRANSLATION UNIT BUILD / UNITY BUILD
 
@@ -94,7 +94,8 @@ OrthographicShader shader_ui;
 Texture tex_brick;
 Texture tex_dirt;
 DirectionalLight main_light;
-Material material_shiny = { 1.f, 32.f };
+PointLight point_lights[2];
+Material material_shiny = { 4.f, 128.f };
 Material material_dull = { 0.5f, 4.f };
 
 // --- Fonts ---
@@ -389,7 +390,8 @@ INTERNAL void game_render()
         gl_bind_view_matrix(shader_common, glm::value_ptr(g_camera.matrix_view));
         gl_bind_projection_matrix(shader_common, glm::value_ptr(g_camera.matrix_perspective));
         gl_bind_directional_light(shader_common, main_light);
-        glUniform3f(shader_common.id_uniform_observer_pos, g_camera.position.x, g_camera.position.y, g_camera.position.z);
+        gl_bind_point_lights(shader_common, point_lights, array_count(point_lights));
+        gl_bind_camera_position(shader_common, g_camera);
 
         glm::mat4 matrix_model = glm::mat4(1.f);
         matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.5f, -1.3f));
@@ -406,6 +408,13 @@ INTERNAL void game_render()
         gl_use_texture(tex_dirt);
         gl_bind_material(shader_common, material_dull);
         gl_render_mesh(meshes[1]);
+
+        matrix_model = glm::mat4(1.f);
+        matrix_model = glm::translate(matrix_model, glm::vec3(0.f, -2.0f, 0.f));
+        gl_bind_model_matrix(shader_common, glm::value_ptr(matrix_model));
+        gl_use_texture(tex_dirt);
+        gl_bind_material(shader_common, material_shiny);
+        gl_render_mesh(meshes[2]);
     glUseProgram(0);
 
 // NOT DEPTH TESTED
@@ -487,10 +496,23 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
         0.f, 1.f, 0.f, 0.5f, 1.f, 0.f, 0.f, 0.f
     };
 
+    uint32 floor_indices[6] = { 
+        0, 2, 1,
+        1, 2, 3
+    };
+
+    GLfloat floor_vertices[32] = {
+        -10.f, 0.f, -10.f, 0.f, 0.f, 0.f, -1.f, 0.f,
+        10.f, 0.f, -10.f, 10.f, 0.f, 0.f, -1.f, 0.f,
+        -10.f, 0.f, 10.f, 0.f, 10.f, 0.f, -1.f, 0.f,
+        10.f, 0.f, 10.f, 10.f, 10.f, 0.f, -1.f, 0.f
+    };
+
     calc_average_normals(indices, 12, vertices, 32, 8, 5);
 
     meshes[0] = gl_create_mesh_array(vertices, indices, 32, 12);
     meshes[1] = gl_create_mesh_array(vertices, indices, 32, 12);
+    meshes[2] = gl_create_mesh_array(floor_vertices, floor_indices, 32, 6);
 
     gl_load_shader_program_from_file(shader_common, vertex_shader_path, frag_shader_path);
     gl_load_shader_program_from_file(shader_text, text_vs_path, text_fs_path);
@@ -499,7 +521,26 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     gl_load_texture_from_file(tex_dirt, "data/textures/dirt.png");
 
     main_light.direction = glm::vec3(2.f, -1.f, -2.f);
-    main_light.diffuse_intensity = 0.3f;
+    main_light.ambient_intensity = 0.f;
+    main_light.diffuse_intensity = 0.f;
+
+    point_lights[0].colour = glm::vec3(0.0f, 1.0f, 0.0f);
+    point_lights[0].position = glm::vec3(-4.f, 0.0f, 0.0f);
+    point_lights[0].ambient_intensity = 0.f;
+    point_lights[0].diffuse_intensity = 1.f;
+    point_lights[0].att_constant = 0.3f;
+    point_lights[0].att_linear = 0.2f;
+    point_lights[0].att_quadratic = 0.1f;
+
+    point_lights[1].colour = glm::vec3(0.0f, 0.0f, 1.0f);
+    point_lights[1].position = glm::vec3(4.f, 0.0f, 0.0f);
+    point_lights[1].ambient_intensity = 0.f;
+    point_lights[1].diffuse_intensity = 1.f;
+    point_lights[1].att_constant = 0.3f;
+    point_lights[1].att_linear = 0.2f;
+    point_lights[1].att_quadratic = 0.1f;
+
+    
 
     /** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)
         The model matrix, right now, is in Game::render because we want to be able to update the object's transform on tick. However, ideally, the 
