@@ -175,7 +175,15 @@ INTERNAL Mesh gl_create_mesh_array(real32* vertices,
                                    uint8 normal_attrib_size = 3,
                                    GLenum draw_usage = GL_STATIC_DRAW)
 {
-    uint8 stride = vertex_attrib_size + texture_attrib_size + normal_attrib_size;
+    uint8 stride = 0;
+    if(texture_attrib_size)
+    {
+        stride += vertex_attrib_size + texture_attrib_size;
+        if(normal_attrib_size)
+        {
+            stride += normal_attrib_size;
+        }
+    }
 
     Mesh mesh;
     // Need to store to index_count because we need the count of indices when we are drawing in Mesh::render_mesh
@@ -201,12 +209,15 @@ INTERNAL Mesh gl_create_mesh_array(real32* vertices,
             Apparently the last parameter is the offset? */
             glVertexAttribPointer(0, vertex_attrib_size, GL_FLOAT, GL_FALSE, sizeof(real32) * stride, 0); // vertex pointer
             glEnableVertexAttribArray(0); // Enabling location in VAO for the attribute
-            glVertexAttribPointer(1, texture_attrib_size, GL_FLOAT, GL_FALSE, sizeof(real32) * stride, (void*)(sizeof(real32) * vertex_attrib_size)); // uv coord pointer
-            glEnableVertexAttribArray(1);
-            if(normal_attrib_size > 0)
+            if(texture_attrib_size > 0)
             {
-                glVertexAttribPointer(2, normal_attrib_size, GL_FLOAT, GL_FALSE, sizeof(real32) * stride, (void*)(sizeof(real32) * (vertex_attrib_size + texture_attrib_size))); // normal pointer
-                glEnableVertexAttribArray(2);
+                glVertexAttribPointer(1, texture_attrib_size, GL_FLOAT, GL_FALSE, sizeof(real32) * stride, (void*)(sizeof(real32) * vertex_attrib_size)); // uv coord pointer
+                glEnableVertexAttribArray(1);
+                if(normal_attrib_size > 0)
+                {
+                    glVertexAttribPointer(2, normal_attrib_size, GL_FLOAT, GL_FALSE, sizeof(real32) * stride, (void*)(sizeof(real32) * (vertex_attrib_size + texture_attrib_size))); // normal pointer
+                    glEnableVertexAttribArray(2);
+                }
             }
         glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind the VBO
 

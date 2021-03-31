@@ -3,9 +3,12 @@
 TODO:
 
 Backlog:
+    - console change camera speed
+
     - Write own math library and remove GLM
     - Entity - pos, rot, scale, mesh, few boolean flags, collider, tags
-    - Frame lock
+    - Fixed timestep?
+    - Face culling
     - Texture GL_NEAREST option
     - Texture do something like source engine
         - Build simple polygons and shapes, and the textures get wrapped
@@ -14,7 +17,6 @@ Backlog:
         - remember previously entered commands
         - shader hotloading/compiling during runtime - pause all update / render while shaders are being recompiled
         - mouse picking entities
-    - Point light attenuation range debug toggle through console
 
 THIS PROJECT IS A SINGLE TRANSLATION UNIT BUILD / UNITY BUILD
 
@@ -36,7 +38,6 @@ BUILD MODES
 #include <string>
 #include <vector>
 #include <map>
-#include <cmath>
 #include <iostream>
 #include <fstream>
 
@@ -84,6 +85,7 @@ GLOBAL_VAR bool g_b_wireframe = false;
 #include "opengl.cpp"
 #include "camera.cpp"
 #include "profiler.cpp"
+#include "debugger.cpp"
 #include "commands.cpp"
 #include "console.cpp"
 
@@ -91,6 +93,7 @@ Mesh meshes[3];
 LightingShader shader_common;
 OrthographicShader shader_text;
 OrthographicShader shader_ui;
+PerspectiveShader shader_simple;
 Texture tex_brick;
 Texture tex_dirt;
 DirectionalLight main_light;
@@ -109,6 +112,8 @@ static const char* ui_vs_path = "shaders/ui.vert";
 static const char* ui_fs_path = "shaders/ui.frag";
 static const char* text_vs_path = "shaders/text_ui.vert";
 static const char* text_fs_path = "shaders/text_ui.frag";
+static const char* simple_vs_path = "shaders/simple.vert";
+static const char* simple_fs_path = "shaders/simple.frag";
 
 INTERNAL inline int64 win64_get_ticks()
 {
@@ -268,6 +273,7 @@ INTERNAL bool game_init()
 
     con_initialize(&g_font_handle_c64, g_font_atlas_c64);
     profiler_initialize(&g_font_handle_c64, g_font_atlas_c64);
+    debugger_initialize();
 
     return true;
 }
@@ -372,8 +378,9 @@ INTERNAL void game_render()
     //glClearColor(0.39f, 0.582f, 0.926f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear opengl context's buffer
 
-// DEPTH TESTED
+// NOT ALPHA BLENDED
     glDisable(GL_BLEND);
+// DEPTH TESTED
     glEnable(GL_DEPTH_TEST);
     // TODO Probably should make own shader for wireframe draws so that wireframe fragments aren't affected by lighting or textures
     if(g_b_wireframe)
@@ -385,8 +392,9 @@ INTERNAL void game_render()
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
     
+    calculate_viewmatrix(g_camera);
+    
     gl_use_shader(shader_common);
-        calculate_viewmatrix(g_camera);
         gl_bind_view_matrix(shader_common, glm::value_ptr(g_camera.matrix_view));
         gl_bind_projection_matrix(shader_common, glm::value_ptr(g_camera.matrix_perspective));
         gl_bind_directional_light(shader_common, main_light);
@@ -417,8 +425,12 @@ INTERNAL void game_render()
         gl_render_mesh(meshes[2]);
     glUseProgram(0);
 
-// NOT DEPTH TESTED
+// ALPHA BLENDED
     glEnable(GL_BLEND);
+
+    debugger_render(shader_simple);
+
+// NOT DEPTH TESTED
     glDisable(GL_DEPTH_TEST); 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -517,13 +529,14 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     gl_load_shader_program_from_file(shader_common, vertex_shader_path, frag_shader_path);
     gl_load_shader_program_from_file(shader_text, text_vs_path, text_fs_path);
     gl_load_shader_program_from_file(shader_ui, ui_vs_path, ui_fs_path);
+    gl_load_shader_program_from_file(shader_simple, simple_vs_path, simple_fs_path);
+
     gl_load_texture_from_file(tex_brick, "data/textures/brick.png");
     gl_load_texture_from_file(tex_dirt, "data/textures/dirt.png");
 
     main_light.direction = glm::vec3(2.f, -1.f, -2.f);
     main_light.ambient_intensity = 0.f;
     main_light.diffuse_intensity = 0.f;
-
     point_lights[0].colour = glm::vec3(0.0f, 1.0f, 0.0f);
     point_lights[0].position = glm::vec3(-4.f, 0.0f, 0.0f);
     point_lights[0].ambient_intensity = 0.f;
@@ -531,7 +544,6 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     point_lights[0].att_constant = 0.3f;
     point_lights[0].att_linear = 0.2f;
     point_lights[0].att_quadratic = 0.1f;
-
     point_lights[1].colour = glm::vec3(0.0f, 0.0f, 1.0f);
     point_lights[1].position = glm::vec3(4.f, 0.0f, 0.0f);
     point_lights[1].ambient_intensity = 0.f;
@@ -539,7 +551,7 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     point_lights[1].att_constant = 0.3f;
     point_lights[1].att_linear = 0.2f;
     point_lights[1].att_quadratic = 0.1f;
-
+    debugger_set_pointlights(point_lights, array_count(point_lights));
     
 
     /** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)

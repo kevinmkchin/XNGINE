@@ -12,7 +12,7 @@ Texture     perf_font_atlas;
 // Meshes
 Mesh        perf_frametime_vao;
 
-INTERNAL void cmd_profiler_set_level(int level)
+INTERNAL void profiler_set_level(int level)
 {
     perf_profiler_level = level;
 }
