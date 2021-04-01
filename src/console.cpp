@@ -70,7 +70,7 @@ Texture     con_font_atlas;
 Mesh        con_input_vao; // con_input_vao gets added to con_text_vaos (after eviction) if user "returns" command
 Mesh        con_text_vaos[CON_ROWS_MAX] = {}; // one vao is one line
 
-// TODO buffer to hold previous commands
+// TODO buffer to hold previous commands (max 20 commands)
 
 INTERNAL void con_initialize(TTAFont* console_font_handle, Texture console_font_atlas)
 {
@@ -165,19 +165,22 @@ INTERNAL void con_printf(const char* fmt, ...)
 
 INTERNAL void con_command(char* text_command)
 {
-    if(*text_command == '\0')
+    char text_command_buffer[CON_COLS_MAX];
+    strcpy_s(text_command_buffer, CON_COLS_MAX, text_command);//because text_command might point to read-only data
+
+    if(*text_command_buffer == '\0')
     {
         return;
     }
 
-    std::string cmd = std::string(text_command);
+    std::string cmd = std::string(text_command_buffer);
     cmd = ">" + cmd + "\n";
     con_print(cmd.c_str());
 
-    char* token;
+    char* token_buff;
     const char delim = ' ';
-    token = strtok(text_command, &delim);
-    cmd = std::string(token);
+    token_buff = strtok(text_command_buffer, &delim);
+    cmd = std::string(token_buff);
     if (con_commands.find(cmd) != con_commands.end()) 
     {
         ConCommandMeta cmd_meta = con_commands.at(cmd);
@@ -185,13 +188,13 @@ INTERNAL void con_command(char* text_command)
         // get list of args
         int argcount = 0;
         std::vector<std::string> argslist;
-        token = strtok(NULL, &delim);
-        while(token != NULL && argcount < 4)
+        token_buff = strtok(NULL, &delim);
+        while(token_buff != NULL && argcount < 4)
         {
-            std::string arg = std::string(token);
+            std::string arg = std::string(token_buff);
             argslist.push_back(arg);
             ++argcount;
-            token = strtok(NULL, &delim);
+            token_buff = strtok(NULL, &delim);
         }
 
         // invoke command
@@ -479,7 +482,21 @@ INTERNAL void con_keydown(SDL_KeyboardEvent& keyevent)
                 con_b_input_buffer_dirty = true;
             }
         }break;
-        // Move cursor left right
+        case SDLK_PAGEUP:
+        {
+            for(int i=0;i<10;++i)
+            {
+                con_scroll_up();
+            }
+        }break;
+        case SDLK_PAGEDOWN:
+        {
+            loop(10)
+            {
+                con_scroll_down();
+            }
+        }break;
+        // TODO Move cursor left right
         case SDLK_LEFT:
         {
 
@@ -488,14 +505,14 @@ INTERNAL void con_keydown(SDL_KeyboardEvent& keyevent)
         {
 
         }break;
-        // Scroll console logs
+        // TODO Flip through previously entered commands and fill command buffer w previous command
         case SDLK_UP:
         {
-            con_scroll_up();
+
         }break;
         case SDLK_DOWN:
         {
-            con_scroll_down();
+
         }break;
     }
 

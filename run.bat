@@ -9,5 +9,3 @@ IF "%1"=="vs" (
     START /D ..\..\data opengldemo.exe
     popd
 )
-
-rem %~dp0

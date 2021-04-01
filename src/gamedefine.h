@@ -46,6 +46,8 @@ else
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define clamp(x, lower, upper) max((lower), min((upper), (x)));
+#define loop(x) for(int asdqwrqf=0;asdqwrqf<x;++asdqwrqf)
+#define loopi(x) for(mi i=0;i<x;++i)
 
 INTERNAL inline bool is_number(std::string str)
 {

@@ -98,6 +98,7 @@ Texture tex_brick;
 Texture tex_dirt;
 DirectionalLight main_light;
 PointLight point_lights[2];
+SpotLight spot_lights[2];
 Material material_shiny = { 4.f, 128.f };
 Material material_dull = { 0.5f, 4.f };
 
@@ -326,13 +327,23 @@ INTERNAL void game_process_events()
                 }
             } break;
 
+            case SDL_MOUSEWHEEL:
+            {
+                if(con_is_shown() && g_curr_mouse_pos_y < CON_HEIGHT)
+                {
+                    if(event.wheel.y > 0)
+                    {
+                        con_scroll_up();
+                    }
+                    else if(event.wheel.y < 0)
+                    {
+                        con_scroll_down();
+                    }
+                }
+            } break;
+
             case SDL_KEYDOWN:
             {
-                if (event.key.keysym.sym == SDLK_F11)
-                {
-                    break;
-                }
-
                 if (event.key.keysym.sym == SDLK_BACKQUOTE)
                 {
                     con_toggle();
@@ -351,10 +362,23 @@ INTERNAL void game_process_events()
                     break;
                 } 
 
+                if (event.key.keysym.sym == SDLK_F1)
+                {
+                    perf_profiler_level ? con_command("profiler 0") : con_command("profiler 1");
+                    break;
+                }
+
+                if (event.key.keysym.sym == SDLK_F2)
+                {
+                    debugger_level ? con_command("debug 0") : con_command("debug 1");
+                    break;
+                }
+
                 if (event.key.keysym.sym == SDLK_z)
                 {
                     SDL_SetRelativeMouseMode((SDL_bool) !b_relative_mouse);
                     con_printf("mouse grab = %s\n", !b_relative_mouse ? "true" : "false");
+                    break;
                 } 
             } break;
         }
@@ -399,6 +423,7 @@ INTERNAL void game_render()
         gl_bind_projection_matrix(shader_common, glm::value_ptr(g_camera.matrix_perspective));
         gl_bind_directional_light(shader_common, main_light);
         gl_bind_point_lights(shader_common, point_lights, array_count(point_lights));
+        gl_bind_spot_lights(shader_common, spot_lights, array_count(spot_lights));
         gl_bind_camera_position(shader_common, g_camera);
 
         glm::mat4 matrix_model = glm::mat4(1.f);
@@ -535,24 +560,25 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     gl_load_texture_from_file(tex_dirt, "data/textures/dirt.png");
 
     main_light.direction = glm::vec3(2.f, -1.f, -2.f);
-    main_light.ambient_intensity = 0.f;
+    main_light.ambient_intensity = 0.2f;
     main_light.diffuse_intensity = 0.f;
     point_lights[0].colour = glm::vec3(0.0f, 1.0f, 0.0f);
     point_lights[0].position = glm::vec3(-4.f, 0.0f, 0.0f);
     point_lights[0].ambient_intensity = 0.f;
     point_lights[0].diffuse_intensity = 1.f;
-    point_lights[0].att_constant = 0.3f;
-    point_lights[0].att_linear = 0.2f;
-    point_lights[0].att_quadratic = 0.1f;
     point_lights[1].colour = glm::vec3(0.0f, 0.0f, 1.0f);
     point_lights[1].position = glm::vec3(4.f, 0.0f, 0.0f);
     point_lights[1].ambient_intensity = 0.f;
     point_lights[1].diffuse_intensity = 1.f;
-    point_lights[1].att_constant = 0.3f;
-    point_lights[1].att_linear = 0.2f;
-    point_lights[1].att_quadratic = 0.1f;
     debugger_set_pointlights(point_lights, array_count(point_lights));
-    
+    spot_lights[0].position = glm::vec3(-4.f, 0.0f, 0.0f);
+    spot_lights[0].ambient_intensity = 0.f;
+    spot_lights[0].diffuse_intensity = 1.f;
+    spot_lights[0].direction = glm::vec3(0.f, -1.f, -0.f);
+    spot_lights[1].position = glm::vec3(-2.f, 0.0f, 0.0f);
+    spot_lights[1].ambient_intensity = 0.f;
+    spot_lights[1].diffuse_intensity = 1.f;
+    spot_lights[1].direction = glm::vec3(0.f, -1.f, -0.f);
 
     /** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)
         The model matrix, right now, is in Game::render because we want to be able to update the object's transform on tick. However, ideally, the 
