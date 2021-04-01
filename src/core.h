@@ -78,7 +78,7 @@ struct OrthographicShader : BaseShader
 struct LightingShader : PerspectiveShader
 {
     GLOBAL_VAR const unsigned int MAX_POINT_LIGHTS = 4;
-    GLOBAL_VAR const unsigned int MAX_SPOT_LIGHTS = 2;
+    GLOBAL_VAR const unsigned int MAX_SPOT_LIGHTS = 4;
 
     GLint   id_uniform_observer_pos = 0;
 
@@ -101,6 +101,21 @@ struct LightingShader : PerspectiveShader
         GLint att_linear;
         GLint att_quadratic;
     } id_uniform_point_light[MAX_POINT_LIGHTS];
+
+    GLint   id_uniform_spot_light_count = 0;
+    struct {
+        GLint colour;
+        GLint ambient_intensity;
+        GLint diffuse_intensity;
+
+        GLint position;
+        GLint att_constant;
+        GLint att_linear;
+        GLint att_quadratic;
+
+        GLint direction;
+        GLint cos_cutoff;
+    } id_uniform_spot_light[MAX_SPOT_LIGHTS];
 
     GLint   id_uniform_specular_intensity = 0;
     GLint   id_uniform_shininess = 0;
@@ -132,6 +147,29 @@ struct LightingShader : PerspectiveShader
             stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "point_light[%d].att_quadratic", i);
             id_uniform_point_light[i].att_quadratic = uniform_location(loc_buffer);
         }
+        id_uniform_spot_light_count = uniform_location("spot_light_count");
+        for(mi i = 0; i < MAX_SPOT_LIGHTS; ++i)
+        {
+            char loc_buffer[128] = {0};
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "spot_light[%d].plight.colour", i);
+            id_uniform_spot_light[i].colour = uniform_location(loc_buffer);
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "spot_light[%d].plight.ambient_intensity", i);
+            id_uniform_spot_light[i].ambient_intensity = uniform_location(loc_buffer);
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "spot_light[%d].plight.diffuse_intensity", i);
+            id_uniform_spot_light[i].diffuse_intensity = uniform_location(loc_buffer);
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "spot_light[%d].plight.position", i);
+            id_uniform_spot_light[i].position = uniform_location(loc_buffer);
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "spot_light[%d].plight.att_constant", i);
+            id_uniform_spot_light[i].att_constant = uniform_location(loc_buffer);
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "spot_light[%d].plight.att_linear", i);
+            id_uniform_spot_light[i].att_linear = uniform_location(loc_buffer);
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "spot_light[%d].plight.att_quadratic", i);
+            id_uniform_spot_light[i].att_quadratic = uniform_location(loc_buffer);
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "spot_light[%d].direction", i);
+            id_uniform_spot_light[i].direction = uniform_location(loc_buffer);
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "spot_light[%d].cutoff", i);
+            id_uniform_spot_light[i].cos_cutoff = uniform_location(loc_buffer);
+        }
         id_uniform_specular_intensity = uniform_location("material.specular_intensity");
         id_uniform_shininess = uniform_location("material.shininess");
     }
@@ -145,23 +183,32 @@ struct Material
 
 struct Light
 {
-    glm::vec3   colour              = glm::vec3(1.f, 1.f, 1.f);
-    real32      ambient_intensity   = 0.2f;
-    real32      diffuse_intensity   = 1.0f;  
+    glm::vec3   colour = glm::vec3(1.f, 1.f, 1.f);
+    real32      ambient_intensity = 0.2f;
+    real32      diffuse_intensity = 1.0f;  
 };
 
 struct DirectionalLight : Light
 {
-    glm::vec3   direction           = glm::vec3(0.f, -1.f, 0.f);
+    glm::vec3   direction = glm::vec3(0.f, -1.f, 0.f);
 };
 
 struct PointLight : Light
 {
     glm::vec3   position = glm::vec3(0.f, 0.f, 0.f);
     // Attenuation coefficients
-    GLfloat     att_constant = 1.0f;
-    GLfloat     att_linear = 0.f;
-    GLfloat     att_quadratic = 0.f;
+    GLfloat     att_constant = 0.3f;
+    GLfloat     att_linear = 0.2f;
+    GLfloat     att_quadratic = 0.1f;
+};
+
+struct SpotLight : PointLight
+{
+    glm::vec3 direction = glm::vec3(0.f, -1.f, 0.f);
+    void set_cutoff_in_degrees(float degrees) { cos_cutoff = cosf(degrees*TO_RADIANS); }
+    real32 cosine_cutoff() { return cos_cutoff; }
+private:
+    real32 cos_cutoff = 0.866f;
 };
 
 /*

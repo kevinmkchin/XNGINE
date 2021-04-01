@@ -148,6 +148,26 @@ INTERNAL void gl_bind_point_lights(LightingShader& shader, PointLight* plights, 
     }
 }
 
+INTERNAL void gl_bind_spot_lights(LightingShader& shader, SpotLight* slights, uint8 count)
+{
+    count = min(count, LightingShader::MAX_SPOT_LIGHTS);
+    glUniform1i(shader.id_uniform_spot_light_count, count);
+    for(mi i = 0; i < count; ++i)
+    {
+        glUniform3f(shader.id_uniform_spot_light[i].colour, slights[i].colour.x, slights[i].colour.y, slights[i].colour.z);
+        glUniform1f(shader.id_uniform_spot_light[i].ambient_intensity, slights[i].ambient_intensity);
+        glUniform1f(shader.id_uniform_spot_light[i].diffuse_intensity, slights[i].diffuse_intensity);
+
+        glUniform3f(shader.id_uniform_spot_light[i].position, slights[i].position.x, slights[i].position.y, slights[i].position.z);
+        glUniform1f(shader.id_uniform_spot_light[i].att_constant, slights[i].att_constant);
+        glUniform1f(shader.id_uniform_spot_light[i].att_linear, slights[i].att_linear);
+        glUniform1f(shader.id_uniform_spot_light[i].att_quadratic, slights[i].att_quadratic);
+
+        glUniform3f(shader.id_uniform_spot_light[i].direction, slights[i].direction.x, slights[i].direction.y, slights[i].direction.z);
+        glUniform1f(shader.id_uniform_spot_light[i].cos_cutoff, slights[i].cosine_cutoff());
+    }
+}
+
 INTERNAL void gl_bind_material(LightingShader& shader, Material& material)
 {
     glUniform1f(shader.id_uniform_specular_intensity, material.specular_intensity);

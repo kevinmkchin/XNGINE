@@ -7,6 +7,7 @@ in vec3 frag_pos; // position of fragment in worldspace
 out vec4 colour;
 
 const int MAX_POINT_LIGHTS = 10;
+const int MAX_SPOT_LIGHTS = 10;
 
 struct DirectionalLight
 {
@@ -29,6 +30,14 @@ struct PointLight
     float att_quadratic;
 };
 
+struct SpotLight
+{
+    PointLight plight;
+
+    vec3 direction;
+    float cutoff;
+};
+
 struct Material
 {
     float specular_intensity;
@@ -39,6 +48,8 @@ uniform sampler2D texture_sampler_0;
 uniform DirectionalLight directional_light;
 uniform int point_light_count;
 uniform PointLight point_light[MAX_POINT_LIGHTS];
+uniform int spot_light_count;
+uniform SpotLight spot_light[MAX_SPOT_LIGHTS];
 uniform Material material;
 uniform vec3 observer_pos; // camera
 
@@ -66,27 +77,49 @@ vec4 calc_directional_light()
         directional_light.diffuse_intensity, directional_light.direction);
 }
 
+vec4 calc_point_light(PointLight plight)
+{
+    vec3 direction = frag_pos - plight.position;
+    vec4 plight_colour = calc_light_by_direction(plight.colour, 
+        plight.ambient_intensity, plight.diffuse_intensity, direction);
+    float distance = length(direction);
+    float attenuation = 1.f / (plight.att_constant
+        + plight.att_linear * distance
+        + plight.att_quadratic * distance * distance);
+
+    return plight_colour * attenuation;
+}
+
 vec4 calc_point_lights()
 {
     vec4 total_colour = vec4(0.f,0.f,0.f,0.f);
     for(int i = 0; i < point_light_count; ++i)
     {
-        vec3 direction = frag_pos - point_light[i].position;
-        vec4 plight_colour = calc_light_by_direction(point_light[i].colour, 
-            point_light[i].ambient_intensity, point_light[i].diffuse_intensity, direction);
-        float distance = length(direction);
-        float attenuation = 1.f / (point_light[i].att_constant
-            + point_light[i].att_linear * distance
-            + point_light[i].att_quadratic * distance * distance);
+        total_colour += calc_point_light(point_light[i]);
+    }
+    return total_colour;
+}
 
-        total_colour += plight_colour * attenuation;
+vec4 calc_spot_lights()
+{
+    vec4 total_colour = vec4(0.f,0.f,0.f,0.f);
+    for(int i = 0; i < spot_light_count; ++i)
+    {
+        vec3 to_frag_vector = normalize(frag_pos - spot_light[i].plight.position);
+        float cos_angle_to_frag = dot(to_frag_vector, spot_light[i].direction);
+        if(cos_angle_to_frag > spot_light[i].cutoff)
+        {
+            float f = 1 - ((1 - cos_angle_to_frag) / (1 - spot_light[i].cutoff));
+            vec4 colour = calc_point_light(spot_light[i].plight);
+            total_colour += colour * f;
+        }
     }
     return total_colour;
 }
 
 void main()
 {
-    vec4 final_colour_visibility = calc_directional_light() + calc_point_lights();
+    vec4 final_colour_visibility = calc_directional_light() + calc_point_lights() + calc_spot_lights();
 
     colour = texture(texture_sampler_0, tex_coord) * final_colour_visibility;
 }
