@@ -5,8 +5,12 @@ TODO:
 Backlog:
     - console change camera speed
 
+    - modify kc_truetypeassembler to separate declarations and implementation like stb
     - Write own math library and remove GLM
+        - rotation function to "look at" some point
+        - rotation function to rotate a vector to have same direction as another vector
     - Entity - pos, rot, scale, mesh, few boolean flags, collider, tags
+        - quaternions
     - Fixed timestep?
     - Face culling
     - Texture GL_NEAREST option
@@ -45,7 +49,11 @@ BUILD MODES
 #include <SDL.h>
 #include <SDL_syswm.h>
 #include <profileapi.h>
-#include <glm/glm.hpp>
+#include <glm/glm.hpp>  
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/euler_angles.hpp>
+#include <glm/gtx/norm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #define STB_SPRINTF_IMPLEMENTATION
@@ -57,6 +65,7 @@ BUILD MODES
 #include "kc_truetypeassembler.h"
 
 #include "gamedefine.h" // defines and typedefs
+#include "kc_math.h"
 #include "console.h"
 #include "core.h"
 // --- global variables  --- note: static variables are initialized to their default values
@@ -574,11 +583,13 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     spot_lights[0].position = glm::vec3(-4.f, 0.0f, 0.0f);
     spot_lights[0].ambient_intensity = 0.f;
     spot_lights[0].diffuse_intensity = 1.f;
-    spot_lights[0].direction = glm::vec3(0.f, -1.f, -0.f);
+    spot_lights[0].set_cutoff_in_degrees(45.f);
+    spot_lights[0].direction = glm::vec3(-1.f, -1.f, 0.f);
     spot_lights[1].position = glm::vec3(-2.f, 0.0f, 0.0f);
     spot_lights[1].ambient_intensity = 0.f;
     spot_lights[1].diffuse_intensity = 1.f;
-    spot_lights[1].direction = glm::vec3(0.f, -1.f, -0.f);
+    spot_lights[1].direction = glm::vec3(0.f, -1.f, 0.f);
+    debugger_set_spotlights(spot_lights, array_count(spot_lights));
 
     /** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)
         The model matrix, right now, is in Game::render because we want to be able to update the object's transform on tick. However, ideally, the 
