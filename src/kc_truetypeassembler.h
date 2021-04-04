@@ -142,6 +142,7 @@ USAGE EXAMPLE (C code using OpenGL):
     glUseProgram(0);
 
 TODO:
+    - Option for getting vertices clip-space coordinates instead of screen-space
     - Kerning
     - Top-to-bottom text (vertical text)
 Maybe:

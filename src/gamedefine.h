@@ -4,10 +4,10 @@
 #pragma warning(disable:4996) // disable C Run-Time library deprecation warnings
 
 /** DEFINES AND TYPEDEFS **/
-#define INTERNAL static             // static functions are internal to the translation unit
-/* Put "static" in front of all functions, and that prevents them from ever going into the linking table.
+/* Put INTERNAL in front of all functions, and that prevents them from ever going into the linking table.
 This causes the compiler to treat them as intra-unit linkage and it doesn't ever have to even do the work
  of moving to the link phase. */
+#define INTERNAL static             // static functions are internal to the translation unit
 #define LOCAL_PERSIST static        // local static variables are only accessible within the scope of its declaration
 #define GLOBAL_VAR static           // global static variables are global to the translation unit
 
@@ -26,37 +26,20 @@ typedef double      real64;
 
 typedef size_t      mi;         // memory index
 
-const real32 KC_PI = 3.1415926535f;
-const real32 TO_RADIANS = 0.0174532925f; // in_degrees * TO_RADIANS = in_radians
-const real32 TO_DEGREES = 57.2958f;      // in_radians * TO_DEGREES = in_degrees
-
 #define INDEX_NONE -1
 #define ASCII_SPACE 32
 #define ASCII_TILDE 126
 
 /** HELPER FUNCTIONS **/
 #if SLOW_BUILD
-#define ASSERT(predicate) if(!predicate) {*(int*)0 = 0;}
-else
+#define ASSERT(predicate) if(!(predicate)) {*(int*)0 = 0;}
+#else
 #define ASSERT(predicate)
 #endif
 
 #define TYPEHASH(T) typeid(T).hash_code()
 #define array_count(arr) (sizeof(arr) / (sizeof(arr[0])))
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#define max(a, b) ((a) > (b) ? (a) : (b))
-#define clamp(x, lower, upper) max((lower), min((upper), (x)));
-#define loop(x) for(int asdqwrqf=0;asdqwrqf<x;++asdqwrqf)
-#define loopi(x) for(mi i=0;i<x;++i)
-
-INTERNAL inline bool is_number(std::string str)
-{
-    size_t len = str.length();
-    for (int i = 0; i < len; ++i)
-        if (false == (isdigit(str[i]) || (str[i] == '.' && len != 1) || (str[i] == '-' && i == 0)))
-            return false;
-    return true;
-}
+#define loop(x) for(int i=0;i<x;++i)
 
 /** GAME SPECIFIC **/
 #define WIDTH 1792
