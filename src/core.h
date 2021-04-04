@@ -183,19 +183,19 @@ struct Material
 
 struct Light
 {
-    glm::vec3   colour = glm::vec3(1.f, 1.f, 1.f);
-    real32      ambient_intensity = 0.2f;
-    real32      diffuse_intensity = 1.0f;  
+    vec3    colour = { 1.f, 1.f, 1.f };
+    real32  ambient_intensity = 0.2f;
+    real32  diffuse_intensity = 1.0f;  
 };
 
 struct DirectionalLight : Light
 {
-    glm::vec3   direction = glm::vec3(0.f, -1.f, 0.f);
+    vec3    direction = { 0.f, -1.f, 0.f };
 };
 
 struct PointLight : Light
 {
-    glm::vec3   position = glm::vec3(0.f, 0.f, 0.f);
+    vec3        position = { 0.f, 0.f, 0.f };
     // Attenuation coefficients
     GLfloat     att_constant = 0.3f;
     GLfloat     att_linear = 0.2f;
@@ -204,11 +204,13 @@ struct PointLight : Light
 
 struct SpotLight : PointLight
 {
-    glm::vec3 direction = glm::vec3(0.f, -1.f, 0.f);
-    void set_cutoff_in_degrees(float degrees) { cos_cutoff = cosf(degrees*TO_RADIANS); }
+    vec3    direction = { 0.f, -1.f, 0.f };
+
+    void set_cutoff_in_degrees(float degrees) { cos_cutoff = cosf(degrees * KC_DEG2RAD); }
     real32 cosine_cutoff() { return cos_cutoff; }
+
 private:
-    real32 cos_cutoff = 0.866f;
+    real32  cos_cutoff = 0.866f;
 };
 
 /*
@@ -242,19 +244,19 @@ struct Texture
 /** Camera properties */
 struct Camera
 {
-    glm::vec3   position                = glm::vec3(0.f);           // camera x y z pos in world space 
-    glm::vec3   rotation                = glm::vec3(0.f);           // pitch, yaw, roll - in that order
-    glm::vec3   world_up                = glm::vec3(0.f, 1.f, 0.f);
+    vec3   position             = { 0.f };           // camera x y z pos in world space 
+    vec3   rotation             = { 0.f };            // pitch, yaw, roll - in that order
+    vec3   world_up             = { 0.f, 1.f, 0.f };
 
-    glm::vec3   calculated_direction    = glm::vec3(0.f);           // Intuitive direction - direction forward
-    glm::vec3   calculated_up           = glm::vec3(0.f);
-    glm::vec3   calculated_right        = glm::vec3(0.f);
+    vec3   calculated_direction = { 0.f };            // Intuitive direction - direction forward
+    vec3   calculated_up        = { 0.f }; 
+    vec3   calculated_right     = { 0.f }; 
 
-    real32      movespeed               = 2.f;
-    real32      turnspeed               = 0.17f;
+    real32 movespeed            = 2.f;
+    real32 turnspeed            = 0.17f;
 
-    glm::mat4   matrix_perspective; // Perspective projection matrix
-    glm::mat4   matrix_view;        // Last calculated view matrix
+    mat4   matrix_perspective   = { 0.f }; // Perspective projection matrix
+    mat4   matrix_view          = { 0.f }; // Last calculated view matrix
 };
 
 /**  */

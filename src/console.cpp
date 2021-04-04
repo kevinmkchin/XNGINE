@@ -349,15 +349,15 @@ INTERNAL void con_render(OrthographicShader ui_shader, OrthographicShader text_s
     }
 
     float console_translation_y = con_y - (float) CON_HEIGHT;
-    glm::mat4 con_transform = glm::mat4(1.f);
-    con_transform = glm::translate(con_transform, glm::vec3(0.f, console_translation_y, 0.f));
+    mat4 con_transform = identity_mat4();
+    con_transform *= translation_matrix(0.f, console_translation_y, 0.f);
     // render console
     gl_use_shader(ui_shader);
         GLint id_uniform_b_use_colour = ui_shader.uniform_location("b_use_colour");
         GLint id_uniform_ui_element_colour = ui_shader.uniform_location("ui_element_colour");
         glUniform1i(id_uniform_b_use_colour, true);
-        gl_bind_model_matrix(ui_shader, glm::value_ptr(con_transform));
-        gl_bind_projection_matrix(ui_shader, glm::value_ptr(g_matrix_projection_ortho));
+        gl_bind_model_matrix(ui_shader, con_transform.ptr());
+        gl_bind_projection_matrix(ui_shader, g_matrix_projection_ortho.ptr());
         glBindVertexArray(con_id_vao);
             glUniform4f(id_uniform_ui_element_colour, 0.1f, 0.1f, 0.1f, 0.7f);
             glDrawArrays(GL_TRIANGLES, 0, 6); // Last param could be pointer to indices but no need cuz IBO is already bound
@@ -367,12 +367,12 @@ INTERNAL void con_render(OrthographicShader ui_shader, OrthographicShader text_s
         glBindVertexArray(0);
     gl_use_shader(text_shader);
         // RENDER CONSOLE TEXT
-        gl_bind_projection_matrix(text_shader, glm::value_ptr(g_matrix_projection_ortho));
+        gl_bind_projection_matrix(text_shader, g_matrix_projection_ortho.ptr());
         gl_use_texture(con_font_atlas);
 
         // Input text visual
         glUniform3f(text_shader.uniform_location("text_colour"), 1.f, 1.f, 1.f);
-        gl_bind_model_matrix(text_shader, glm::value_ptr(con_transform));
+        gl_bind_model_matrix(text_shader, con_transform.ptr());
         if(con_input_vao.index_count > 0)
         {
             gl_render_mesh(con_input_vao);
@@ -387,7 +387,7 @@ INTERNAL void con_render(OrthographicShader ui_shader, OrthographicShader text_s
             Mesh m = con_text_vaos[i];
             if(m.index_count > 0)
             {
-                gl_bind_model_matrix(text_shader, glm::value_ptr(con_transform));
+                gl_bind_model_matrix(text_shader, con_transform.ptr());
                 con_transform[3][1] -= (float) CON_TEXT_SIZE + 3.f;
                 gl_render_mesh(m);
             }

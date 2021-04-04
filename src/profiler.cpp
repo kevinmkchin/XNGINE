@@ -47,14 +47,14 @@ INTERNAL void profiler_render(OrthographicShader ui_shader, OrthographicShader t
             vb.vertex_buffer, vb.index_buffer, 
             vb.vertices_array_count, vb.indices_array_count);
 
-        glm::mat4 perf_frametime_transform = glm::mat4(1.f);
+        mat4 perf_frametime_transform = identity_mat4();
 
         gl_use_shader(text_shader);
-            gl_bind_projection_matrix(text_shader, glm::value_ptr(g_matrix_projection_ortho));
+            gl_bind_projection_matrix(text_shader, g_matrix_projection_ortho.ptr());
             gl_use_texture(perf_font_atlas);
             // TODO(Kevin): get uniform location for arbitrary uniform names? or create function to bind this colour
             glUniform3f(text_shader.uniform_location("text_colour"), 1.f, 1.f, 1.f);
-            gl_bind_model_matrix(text_shader, glm::value_ptr(perf_frametime_transform));
+            gl_bind_model_matrix(text_shader, perf_frametime_transform.ptr());
             if(perf_frametime_vao.index_count > 0)
             {
                 gl_render_mesh(perf_frametime_vao);

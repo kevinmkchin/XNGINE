@@ -71,8 +71,21 @@ GLOBAL_VAR std::map<std::string, ConCommandMeta> con_commands; // association of
 /** 
     CONSOLE COMMAND INVOCATION HELPERS
 
-    idk I cannot think of a better way to go about this
+    TODO(maybe): idk I cannot think of a better way to go about this
 */
+INTERNAL inline bool is_number(std::string str)
+{
+    size_t len = str.length();
+    for (int i = 0; i < len; ++i)
+    {
+        if (false == (isdigit(str[i]) || (str[i] == '.' && len != 1) || (str[i] == '-' && i == 0)))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 template<typename T1>
 INTERNAL void cmd_finallyinvoke1args(command_func_ptr funcptr, T1 first)
 {
