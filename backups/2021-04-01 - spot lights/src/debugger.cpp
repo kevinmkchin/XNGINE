@@ -1,4 +1,4 @@
-GLOBAL_VAR int debugger_level = 1;
+GLOBAL_VAR int debugger_level = 0;
 bool debugger_b_debug_pointlights = true;
 PointLight* debugger_point_lights = 0x0;
 uint8 debugger_point_lights_count = 0;
@@ -9,8 +9,9 @@ uint8 debugger_spot_lights_count = 0;
 Mesh debug_sphere_mesh;
 Mesh debug_cone_mesh;
 
-// TODO create circle in x y z axis
+// TODO debug forward vector (i.e. show direction of object)
 
+// TODO create circle in x y z axis
 INTERNAL void create_circle_vertex_buffer(real32* vertices, uint32* indices,
                                           uint32* vertex_count, uint32* indices_count,
                                           real32 x, real32 y, real32 z,
@@ -19,8 +20,8 @@ INTERNAL void create_circle_vertex_buffer(real32* vertices, uint32* indices,
     const real32 rad_upper_bound = 1.5f;
     const real32 rad_lower_bound = 0.5f;
     real32 rad_bound_percent = clamp((radius - rad_lower_bound) / (rad_upper_bound - rad_lower_bound), 0.f, 1.f);
-    const real32 vertices_upper_bound = 128.f; //+1
-    const real32 vertices_lower_bound = 32.f; //+1
+    const real32 vertices_upper_bound = 128.f;
+    const real32 vertices_lower_bound = 32.f;
     real32 angle_increment = (2.f*KC_PI)
         / (((vertices_upper_bound - vertices_lower_bound) * rad_bound_percent) + vertices_lower_bound);
 
@@ -79,16 +80,16 @@ INTERNAL Mesh create_cone_mesh(real32 apex_x, real32 apex_y, real32 apex_z,
 
 INTERNAL void debug_render_sphere(PerspectiveShader& shader, real32 x, real32 y, real32 z, real32 radius)
 {
-    glm::mat4 sphere_transform = glm::mat4(1.f);
-    sphere_transform = glm::translate(sphere_transform, glm::vec3(x, y, z));
-    sphere_transform = glm::scale(sphere_transform, glm::vec3(radius, radius, radius));
-    gl_bind_model_matrix(shader, glm::value_ptr(sphere_transform));
+    mat4 sphere_transform = identity_mat4();
+    sphere_transform *= translation_matrix(x, y, z);
+    sphere_transform *= scale_matrix(radius, radius, radius);
+    gl_bind_model_matrix(shader, sphere_transform.ptr());
     gl_render_mesh(debug_sphere_mesh, GL_LINES);
-    sphere_transform = glm::rotate(sphere_transform, KC_PI/2.f, glm::vec3(1.f, 0.f, 0.f));
-    gl_bind_model_matrix(shader, glm::value_ptr(sphere_transform));
+    sphere_transform *= rotation_matrix(make_quaternion_deg(90.f, make_vec3(1.f, 0.f, 0.f)));
+    gl_bind_model_matrix(shader, sphere_transform.ptr());
     gl_render_mesh(debug_sphere_mesh, GL_LINES);
-    sphere_transform = glm::rotate(sphere_transform, KC_PI/2.f, glm::vec3(0.f, 0.f, 1.f));
-    gl_bind_model_matrix(shader, glm::value_ptr(sphere_transform));
+    sphere_transform *= rotation_matrix(make_quaternion_deg(90.f, make_vec3(0.f, 0.f, 1.f)));
+    gl_bind_model_matrix(shader, sphere_transform.ptr());
     gl_render_mesh(debug_sphere_mesh, GL_LINES);
 }
 
@@ -97,58 +98,20 @@ INTERNAL void debug_render_cone(PerspectiveShader& shader,
                                 real32 height, real32 base_radius,
                                 real32 dir_x, real32 dir_y, real32 dir_z)
 {
-    glm::mat4 cone_transform = glm::mat4(1.f);
-    cone_transform = glm::translate(cone_transform, glm::vec3(x, y, z));
+    mat4 cone_transform = identity_mat4();
+    cone_transform *= translation_matrix(make_vec3(x, y, z));
+    quaternion rot = rotation_from_to(make_vec3(0.f, -1.f, 0.f), make_vec3(dir_x, dir_y, dir_z));
+    cone_transform *= rotation_matrix(rot);
+    cone_transform *= scale_matrix(base_radius, height, base_radius);
 
-    glm::quat rotq;
-    {
-        using namespace glm;
-        // Conversion from Euler angles (in radians) to Quaternion
-        vec3 EulerAngles(90.f, 45.f, 0.f);
-        quat MyQuaternion = quat(EulerAngles);
-
-        vec3 start = vec3(0.f, -1.f, 0.f);
-        vec3 dest = normalize(vec3(dir_x, dir_y, dir_z));
-        start = normalize(start);
-        dest = normalize(dest);
-
-        float cosTheta = dot(start, dest);
-        vec3 rotationAxis;
-
-        if (cosTheta < -1 + 0.001f) {
-            // special case when vectors in opposite directions:
-            // there is no "ideal" rotation axis
-            // So guess one; any will do as long as it's perpendicular to start
-            rotationAxis = cross(vec3(0.0f, 0.0f, 1.0f), start);
-            if (length2(rotationAxis) < 0.01) // bad luck, they were parallel, try again!
-                rotationAxis = cross(vec3(1.0f, 0.0f, 0.0f), start);
-
-            rotationAxis = normalize(rotationAxis);
-            rotq = angleAxis(glm::radians(180.0f), rotationAxis);
-        }
-        else
-        {
-            rotationAxis = cross(start, dest);
-
-            float s = sqrt((1 + cosTheta) * 2);
-            float invs = 1 / s;
-
-            rotq = quat(
-                s * 0.5f,
-                rotationAxis.x * invs,
-                rotationAxis.y * invs,
-                rotationAxis.z * invs
-            );
-        }
-        cone_transform *= toMat4(rotq);
-    }
-    cone_transform = glm::scale(cone_transform, glm::vec3(base_radius, height, base_radius));
-
-    gl_bind_model_matrix(shader, glm::value_ptr(cone_transform));
+    gl_bind_model_matrix(shader, cone_transform.ptr());
     gl_render_mesh(debug_cone_mesh, GL_LINES);
 }
 
-//INTERNAL void debug_render_line();
+INTERNAL void debug_render_line()
+{
+    // TODO
+}
 
 INTERNAL real32 debug_calculate_attenuation_range(real32 c, real32 l, real32 q)
 {
@@ -194,8 +157,9 @@ INTERNAL void debug_render_spotlight(PerspectiveShader& shader, SpotLight& sligh
         glUniform4f(id_uni_frag_colour, 1.f, 1.f, 1.f, 1.f);
         real32 base_radius = att_radius * tanf(acosf(slight.cosine_cutoff()));
         real32 height = att_radius / slight.cosine_cutoff();
+        vec3 direction = slight.get_direction();
         debug_render_cone(shader, slight.position.x, slight.position.y, slight.position.z,
-            height, base_radius, slight.direction.x, slight.direction.y, slight.direction.z);
+            height, base_radius, direction.x, direction.y, direction.z);
         glUniform4f(id_uni_frag_colour, 1.f, 1.f, 0.f, 1.f);
         debug_render_sphere(shader, slight.position.x, slight.position.y, slight.position.z, 0.05f);
     }
@@ -215,8 +179,8 @@ INTERNAL void debugger_render(PerspectiveShader& debug_shader)
     }
 
     gl_use_shader(debug_shader);
-        gl_bind_view_matrix(debug_shader, glm::value_ptr(g_camera.matrix_view));
-        gl_bind_projection_matrix(debug_shader, glm::value_ptr(g_camera.matrix_perspective));
+        gl_bind_view_matrix(debug_shader, g_camera.matrix_view.ptr());
+        gl_bind_projection_matrix(debug_shader, g_camera.matrix_perspective.ptr());
 
         if(1 <= debugger_level)
         {

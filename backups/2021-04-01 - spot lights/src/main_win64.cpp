@@ -1,14 +1,19 @@
 /** OpenGL 3D Renderer
 
 TODO:
-
+    - TEST AND CLEAN UP Write own math library and remove GLM
+    - replace pointlight, directional light directions with euler angle rotation
+    - replace camera rotation with quaternion??
+    - refactor, clean up maths
+    - kc_truetypeassembler
+        - BASICALLY FIX TO MATCH STB STANDARD / GUIDELINES
+        - edit documentation, add clip-space vertices option 
+        - modify kc_truetypeassembler to separate declarations and implementation like stb
+    - fix bug with calling con_commands from within code
+        - the command gets cut off e.g. debug 1 becomes de or debu, etc. random
 Backlog:
-    - console change camera speed
-
-    - modify kc_truetypeassembler to separate declarations and implementation like stb
-    - Write own math library and remove GLM
-        - rotation function to "look at" some point
-        - rotation function to rotate a vector to have same direction as another vector
+    - is cache performance worth it to change matrices from column major to row major?
+    - add SIMD for kc_math library
     - Entity - pos, rot, scale, mesh, few boolean flags, collider, tags
         - quaternions
     - Fixed timestep?
@@ -49,19 +54,14 @@ BUILD MODES
 #include <SDL.h>
 #include <SDL_syswm.h>
 #include <profileapi.h>
-#include <glm/glm.hpp>  
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <glm/gtx/euler_angles.hpp>
-#include <glm/gtx/norm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 #define STB_SPRINTF_IMPLEMENTATION
 #include "stb_sprintf.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
+#define KC_MATH_IMPLEMENTATION
+#include "kc_math.h"
 #include "kc_truetypeassembler.h"
 
 #include "gamedefine.h" // defines and typedefs
@@ -86,7 +86,7 @@ GLOBAL_VAR bool is_running = true;
 GLOBAL_VAR bool b_is_update_running = true;
 GLOBAL_VAR SDL_Window* window = nullptr;
 GLOBAL_VAR SDL_GLContext opengl_context = nullptr;
-GLOBAL_VAR glm::mat4 g_matrix_projection_ortho;
+GLOBAL_VAR mat4 g_matrix_projection_ortho;
 GLOBAL_VAR bool g_b_wireframe = false;
 // -------------------------
 #include "diskapi.cpp"
@@ -324,13 +324,13 @@ INTERNAL void game_process_events()
                     {
                         gl_update_viewport_size();
                         calculate_perspectivematrix(g_camera, 90.f);
-                        g_matrix_projection_ortho = glm::ortho(0.0f, (real32)g_buffer_width,(real32)g_buffer_height,0.0f, -0.1f, 0.f);
+                        g_matrix_projection_ortho = projection_matrix_orthographic_2d(0.0f, (real32)g_buffer_width, (real32)g_buffer_height, 0.0f);
                     } break;
                     case SDL_WINDOWEVENT_SIZE_CHANGED:
                     {
                         gl_update_viewport_size();
                         calculate_perspectivematrix(g_camera, 90.f);
-                        g_matrix_projection_ortho = glm::ortho(0.0f, (real32)g_buffer_width,(real32)g_buffer_height,0.0f, -0.1f, 0.f);
+                        g_matrix_projection_ortho = projection_matrix_orthographic_2d(0.0f, (real32)g_buffer_width, (real32)g_buffer_height, 0.0f);
                     } break;
                 }
             } break;
@@ -368,7 +368,7 @@ INTERNAL void game_process_events()
                 {
                     is_running = false;
                     break;
-                } 
+                }
 
                 if (event.key.keysym.sym == SDLK_F1)
                 {
@@ -427,40 +427,39 @@ INTERNAL void game_render()
     calculate_viewmatrix(g_camera);
     
     gl_use_shader(shader_common);
-        gl_bind_view_matrix(shader_common, glm::value_ptr(g_camera.matrix_view));
-        gl_bind_projection_matrix(shader_common, glm::value_ptr(g_camera.matrix_perspective));
+        gl_bind_view_matrix(shader_common, g_camera.matrix_view.ptr());
+        gl_bind_projection_matrix(shader_common, g_camera.matrix_perspective.ptr());
         gl_bind_directional_light(shader_common, main_light);
         gl_bind_point_lights(shader_common, point_lights, array_count(point_lights));
         gl_bind_spot_lights(shader_common, spot_lights, array_count(spot_lights));
         gl_bind_camera_position(shader_common, g_camera);
 
-        glm::mat4 matrix_model = glm::mat4(1.f);
-        matrix_model = glm::translate(matrix_model, glm::vec3(0.f, 0.5f, -1.3f));
-        matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f)); // scale in each axis by the respective values of the vector
-        gl_bind_model_matrix(shader_common, glm::value_ptr(matrix_model));
+        mat4 matrix_model = identity_mat4();
+        matrix_model *= translation_matrix(0.f, 0.5f, -1.3f);
+        matrix_model *= scale_matrix(0.3f, 0.3f, 0.3f); // scale in each axis by the respective values of the vector
+        gl_bind_model_matrix(shader_common, matrix_model.ptr());
         gl_use_texture(tex_brick);
         gl_bind_material(shader_common, material_shiny);
         gl_render_mesh(meshes[0]);
 
-        matrix_model = glm::mat4(1.f);
-        matrix_model = glm::translate(matrix_model, glm::vec3(0.f, -0.5f, -1.3f));
-        matrix_model = glm::scale(matrix_model, glm::vec3(0.3f, 0.3f, 0.3f));
-        gl_bind_model_matrix(shader_common, glm::value_ptr(matrix_model));
+        matrix_model = identity_mat4();
+        matrix_model *= translation_matrix(0.f, -0.5f, -1.3f);
+        matrix_model *= scale_matrix(0.3f, 0.3f, 0.3f);
+        gl_bind_model_matrix(shader_common, matrix_model.ptr());
         gl_use_texture(tex_dirt);
         gl_bind_material(shader_common, material_dull);
         gl_render_mesh(meshes[1]);
 
-        matrix_model = glm::mat4(1.f);
-        matrix_model = glm::translate(matrix_model, glm::vec3(0.f, -2.0f, 0.f));
-        gl_bind_model_matrix(shader_common, glm::value_ptr(matrix_model));
+        matrix_model = identity_mat4();
+        matrix_model *= translation_matrix(0.f, -2.0f, 0.f);
+        gl_bind_model_matrix(shader_common, matrix_model.ptr());
         gl_use_texture(tex_dirt);
-        gl_bind_material(shader_common, material_shiny);
+        gl_bind_material(shader_common, material_dull);
         gl_render_mesh(meshes[2]);
     glUseProgram(0);
 
 // ALPHA BLENDED
     glEnable(GL_BLEND);
-
     debugger_render(shader_simple);
 
 // NOT DEPTH TESTED
@@ -487,13 +486,13 @@ void calc_average_normals(uint32* indices,
         uint32 in0 = indices[i] * vertex_size;
         uint32 in1 = indices[i+1] * vertex_size;
         uint32 in2 = indices[i+2] * vertex_size;
-        glm::vec3 v0 = glm::vec3(vertices[in1] - vertices[in0],
+        vec3 v0 = make_vec3(vertices[in1] - vertices[in0],
                                  vertices[in1+1] - vertices[in0+1],
                                  vertices[in1+2] - vertices[in0+2]);
-        glm::vec3 v1 = glm::vec3(vertices[in2] - vertices[in0],
+        vec3 v1 = make_vec3(vertices[in2] - vertices[in0],
                                  vertices[in2+1] - vertices[in0+1],
                                  vertices[in2+2] - vertices[in0+2]);
-        glm::vec3 normal = glm::normalize(glm::cross(v0, v1));
+        vec3 normal = normalize(cross(v0, v1));
 
         in0 += normal_offset;
         in1 += normal_offset;
@@ -512,9 +511,9 @@ void calc_average_normals(uint32* indices,
     for(mi i = 0; i < vertices_count/vertex_size; ++i)
     {
         uint32 v_normal_offset = (int32)i * vertex_size + normal_offset;
-        glm::vec3 norm_vec = glm::normalize(glm::vec3(vertices[v_normal_offset],
-                                                      vertices[v_normal_offset+1],
-                                                      vertices[v_normal_offset+2]));
+        vec3 norm_vec = normalize(make_vec3(vertices[v_normal_offset],
+                                            vertices[v_normal_offset+1],
+                                            vertices[v_normal_offset+2]));
         vertices[v_normal_offset] = norm_vec.x;
         vertices[v_normal_offset+1] = norm_vec.y;
         vertices[v_normal_offset+2] = norm_vec.z;
@@ -524,7 +523,6 @@ void calc_average_normals(uint32* indices,
 int main(int argc, char* argv[]) // Our main entry point MUST be in this form when using SDL
 {
     if (game_init() == false) return 1;
-
 
     uint32 indices[12] = { 
         0, 3, 1,
@@ -567,27 +565,28 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     gl_load_texture_from_file(tex_brick, "data/textures/brick.png");
     gl_load_texture_from_file(tex_dirt, "data/textures/dirt.png");
 
-    main_light.direction = glm::vec3(2.f, -1.f, -2.f);
+    main_light.direction = { 2.f, -1.f, -2.f };
     main_light.ambient_intensity = 0.2f;
     main_light.diffuse_intensity = 0.f;
-    point_lights[0].colour = glm::vec3(0.0f, 1.0f, 0.0f);
-    point_lights[0].position = glm::vec3(-4.f, 0.0f, 0.0f);
+    point_lights[0].colour = { 0.0f, 1.0f, 0.0f };
+    point_lights[0].position = { -4.f, 0.0f, 0.0f };
     point_lights[0].ambient_intensity = 0.f;
     point_lights[0].diffuse_intensity = 1.f;
-    point_lights[1].colour = glm::vec3(0.0f, 0.0f, 1.0f);
-    point_lights[1].position = glm::vec3(4.f, 0.0f, 0.0f);
+    point_lights[1].colour = { 0.0f, 0.0f, 1.0f };
+    point_lights[1].position = { 4.f, 0.0f, 0.0f };
     point_lights[1].ambient_intensity = 0.f;
     point_lights[1].diffuse_intensity = 1.f;
     debugger_set_pointlights(point_lights, array_count(point_lights));
-    spot_lights[0].position = glm::vec3(-4.f, 0.0f, 0.0f);
+    spot_lights[0].position = { -4.f, 0.f, 0.f };
     spot_lights[0].ambient_intensity = 0.f;
     spot_lights[0].diffuse_intensity = 1.f;
     spot_lights[0].set_cutoff_in_degrees(45.f);
-    spot_lights[0].direction = glm::vec3(-1.f, -1.f, 0.f);
-    spot_lights[1].position = glm::vec3(-2.f, 0.0f, 0.0f);
+    spot_lights[0].set_direction(make_vec3(-1.f, -1.f, 0.f));
+    spot_lights[1].position = { -2.f, 0.f, 0.f };
     spot_lights[1].ambient_intensity = 0.f;
     spot_lights[1].diffuse_intensity = 1.f;
-    spot_lights[1].direction = glm::vec3(0.f, -1.f, 0.f);
+    //spot_lights[1].set_cutoff_in_degrees(45.f);
+    spot_lights[1].set_direction(make_vec3(0.f, -1.f, 0.f));
     debugger_set_spotlights(spot_lights, array_count(spot_lights));
 
     /** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)
@@ -596,10 +595,10 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
         That matrix can be stored inside the game object class alongside the VAO. Or we could simply update the game object's position, rotation, scale
         fields, then construct the model matrix in Game::render based on those fields. Yeah that's probably better.
     */
-    g_camera.position = glm::vec3(0.f, 0.f, 0.f);
-    g_camera.rotation = glm::vec3(0.f, 270.f, 0.f);
+    g_camera.position = { 0.f, 0.f, 0.f };
+    g_camera.rotation = { 0.f, 270.f, 0.f };
     calculate_perspectivematrix(g_camera, 90.f);
-    g_matrix_projection_ortho = glm::ortho(0.0f, (real32)g_buffer_width,(real32)g_buffer_height,0.0f, -0.1f, 0.f);
+    g_matrix_projection_ortho = projection_matrix_orthographic_2d(0.0f, (real32)g_buffer_width, (real32)g_buffer_height, 0.0f);
 
 
     // Game Loop

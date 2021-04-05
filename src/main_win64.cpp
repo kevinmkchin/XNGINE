@@ -1,20 +1,16 @@
 /** OpenGL 3D Renderer
 
 TODO:
-    - Write own math library and remove GLM
-        - vectors, matrices, quaternions at least
-        - rotation function to "look at" some point
-        - rotation function to rotate a vector to have same direction as another vector
-        - some tests
+    - TEST AND CLEAN UP Write own math library and remove GLM
     - replace pointlight, directional light directions with euler angle rotation
     - replace camera rotation with quaternion??
-    - fix bug with calling con_commands from within code
-        - the command gets cut off e.g. debug 1 becomes de or debu, etc. random
     - refactor, clean up maths
     - kc_truetypeassembler
         - BASICALLY FIX TO MATCH STB STANDARD / GUIDELINES
         - edit documentation, add clip-space vertices option 
         - modify kc_truetypeassembler to separate declarations and implementation like stb
+    - fix bug with calling con_commands from within code
+        - the command gets cut off e.g. debug 1 becomes de or debu, etc. random
 Backlog:
     - is cache performance worth it to change matrices from column major to row major?
     - add SIMD for kc_math library
@@ -464,12 +460,12 @@ INTERNAL void game_render()
 
 // ALPHA BLENDED
     glEnable(GL_BLEND);
+    debugger_render(shader_simple);
 
 // NOT DEPTH TESTED
     glDisable(GL_DEPTH_TEST); 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    debugger_render(shader_simple);
     profiler_render(shader_ui, shader_text);
     con_render(shader_ui, shader_text);
 
@@ -570,7 +566,7 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     gl_load_texture_from_file(tex_dirt, "data/textures/dirt.png");
 
     main_light.direction = { 2.f, -1.f, -2.f };
-    main_light.ambient_intensity = 0.0f;
+    main_light.ambient_intensity = 0.2f;
     main_light.diffuse_intensity = 0.f;
     point_lights[0].colour = { 0.0f, 1.0f, 0.0f };
     point_lights[0].position = { -4.f, 0.0f, 0.0f };
@@ -584,13 +580,13 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     spot_lights[0].position = { -4.f, 0.f, 0.f };
     spot_lights[0].ambient_intensity = 0.f;
     spot_lights[0].diffuse_intensity = 1.f;
-    //spot_lights[0].set_cutoff_in_degrees(45.f);
-    spot_lights[0].direction = { -1.f, -1.f, 0.f };
+    spot_lights[0].set_cutoff_in_degrees(45.f);
+    spot_lights[0].set_direction(make_vec3(-1.f, -1.f, 0.f));
     spot_lights[1].position = { -2.f, 0.f, 0.f };
     spot_lights[1].ambient_intensity = 0.f;
     spot_lights[1].diffuse_intensity = 1.f;
     //spot_lights[1].set_cutoff_in_degrees(45.f);
-    spot_lights[1].direction = { 0.f, -1.f, 0.f };
+    spot_lights[1].set_direction(make_vec3(0.f, -1.f, 0.f));
     debugger_set_spotlights(spot_lights, array_count(spot_lights));
 
     /** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)
