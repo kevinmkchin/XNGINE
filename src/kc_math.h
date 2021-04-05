@@ -1,4 +1,21 @@
-#pragma once
+/** kc_math.h
+
+ - kevinmkchin's Math library -
+
+    C++ only
+
+    Do this:
+        #define KC_MATH_IMPLEMENTATION
+    before you include this file in *one* C++ file to create the implementation.
+    // i.e. it should look like this:
+    #include ...
+    #include ...
+    #include ...
+    #define KC_MATH_IMPLEMENTATION
+    #include "kc_math.h"
+*/
+#ifndef _INCLUDE_KC_MATH_H_
+#define _INCLUDE_KC_MATH_H_
 
 #include <limits>
 
@@ -11,57 +28,9 @@
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define clamp(x, lower, upper) max((lower), min((upper), (x)))
 
-
-struct vec3;
-struct vec4;
-/** - Matrices -
-    Column-major order
-    Access like so: mat4[col][row]
-    Laid in memory like so:
-    0x????0000  col 0 row 0 : float
-    0x????0004  col 0 row 1 : float
-    0x????0008  col 0 row 2 : float
-    0x????000c  col 0 row 3 : float
-    0x????0010  col 1 row 0 : float
-    0x????0014  col 1 row 1 : float
-    0x????0018  col 1 row 2 : float
-    0x????001c  col 1 row 3 : float
-    0x????0020  col 2 row 0 : float
-    0x????0024  col 2 row 1 : float
-    0x????0028  col 2 row 2 : float
-    0x????002c  col 2 row 3 : float
-    0x????0030  col 3 row 0 : float
-    0x????0034  col 3 row 1 : float
-    0x????0038  col 3 row 2 : float
-    0x????003c  col 3 row 3 : float
-    Get float array address through ptr()
-    Can use initializer list like mat4 m = { 00, 01, ... , 33 };
+/** - Vectors -
+    just floats
 */
-struct mat3;
-struct mat4;
-/** - Quaternions -
-    NOTE: probably shouldn't modify quaternions directly
-*/
-struct quaternion;
-
-
-
-inline vec3 normalize(vec3 a);
-inline vec4 normalize(vec4 a);
-
-inline quaternion add(quaternion a, quaternion b);
-inline quaternion sub(quaternion a, quaternion b);
-inline float dot(quaternion a, quaternion b);
-inline quaternion mul(quaternion a, quaternion b);
-inline quaternion mul(quaternion a, float scale);
-inline quaternion div(quaternion a, float scale);
-inline quaternion normalize(quaternion a);
-
-
-
-
-#ifdef KC_MATH_IMPLEMENTATION
-
 struct vec3
 {
     float x = 0.f;
@@ -99,6 +68,29 @@ struct vec4
     }
 };
 
+/** - Matrices -
+    Column-major order
+    Access like so: mat4[col][row]
+    Laid in memory like so:
+    0x????0000  col 0 row 0 : float
+    0x????0004  col 0 row 1 : float
+    0x????0008  col 0 row 2 : float
+    0x????000c  col 0 row 3 : float
+    0x????0010  col 1 row 0 : float
+    0x????0014  col 1 row 1 : float
+    0x????0018  col 1 row 2 : float
+    0x????001c  col 1 row 3 : float
+    0x????0020  col 2 row 0 : float
+    0x????0024  col 2 row 1 : float
+    0x????0028  col 2 row 2 : float
+    0x????002c  col 2 row 3 : float
+    0x????0030  col 3 row 0 : float
+    0x????0034  col 3 row 1 : float
+    0x????0038  col 3 row 2 : float
+    0x????003c  col 3 row 3 : float
+    Get float array address through ptr()
+    Can use initializer list like mat4 m = { 00, 01, ... , 33 };
+*/
 struct mat3
 {
     vec3 e[3] = { 0.f };
@@ -119,6 +111,9 @@ struct mat4
     const vec4& operator[] (int col) const { return e[col]; }
 };
 
+/** - Quaternions -
+    You shouldn't modify quaternions values directly--use functions
+*/
 struct quaternion
 {
     float w = 0.f;
@@ -126,6 +121,189 @@ struct quaternion
     float y = 0.f;
     float z = 0.f; 
 };
+
+/** 
+
+    Constructors and identity consturctors
+
+*/
+inline vec3 make_vec3(float inx, float iny, float inz);
+inline vec4 make_vec4(float inx, float iny, float inz, float inw);
+
+inline mat3 identity_mat3();
+inline mat4 identity_mat4();
+inline mat4 make_mat4(const mat3& from);
+
+inline quaternion identity_quaternion(); // w: 1, x: 0, y: 0, z: 0
+inline quaternion make_quaternion(float w, float x, float y, float z);
+inline quaternion make_quaternion(float x, float y, float z);
+inline quaternion make_quaternion_rad(float angle_in_rads, vec3 axis_of_rotation);
+inline quaternion make_quaternion_deg(float angle_in_degs, vec3 axis_of_rotation);
+
+/**
+
+    Vector Operations
+
+*/
+inline vec3 add(vec3 a, vec3 b);
+inline vec4 add(vec4 a, vec4 b);
+inline vec3 sub(vec3 a, vec3 b);
+inline vec4 sub(vec4 a, vec4 b);
+inline vec3 mul(vec3 a, float b);
+inline vec4 mul(vec4 a, float b);
+inline vec3 div(vec3 a, float b);
+inline vec4 div(vec4 a, float b);
+inline float dot(vec3 a, vec3 b);
+inline float dot(vec4 a, vec4 b);
+inline vec3 cross(vec3 a, vec3 b);
+inline float magnitude(vec3 a);
+inline float magnitude(vec4 a);
+inline vec3 normalize(vec3 a);
+inline vec4 normalize(vec4 a);
+
+inline vec3 operator-(vec3 a);
+inline vec3 operator+(vec3 a, vec3 b);
+inline vec3 operator-(vec3 a, vec3 b);
+inline vec3 operator*(vec3 a, float b);
+inline vec3 operator*(float b, vec3 a);
+inline vec3 operator/(vec3 a, float b);
+inline vec3 &operator+=(vec3& a, vec3 b);
+inline vec3 &operator-=(vec3& a, vec3 b);
+inline vec3 &operator*=(vec3& a, float b);
+inline vec3 &operator/=(vec3& a, float b);
+inline vec4 operator-(vec4 a);
+inline vec4 operator+(vec4 a, vec4 b);
+inline vec4 operator-(vec4 a, vec4 b);
+inline vec4 operator*(vec4 a, float b);
+inline vec4 operator*(float b, vec4 a);
+inline vec4 operator/(vec4 a, float b);
+inline vec4 &operator+=(vec4& a, vec4 b);
+inline vec4 &operator-=(vec4& a, vec4 b);
+inline vec4 &operator*=(vec4& a, float b);
+inline vec4 &operator/=(vec4& a, float b);
+
+/**
+
+    Matrix Operations
+
+*/
+inline mat3 mul(const mat3& a, const mat3& b);
+inline mat4 mul(const mat4& a, const mat4& b);
+inline vec3 mul(const mat3& A, vec3 v);
+inline vec4 mul(const mat4& A, vec4 v);
+
+inline vec3 operator*(mat3 A, vec3 v);
+inline mat3 operator*(mat3 a, mat3 b);
+inline mat3 &operator*=(mat3& a, mat3& b);
+inline vec4 operator*(mat4 A, vec4 v);
+inline mat4 operator*(mat4 a, mat4 b);
+inline mat4 &operator*=(mat4& a, mat4& b);
+
+/** Generates translation matrix for given delta x delta y delta z
+    https://en.wikipedia.org/wiki/Translation_(geometry)#Matrix_representation */
+inline mat4 translation_matrix(float x, float y, float z);
+inline mat4 translation_matrix(vec3 translation);
+
+/** Generates rotation matrix for given quaternion represented rotation
+    https://en.wikipedia.org/wiki/Rotation_matrix#In_three_dimensions */
+inline mat4 rotation_matrix(quaternion q);
+
+/** Generates scaling matrix for given x y z scales
+    https://en.wikipedia.org/wiki/Scaling_(geometry)#Using_homogeneous_coordinates */
+inline mat4 scale_matrix(float x_scale, float y_scale, float z_scale);
+
+/** Creates a matrix for a symetric perspective-view frustum based on the default handedness and default near and far clip planes definition.
+    fovy: Specifies the field of view angle in the y direction. Expressed in radians.
+    aspect: Specifies the aspect ratio that determines the field of view in the x direction. The aspect ratio is the ratio of x (width) to y (height).
+    nearclip: Specifies the distance from the viewer to the near clipping plane (always positive).
+    farclip: Specifies the distance from the viewer to the far clipping plane (always positive).
+    
+    https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluPerspective.xml
+*/
+inline mat4 projection_matrix_perspective(float fovy, float aspect, float nearclip, float farclip);
+
+/** Creates a matrix for projecting two-dimensional coordinates onto the screen.
+    https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluOrtho2D.xml
+
+    left, right: Specify the coordinates for the left and right vertical clipping planes.
+    bottom, top: Specify the coordinates for the bottom and top horizontal clipping planes.
+    e.g. projection_matrix_orthographic(0.f, 1920.f, 1080.f, 0.f);
+*/
+inline mat4 projection_matrix_orthographic_2d(float left, float right, float bottom, float top);
+
+/** Creates a matrix for an orthographic parallel viewing volume, using right-handed coordinates.
+    https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glOrtho.xml
+
+    The near and far clip planes correspond to z normalized device coordinates of -1 and +1 respectively.(OpenGL clip volume definition)
+*/
+inline mat4 projection_matrix_orthographic(float left, float right, float bottom, float top, float z_near, float z_far);
+
+/** 
+*/
+inline mat4 view_matrix_look_at(vec3 const& eye, vec3 const& target, vec3 const& in_up);
+
+/**
+
+    Quaternion Operations
+
+*/
+inline quaternion add(quaternion a, quaternion b);
+inline quaternion sub(quaternion a, quaternion b);
+inline float dot(quaternion a, quaternion b);
+inline quaternion mul(quaternion a, quaternion b);
+inline quaternion mul(quaternion a, float scale);
+inline quaternion div(quaternion a, float scale);
+inline float magnitude(quaternion a);
+inline quaternion normalize(quaternion a);
+
+/** Checks if dot product of a and b is within 1 +/- tolerance */
+inline bool similar(quaternion a, quaternion b, float tolerance = 0.001f);
+
+/** Combines rotations represented by quaternions. Equivalent to second * first. */
+inline quaternion cumulate_rotations(quaternion first_rotation, quaternion second_rotation);
+
+/** Gets the conjugate of given quaternion. Doesn't check that magnitude is 1. */
+inline quaternion conjugate(quaternion a);
+
+/** Identical to conjugate */
+inline quaternion inverse(quaternion a);
+
+/** Gets the conjugate of the given quaternion with magnitude 1 */
+inline quaternion inverse_unit(quaternion a);
+
+/** https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Quaternion_to_Euler_angles_conversion */
+inline vec3 quat_to_euler(quaternion q);
+
+/** https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Euler_angles_to_quaternion_conversion */
+inline quaternion euler_to_quat(vec3 euler_angles);
+
+/** Creates a rotation which rotates from from_direction to to_direction */
+inline quaternion rotation_from_to(vec3 from_direction, vec3 to_direction);
+
+/** Finds the difference such that b = difference * a */
+inline quaternion rotation_difference(quaternion a, quaternion b);
+
+/** Rotates given vector by given quaternion represented rotation.
+    The center of rotation is the origin. If you want to rotate around another point,
+    translate the vector before calling rotate_vector, then inverse translate (translate back). */
+inline vec3 rotate_vector(vec3 vector, quaternion rotation);
+
+/** Converts quaternion to a 3x3 matrix representing the rotation */
+inline mat3 quaternion_to_mat3(quaternion q);
+
+/** Converts quaternion to a 4x4 matrix representing the rotation */
+inline mat4 quaternion_to_mat4(quaternion q);
+
+/** Converts quaternion to a 3x3 matrix representing the rotation */
+inline mat3 make_mat3(quaternion q);
+
+/** Converts quaternion to a 4x4 matrix representing the rotation */
+inline mat4 make_mat4(quaternion q);
+
+#endif // _INCLUDE_KC_MATH_H_
+
+
+#ifdef KC_MATH_IMPLEMENTATION
 
 inline vec3 make_vec3(float inx, float iny, float inz)
 {
@@ -219,8 +397,6 @@ inline quaternion make_quaternion_deg(float angle_in_degs, vec3 axis_of_rotation
 {
     return make_quaternion_rad(angle_in_degs * KC_DEG2RAD, axis_of_rotation);
 }
-
-/////////////////////////////
 
 /**
 
@@ -346,12 +522,12 @@ inline vec4 &operator-=(vec4& a, vec4 b) { return(a = a - b); }
 inline vec4 &operator*=(vec4& a, float b) { return(a = a * b); }
 inline vec4 &operator/=(vec4& a, float b) { return(a = a / b); }
 
-
 /**
 
     Matrix Operations
     
 */
+
 inline mat3 mul(const mat3& a, const mat3& b)
 {
     mat3 res;
@@ -530,7 +706,6 @@ inline mat4 view_matrix_look_at(vec3 const& eye, vec3 const& target, vec3 const&
     Quaternion Operations
 
 */
-
 inline quaternion add(quaternion a, quaternion b)
 {
     a.x += b.x;
@@ -553,8 +728,6 @@ inline float dot(quaternion a, quaternion b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 }
-
-inline float magnitude(quaternion a) { return(sqrtf(dot(a, a))); }
 
 inline quaternion mul(quaternion a, quaternion b)
 {
@@ -592,19 +765,24 @@ inline quaternion div(quaternion a, float scale)
 
 inline quaternion operator*(quaternion a, quaternion b) { return(mul(a, b)); }
 
-inline bool similar(quaternion a, quaternion b, float tolerance = 0.001f)
+inline float magnitude(quaternion a)
 {
-    return(abs(dot(a,b)) <= tolerance);
-}
-
-inline quaternion cumulate_rotations(quaternion first_rotation, quaternion second_rotation)
-{
-    return second_rotation * first_rotation; // order matters!
+    return(sqrtf(dot(a, a)));
 }
 
 inline quaternion normalize(quaternion a)
 {
     return div(a, sqrtf(dot(a, a)));
+}
+
+inline bool similar(quaternion a, quaternion b, float tolerance)
+{
+    return(abs(dot(a,b)-1.f) <= tolerance);
+}
+
+inline quaternion cumulate_rotations(quaternion first_rotation, quaternion second_rotation)
+{
+    return second_rotation * first_rotation; // order matters!
 }
 
 inline quaternion conjugate(quaternion a){
@@ -618,7 +796,12 @@ inline quaternion conjugate(quaternion a){
 
 inline quaternion inverse(quaternion a)
 {
-    return conjugate(a);
+    quaternion ret;
+    ret.w = a.w;
+    ret.x = -a.x;
+    ret.y = -a.y;
+    ret.z = -a.z;
+    return ret;
 }
 
 inline quaternion inverse_unit(quaternion a)
@@ -627,7 +810,6 @@ inline quaternion inverse_unit(quaternion a)
     return ret;
 }
 
-/** https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Quaternion_to_Euler_angles_conversion */
 inline vec3 quat_to_euler(quaternion q)
 {
     vec3 euler_angles;
@@ -657,7 +839,6 @@ inline vec3 quat_to_euler(quaternion q)
     return euler_angles;
 }
 
-/** https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Euler_angles_to_quaternion_conversion */
 inline quaternion euler_to_quat(vec3 euler_angles)
 {
     quaternion ret;
@@ -678,11 +859,6 @@ inline quaternion euler_to_quat(vec3 euler_angles)
     return ret;
 }
 
-// inline quat QuatFrom2DArray(float A[3][3]){
-// inline quat QuatFromMatrix3(m33 Mat){
-// inline quat LookRotation(v3 Front, v3 Up)
-
-/** Creates a rotation which rotates from from_direction to to_direction */
 inline quaternion rotation_from_to(vec3 from_direction, vec3 to_direction)
 {
     vec3 start = normalize(from_direction);
@@ -718,7 +894,6 @@ inline quaternion rotation_from_to(vec3 from_direction, vec3 to_direction)
     return rotation_quat;
 }
 
-/** Finds the difference such that b = difference * a */
 inline quaternion rotation_difference(quaternion a, quaternion b)
 {
     quaternion ret = mul(b, inverse_unit(a));
@@ -794,4 +969,5 @@ inline mat4 rotation_matrix(quaternion q)
 //     float Slerp
 // )
 
-#endif
+#undef KC_MATH_IMPLEMENTATION
+#endif // KC_MATH_IMPLEMENTATION

@@ -1,18 +1,14 @@
 /** OpenGL 3D Renderer
 
 TODO:
-    - TEST AND CLEAN UP Write own math library and remove GLM
     - replace pointlight, directional light directions with euler angle rotation
     - replace camera rotation with quaternion??
-    - refactor, clean up maths
     - kc_truetypeassembler
         - BASICALLY FIX TO MATCH STB STANDARD / GUIDELINES
-        - edit documentation, add clip-space vertices option 
-        - modify kc_truetypeassembler to separate declarations and implementation like stb
+        - edit documentation, add clip-space vertices option
     - fix bug with calling con_commands from within code
         - the command gets cut off e.g. debug 1 becomes de or debu, etc. random
 Backlog:
-    - is cache performance worth it to change matrices from column major to row major?
     - add SIMD for kc_math library
     - Entity - pos, rot, scale, mesh, few boolean flags, collider, tags
         - quaternions
@@ -62,6 +58,7 @@ BUILD MODES
 #include "stb_truetype.h"
 #define KC_MATH_IMPLEMENTATION
 #include "kc_math.h"
+#define KC_TRUETYPEASSEMBLER_IMPLEMENTATION
 #include "kc_truetypeassembler.h"
 
 #include "gamedefine.h" // defines and typedefs
