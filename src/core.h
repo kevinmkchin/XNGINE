@@ -16,8 +16,6 @@ struct BinaryFileHandle
 /** Handle for an UNSIGNED BYTE bitmap in memory */
 struct BitmapHandle : BinaryFileHandle
 {
-    // uint64 size
-    // void* memory
     uint32  width = 0;      // image width
     uint32  height = 0;     // image height
     uint8   bit_depth = 0;  // bit depth of bitmap in bytes (e.g. bit depth = 3 means there are 3 bytes in the bitmap per pixel)
@@ -26,7 +24,13 @@ struct BitmapHandle : BinaryFileHandle
 /** 
 
     Core game engine objects
-
+    
+    Rules:
+     - unit vector (x: 1, y: 0, z: 0), aka positive X, is the "forward" direction for objects
+     - vec3(1, 0, 0) rotated by the object's orientation (represented by quaternion) is the object's forward vector
+     - direction != orientation
+     - orientation ~= rotation
+     - RIGHT HAND RULE for everything
 */
 
 /** Handle for Shader Program stored in GPU memory */
@@ -204,13 +208,17 @@ struct PointLight : Light
 
 struct SpotLight : PointLight
 {
-    vec3    direction = { 0.f, -1.f, 0.f };
+    quaternion orientation = { 0.7071068f, 0.f, 0.f, 0.7071068f };
+
+    void set_direction(vec3 direction) { orientation = rotation_from_to(make_vec3(1.f,0.f,0.f), direction); }
+    vec3 get_direction() { return rotate_vector(make_vec3(1.f,0.f,0.f), orientation); }
 
     void set_cutoff_in_degrees(float degrees) { cos_cutoff = cosf(degrees * KC_DEG2RAD); }
+    void set_cutoff_in_radians(float radians) { cos_cutoff = radians; }
     real32 cosine_cutoff() { return cos_cutoff; }
 
 private:
-    real32  cos_cutoff = 0.866f;
+    real32 cos_cutoff = 0.866f;
 };
 
 /*
@@ -264,7 +272,7 @@ struct Camera
 struct Entity
 {
     glm::vec3   pos     = glm::vec3(0.f);
-    glm::vec3   rot     = glm::vec3(0.f);
+    quaternion  rot     = ;
     glm::vec3   scale   = glm::vec3(0.f);
     Mesh        mesh;
     // Collider col

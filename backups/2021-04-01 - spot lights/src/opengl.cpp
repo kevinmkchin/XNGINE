@@ -163,7 +163,8 @@ INTERNAL void gl_bind_spot_lights(LightingShader& shader, SpotLight* slights, ui
         glUniform1f(shader.id_uniform_spot_light[i].att_linear, slights[i].att_linear);
         glUniform1f(shader.id_uniform_spot_light[i].att_quadratic, slights[i].att_quadratic);
 
-        glUniform3f(shader.id_uniform_spot_light[i].direction, slights[i].direction.x, slights[i].direction.y, slights[i].direction.z);
+        vec3 direction = slights[i].get_direction();
+        glUniform3f(shader.id_uniform_spot_light[i].direction, direction.x, direction.y, direction.z);
         glUniform1f(shader.id_uniform_spot_light[i].cos_cutoff, slights[i].cosine_cutoff());
     }
 }

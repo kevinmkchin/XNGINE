@@ -16,8 +16,6 @@ struct BinaryFileHandle
 /** Handle for an UNSIGNED BYTE bitmap in memory */
 struct BitmapHandle : BinaryFileHandle
 {
-    // uint64 size
-    // void* memory
     uint32  width = 0;      // image width
     uint32  height = 0;     // image height
     uint8   bit_depth = 0;  // bit depth of bitmap in bytes (e.g. bit depth = 3 means there are 3 bytes in the bitmap per pixel)
@@ -26,7 +24,13 @@ struct BitmapHandle : BinaryFileHandle
 /** 
 
     Core game engine objects
-
+    
+    Rules:
+     - unit vector (x: 1, y: 0, z: 0), aka positive X, is the "forward" direction for objects
+     - vec3(1, 0, 0) rotated by the object's orientation (represented by quaternion) is the object's forward vector
+     - direction != orientation
+     - orientation ~= rotation
+     - RIGHT HAND RULE for everything
 */
 
 /** Handle for Shader Program stored in GPU memory */
@@ -183,19 +187,19 @@ struct Material
 
 struct Light
 {
-    glm::vec3   colour = glm::vec3(1.f, 1.f, 1.f);
-    real32      ambient_intensity = 0.2f;
-    real32      diffuse_intensity = 1.0f;  
+    vec3    colour = { 1.f, 1.f, 1.f };
+    real32  ambient_intensity = 0.2f;
+    real32  diffuse_intensity = 1.0f;  
 };
 
 struct DirectionalLight : Light
 {
-    glm::vec3   direction = glm::vec3(0.f, -1.f, 0.f);
+    vec3    direction = { 0.f, -1.f, 0.f };
 };
 
 struct PointLight : Light
 {
-    glm::vec3   position = glm::vec3(0.f, 0.f, 0.f);
+    vec3        position = { 0.f, 0.f, 0.f };
     // Attenuation coefficients
     GLfloat     att_constant = 0.3f;
     GLfloat     att_linear = 0.2f;
@@ -204,9 +208,15 @@ struct PointLight : Light
 
 struct SpotLight : PointLight
 {
-    glm::vec3 direction = glm::vec3(0.f, -1.f, 0.f);
-    void set_cutoff_in_degrees(float degrees) { cos_cutoff = cosf(degrees*TO_RADIANS); }
+    quaternion orientation = { 0.7071068f, 0.f, 0.f, 0.7071068f };
+
+    void set_direction(vec3 direction) { orientation = rotation_from_to(make_vec3(1.f,0.f,0.f), direction); }
+    vec3 get_direction() { return rotate_vector(make_vec3(1.f,0.f,0.f), orientation); }
+
+    void set_cutoff_in_degrees(float degrees) { cos_cutoff = cosf(degrees * KC_DEG2RAD); }
+    void set_cutoff_in_radians(float radians) { cos_cutoff = radians; }
     real32 cosine_cutoff() { return cos_cutoff; }
+
 private:
     real32 cos_cutoff = 0.866f;
 };
@@ -242,19 +252,19 @@ struct Texture
 /** Camera properties */
 struct Camera
 {
-    glm::vec3   position                = glm::vec3(0.f);           // camera x y z pos in world space 
-    glm::vec3   rotation                = glm::vec3(0.f);           // pitch, yaw, roll - in that order
-    glm::vec3   world_up                = glm::vec3(0.f, 1.f, 0.f);
+    vec3   position             = { 0.f };           // camera x y z pos in world space 
+    vec3   rotation             = { 0.f };            // pitch, yaw, roll - in that order
+    vec3   world_up             = { 0.f, 1.f, 0.f };
 
-    glm::vec3   calculated_direction    = glm::vec3(0.f);           // Intuitive direction - direction forward
-    glm::vec3   calculated_up           = glm::vec3(0.f);
-    glm::vec3   calculated_right        = glm::vec3(0.f);
+    vec3   calculated_direction = { 0.f };            // Intuitive direction - direction forward
+    vec3   calculated_up        = { 0.f }; 
+    vec3   calculated_right     = { 0.f }; 
 
-    real32      movespeed               = 2.f;
-    real32      turnspeed               = 0.17f;
+    real32 movespeed            = 2.f;
+    real32 turnspeed            = 0.17f;
 
-    glm::mat4   matrix_perspective; // Perspective projection matrix
-    glm::mat4   matrix_view;        // Last calculated view matrix
+    mat4   matrix_perspective   = { 0.f }; // Perspective projection matrix
+    mat4   matrix_view          = { 0.f }; // Last calculated view matrix
 };
 
 /**  */
@@ -262,7 +272,7 @@ struct Camera
 struct Entity
 {
     glm::vec3   pos     = glm::vec3(0.f);
-    glm::vec3   rot     = glm::vec3(0.f);
+    quaternion  rot     = ;
     glm::vec3   scale   = glm::vec3(0.f);
     Mesh        mesh;
     // Collider col

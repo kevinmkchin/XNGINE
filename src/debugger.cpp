@@ -9,6 +9,8 @@ uint8 debugger_spot_lights_count = 0;
 Mesh debug_sphere_mesh;
 Mesh debug_cone_mesh;
 
+// TODO debug forward vector (i.e. show direction of object)
+
 // TODO create circle in x y z axis
 INTERNAL void create_circle_vertex_buffer(real32* vertices, uint32* indices,
                                           uint32* vertex_count, uint32* indices_count,
@@ -98,43 +100,9 @@ INTERNAL void debug_render_cone(PerspectiveShader& shader,
 {
     mat4 cone_transform = identity_mat4();
     cone_transform *= translation_matrix(make_vec3(x, y, z));
-
-    //calculate rotation matrix to rotate cone to given direction
-    {
-        vec3 start = normalize(make_vec3(0.f, -1.f, 0.f));
-        vec3 dest = normalize(make_vec3(dir_x, dir_y, dir_z));
-
-        float cos_theta = dot(start, dest);
-        vec3 rotation_axis;
-        quaternion rotation_quat;
-
-        rotation_axis = cross(dest, start);
-        if (cos_theta >= -1 + 0.0001f)
-        {
-            float s = sqrt((1 + cos_theta) * 2);
-            float sin_of_half_angle = 1 / s;
-
-            rotation_quat = make_quaternion(
-                s * 0.5f, // recall cos(theta/2) trig identity
-                rotation_axis.x * sin_of_half_angle,
-                rotation_axis.y * sin_of_half_angle,
-                rotation_axis.z * sin_of_half_angle
-            );
-        }
-        else
-        {
-            // When vectors in opposite directions, there is no "ideal" rotation axis
-            // So guess one; any will do as long as it's perpendicular to start
-            rotation_axis = cross(make_vec3(0.0f, 0.0f, 1.0f), start);
-            if (dot(rotation_axis, rotation_axis) < 0.01) // bad luck, they were parallel, try again!
-                rotation_axis = cross(make_vec3(1.0f, 0.0f, 0.0f), start);
-            rotation_quat = make_quaternion_rad(KC_PI, rotation_axis);
-        }
-
-        cone_transform *= rotation_matrix(rotation_quat);
-    }
-
-    cone_transform *= scale_matrix(base_radius, height, base_radius);//TODO check if wrong to scale with these values
+    quaternion rot = rotation_from_to(make_vec3(0.f, -1.f, 0.f), make_vec3(dir_x, dir_y, dir_z));
+    cone_transform *= rotation_matrix(rot);
+    cone_transform *= scale_matrix(base_radius, height, base_radius);
 
     gl_bind_model_matrix(shader, cone_transform.ptr());
     gl_render_mesh(debug_cone_mesh, GL_LINES);
@@ -189,8 +157,9 @@ INTERNAL void debug_render_spotlight(PerspectiveShader& shader, SpotLight& sligh
         glUniform4f(id_uni_frag_colour, 1.f, 1.f, 1.f, 1.f);
         real32 base_radius = att_radius * tanf(acosf(slight.cosine_cutoff()));
         real32 height = att_radius / slight.cosine_cutoff();
+        vec3 direction = slight.get_direction();
         debug_render_cone(shader, slight.position.x, slight.position.y, slight.position.z,
-            height, base_radius, slight.direction.x, slight.direction.y, slight.direction.z);
+            height, base_radius, direction.x, direction.y, direction.z);
         glUniform4f(id_uni_frag_colour, 1.f, 1.f, 0.f, 1.f);
         debug_render_sphere(shader, slight.position.x, slight.position.y, slight.position.z, 0.05f);
     }
