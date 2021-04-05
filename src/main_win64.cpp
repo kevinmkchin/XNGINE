@@ -1,11 +1,8 @@
 /** OpenGL 3D Renderer
 
 TODO:
-    - replace pointlight, directional light directions with euler angle rotation
     - replace camera rotation with quaternion??
-    - kc_truetypeassembler
-        - BASICALLY FIX TO MATCH STB STANDARD / GUIDELINES
-        - edit documentation, add clip-space vertices option
+    - kc_truetypeassembler edit documentation, add clip-space vertices option
     - fix bug with calling con_commands from within code
         - the command gets cut off e.g. debug 1 becomes de or debu, etc. random
 Backlog:
@@ -105,7 +102,7 @@ DirectionalLight main_light;
 PointLight point_lights[2];
 SpotLight spot_lights[2];
 Material material_shiny = { 4.f, 128.f };
-Material material_dull = { 0.5f, 4.f };
+Material material_dull = { 0.5f, 1.f };
 
 // --- Fonts ---
 TTAFont g_font_handle_c64;
@@ -562,8 +559,8 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     gl_load_texture_from_file(tex_brick, "data/textures/brick.png");
     gl_load_texture_from_file(tex_dirt, "data/textures/dirt.png");
 
-    main_light.direction = { 2.f, -1.f, -2.f };
-    main_light.ambient_intensity = 0.2f;
+    main_light.set_direction(make_vec3(2.f, -1.f, -2.f));
+    main_light.ambient_intensity = 0.0f;
     main_light.diffuse_intensity = 0.f;
     point_lights[0].colour = { 0.0f, 1.0f, 0.0f };
     point_lights[0].position = { -4.f, 0.0f, 0.0f };

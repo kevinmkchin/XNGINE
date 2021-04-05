@@ -128,7 +128,8 @@ INTERNAL void gl_bind_directional_light(LightingShader& shader, DirectionalLight
     glUniform3f(shader.id_uniform_directional_light.colour, light.colour.x, light.colour.y, light.colour.z);
     glUniform1f(shader.id_uniform_directional_light.ambient_intensity, light.ambient_intensity);
     glUniform1f(shader.id_uniform_directional_light.diffuse_intensity, light.diffuse_intensity);
-    glUniform3f(shader.id_uniform_directional_light.direction, light.direction.x, light.direction.y, light.direction.z);
+    vec3 direction = light.get_direction();
+    glUniform3f(shader.id_uniform_directional_light.direction, direction.x, direction.y, direction.z);
 }
 
 INTERNAL void gl_bind_point_lights(LightingShader& shader, PointLight* plights, uint8 count)
