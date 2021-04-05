@@ -5,6 +5,7 @@ uint8 debugger_point_lights_count = 0;
 bool debugger_b_debug_spotlights = true;
 SpotLight* debugger_spot_lights = 0x0;
 uint8 debugger_spot_lights_count = 0;
+real32 ATTENUATION_FACTOR_TO_CALC_RANGE_FOR = 0.1f;
 
 Mesh debug_sphere_mesh;
 Mesh debug_cone_mesh;
@@ -115,7 +116,6 @@ INTERNAL void debug_render_line()
 
 INTERNAL real32 debug_calculate_attenuation_range(real32 c, real32 l, real32 q)
 {
-    real32 ATTENUATION_FACTOR_TO_CALC_RANGE_FOR = 0.4f;
     c -= 1.f / ATTENUATION_FACTOR_TO_CALC_RANGE_FOR;
     real32 discriminant = l * l - 4 * q * c;
     if (discriminant >= 0) 

@@ -194,7 +194,10 @@ struct Light
 
 struct DirectionalLight : Light
 {
-    vec3    direction = { 0.f, -1.f, 0.f };
+    quaternion orientation = { 0.7071068f, 0.f, 0.f, 0.7071068f };
+
+    void set_direction(vec3 direction) { orientation = rotation_from_to(make_vec3(1.f,0.f,0.f), direction); }
+    vec3 get_direction() { return rotate_vector(make_vec3(1.f,0.f,0.f), orientation); }
 };
 
 struct PointLight : Light
