@@ -271,13 +271,19 @@ inline quaternion inverse(quaternion a);
 /** Gets the conjugate of the given quaternion with magnitude 1 */
 inline quaternion inverse_unit(quaternion a);
 
-/** https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Quaternion_to_Euler_angles_conversion */
+/** Convert Quaternion to Euler angles
+    https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Quaternion_to_Euler_angles_conversion
+*/
 inline vec3 quat_to_euler(quaternion q);
 
-/** https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Euler_angles_to_quaternion_conversion */
+/** Convert Euler angles to Quaternion
+    https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Euler_angles_to_quaternion_conversion
+*/
 inline quaternion euler_to_quat(vec3 euler_angles);
 
-/** Creates a rotation which rotates from from_direction to to_direction */
+/** Creates a rotation which rotates from from_direction to to_direction
+    Similar to https://docs.unity3d.com/ScriptReference/Quaternion.FromToRotation.html
+*/
 inline quaternion rotation_from_to(vec3 from_direction, vec3 to_direction);
 
 /** Finds the difference such that b = difference * a */
@@ -616,14 +622,6 @@ inline mat4 scale_matrix(float x_scale, float y_scale, float z_scale)
     return ret;
 }
 
-/** Creates a matrix for a symetric perspective-view frustum based on the default handedness and default near and far clip planes definition.
-    fovy: Specifies the field of view angle in the y direction. Expressed in radians.
-    aspect: Specifies the aspect ratio that determines the field of view in the x direction. The aspect ratio is the ratio of x (width) to y (height).
-    nearclip: Specifies the distance from the viewer to the near clipping plane (always positive).
-    farclip: Specifies the distance from the viewer to the far clipping plane (always positive).
-    
-    https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluPerspective.xml
-*/
 inline mat4 projection_matrix_perspective(float fovy, float aspect, float nearclip, float farclip)
 {
     float const tanHalfFovy = tan(fovy / 2.f);
@@ -637,13 +635,6 @@ inline mat4 projection_matrix_perspective(float fovy, float aspect, float nearcl
     return Result;
 }
 
-/** Creates a matrix for projecting two-dimensional coordinates onto the screen.
-    https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluOrtho2D.xml
-
-    left, right: Specify the coordinates for the left and right vertical clipping planes.
-    bottom, top: Specify the coordinates for the bottom and top horizontal clipping planes.
-    e.g. projection_matrix_orthographic(0.f, 1920.f, 1080.f, 0.f);
-*/
 inline mat4 projection_matrix_orthographic_2d(float left, float right, float bottom, float top)
 {
     mat4 ret = identity_mat4();
@@ -655,11 +646,6 @@ inline mat4 projection_matrix_orthographic_2d(float left, float right, float bot
     return ret;
 }
 
-/** Creates a matrix for an orthographic parallel viewing volume, using right-handed coordinates.
-    https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glOrtho.xml
-
-    The near and far clip planes correspond to z normalized device coordinates of -1 and +1 respectively.(OpenGL clip volume definition)
-*/
 inline mat4 projection_matrix_orthographic(float left, float right, float bottom, float top, float z_near, float z_far)
 {
     mat4 ret = identity_mat4();

@@ -56,10 +56,10 @@ BUILD MODES
 #include "stb_image.h"
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
-#define KC_MATH_IMPLEMENTATION
-#include "kc_math.h"
 #define KC_TRUETYPEASSEMBLER_IMPLEMENTATION
 #include "kc_truetypeassembler.h"
+#define KC_MATH_IMPLEMENTATION
+#include "kc_math.h"
 
 #include "gamedefine.h" // defines and typedefs
 #include "console.h"
