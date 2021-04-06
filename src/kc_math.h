@@ -17,7 +17,7 @@
 #ifndef _INCLUDE_KC_MATH_H_
 #define _INCLUDE_KC_MATH_H_
 
-#define FORWARD_VECTOR make_vec3(1.f,0.f,0.f)
+#define WORLD_FORWARD_VECTOR make_vec3(1.f,0.f,0.f)
 
 #define KC_PI 3.1415926535f
 #define KC_TWOPI 6.28318530718f
@@ -880,12 +880,12 @@ inline quaternion euler_to_quat(vec3 euler_angles)
 
 inline quaternion direction_to_orientation(vec3 direction)
 {
-    return rotation_from_to(FORWARD_VECTOR, direction);
+    return rotation_from_to(WORLD_FORWARD_VECTOR, direction);
 }
 
 inline vec3 orientation_to_direction(quaternion orientation)
 {
-    return rotate_vector(FORWARD_VECTOR, orientation);    
+    return rotate_vector(WORLD_FORWARD_VECTOR, orientation);    
 }
 
 inline quaternion rotation_from_to(vec3 from_direction, vec3 to_direction)
