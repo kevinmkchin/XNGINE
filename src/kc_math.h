@@ -1,6 +1,6 @@
 /** kc_math.h
 
- - kevinmkchin's Math library -
+ - kevinmkchin's 3D Math Library -
 
     C++ only
 
@@ -17,7 +17,7 @@
 #ifndef _INCLUDE_KC_MATH_H_
 #define _INCLUDE_KC_MATH_H_
 
-#include <limits>
+#define FORWARD_VECTOR make_vec3(1.f,0.f,0.f)
 
 #define KC_PI 3.1415926535f
 #define KC_TWOPI 6.28318530718f
@@ -199,8 +199,11 @@ inline vec4 operator*(mat4 A, vec4 v);
 inline mat4 operator*(mat4 a, mat4 b);
 inline mat4 &operator*=(mat4& a, mat4& b);
 
+inline vec3 lerp(vec3 from, vec3 to, float ratio);
+inline vec4 lerp(vec4 from, vec4 to, float ratio);
+
 /** Generates translation matrix for given delta x delta y delta z
-    https://en.wikipedia.org/wiki/Translation_(geometry)#Matrix_representation */
+    https://en.wikipedia.org/wiki/Translation_(geometry)#Matrix_resentation */
 inline mat4 translation_matrix(float x, float y, float z);
 inline mat4 translation_matrix(vec3 translation);
 
@@ -281,6 +284,15 @@ inline vec3 quat_to_euler(quaternion q);
 */
 inline quaternion euler_to_quat(vec3 euler_angles);
 
+/** Returns an orientation that faces the direction as given direction. The return value
+    represents the rotation from the world's forward direction (forward vector) in order
+    to face the same direction as the given direction. */
+inline quaternion direction_to_orientation(vec3 direction);
+
+/** Returns the direction of this orientation. The world's forward direction (forward vector)
+    rotated by the orientation is the direction. */
+inline vec3 orientation_to_direction(quaternion orientation);
+
 /** Creates a rotation which rotates from from_direction to to_direction
     Similar to https://docs.unity3d.com/ScriptReference/Quaternion.FromToRotation.html
 */
@@ -305,6 +317,24 @@ inline mat3 make_mat3(quaternion q);
 
 /** Converts quaternion to a 4x4 matrix representing the rotation */
 inline mat4 make_mat4(quaternion q);
+
+/** Spherically interpolates between quaternions from and to by ratio. The parameter ratio is clamped to the range [0, 1].
+    Use this to create a rotation which smoothly interpolates between the first quaternion a to the second quaternion b, 
+    based on the value of the interpolation ratrio.
+    from : Start value, returned when t = 0.
+    to : End value, returned when t = 1.
+    ratio : Interpolation ratio.
+    https://www.youtube.com/watch?v=x1aCcyD0hqE&ab_channel=JorgeRodriguez
+*/
+inline quaternion slerp(const quaternion from, const quaternion to, const float ratio);
+
+
+/**
+    
+    Other Operations
+
+*/
+float lerp(float from, float to, float ratio);
 
 #endif // _INCLUDE_KC_MATH_H_
 
@@ -598,6 +628,9 @@ inline vec4 operator*(mat4 A, vec4 v) { return(mul(A, v)); }
 inline mat4 operator*(mat4 a, mat4 b) { return(mul(a, b)); }
 inline mat4 &operator*=(mat4& a, mat4& b) { a = mul(a, b); return a; }
 
+inline vec3 lerp(vec3 from, vec3 to, float ratio) { return((1.0f - ratio) * from + to * ratio); }
+inline vec4 lerp(vec4 from, vec4 to, float ratio) { return((1.0f - ratio) * from + to * ratio); }
+
 inline mat4 translation_matrix(float x, float y, float z)
 {
     mat4 ret = identity_mat4();
@@ -845,6 +878,16 @@ inline quaternion euler_to_quat(vec3 euler_angles)
     return ret;
 }
 
+inline quaternion direction_to_orientation(vec3 direction)
+{
+    return rotation_from_to(FORWARD_VECTOR, direction);
+}
+
+inline vec3 orientation_to_direction(quaternion orientation)
+{
+    return rotate_vector(FORWARD_VECTOR, orientation);    
+}
+
 inline quaternion rotation_from_to(vec3 from_direction, vec3 to_direction)
 {
     vec3 start = normalize(from_direction);
@@ -945,15 +988,28 @@ inline mat4 rotation_matrix(quaternion q)
     return make_mat4(q);
 }
 
-// lerp
+inline quaternion slerp(const quaternion from, const quaternion to, const float ratio)
+{
+    float t = clamp(ratio, 0.f, 1.f);
+    quaternion start = normalize(from);
+    quaternion end = normalize(to);
+    quaternion d = end * inverse(from);
+    float cos_theta = dot(start, end);
+    float theta = acosf(cos_theta);
+    theta *= t;
+    quaternion d_raised_t = make_quaternion_rad(theta, make_vec3(d.x, d.y, d.z));
+    return d_raised_t * start;
+}
 
-// slerp
-// static FQuat Slerp
-// (
-//     const FQuat & Quat1,
-//     const FQuat & Quat2,
-//     float Slerp
-// )
+/**
+    
+    Other Operations
+
+*/
+float lerp(float from, float to, float ratio)
+{
+    return from + ratio * (to - from);
+}
 
 #undef KC_MATH_IMPLEMENTATION
 #endif // KC_MATH_IMPLEMENTATION

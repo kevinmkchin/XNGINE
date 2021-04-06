@@ -10,6 +10,8 @@ real32 ATTENUATION_FACTOR_TO_CALC_RANGE_FOR = 0.1f;
 Mesh debug_sphere_mesh;
 Mesh debug_cone_mesh;
 
+// TODO debug show vertex normals
+
 // TODO debug forward vector (i.e. show direction of object)
 
 // TODO create circle in x y z axis
@@ -97,11 +99,11 @@ INTERNAL void debug_render_sphere(PerspectiveShader& shader, real32 x, real32 y,
 INTERNAL void debug_render_cone(PerspectiveShader& shader,
                                 real32 x, real32 y, real32 z,
                                 real32 height, real32 base_radius,
-                                real32 dir_x, real32 dir_y, real32 dir_z)
+                                quaternion orientation)
 {
     mat4 cone_transform = identity_mat4();
     cone_transform *= translation_matrix(make_vec3(x, y, z));
-    quaternion rot = rotation_from_to(make_vec3(0.f, -1.f, 0.f), make_vec3(dir_x, dir_y, dir_z));
+    quaternion rot = rotation_from_to(make_vec3(0.f, -1.f, 0.f), orientation_to_direction(orientation));
     cone_transform *= rotation_matrix(rot);
     cone_transform *= scale_matrix(base_radius, height, base_radius);
 
@@ -157,9 +159,8 @@ INTERNAL void debug_render_spotlight(PerspectiveShader& shader, SpotLight& sligh
         glUniform4f(id_uni_frag_colour, 1.f, 1.f, 1.f, 1.f);
         real32 base_radius = att_radius * tanf(acosf(slight.cosine_cutoff()));
         real32 height = att_radius / slight.cosine_cutoff();
-        vec3 direction = slight.get_direction();
         debug_render_cone(shader, slight.position.x, slight.position.y, slight.position.z,
-            height, base_radius, direction.x, direction.y, direction.z);
+            height, base_radius, slight.orientation);
         glUniform4f(id_uni_frag_colour, 1.f, 1.f, 0.f, 1.f);
         debug_render_sphere(shader, slight.position.x, slight.position.y, slight.position.z, 0.05f);
     }
