@@ -27,9 +27,10 @@ struct BitmapHandle : BinaryFileHandle
     
     Rules:
      - unit vector (x: 1, y: 0, z: 0), aka positive X, is the "forward" direction for objects
-     - vec3(1, 0, 0) rotated by the object's orientation (represented by quaternion) is the object's forward vector
      - direction != orientation
      - orientation ~= rotation
+     - vec3(1, 0, 0) rotated by the object's orientation (represented by quaternion) is the object's forward direction
+     - if quaternion is used to represent an orientation, then the quaternion represents the rotation from the WORLD FORWARD VECTOR
      - RIGHT HAND RULE for everything
 */
 
@@ -195,9 +196,6 @@ struct Light
 struct DirectionalLight : Light
 {
     quaternion orientation = { 0.7071068f, 0.f, 0.f, 0.7071068f };
-
-    void set_direction(vec3 direction) { orientation = rotation_from_to(make_vec3(1.f,0.f,0.f), direction); }
-    vec3 get_direction() { return rotate_vector(make_vec3(1.f,0.f,0.f), orientation); }
 };
 
 struct PointLight : Light
@@ -212,9 +210,6 @@ struct PointLight : Light
 struct SpotLight : PointLight
 {
     quaternion orientation = { 0.7071068f, 0.f, 0.f, 0.7071068f };
-
-    void set_direction(vec3 direction) { orientation = rotation_from_to(make_vec3(1.f,0.f,0.f), direction); }
-    vec3 get_direction() { return rotate_vector(make_vec3(1.f,0.f,0.f), orientation); }
 
     void set_cutoff_in_degrees(float degrees) { cos_cutoff = cosf(degrees * KC_DEG2RAD); }
     void set_cutoff_in_radians(float radians) { cos_cutoff = radians; }
@@ -255,7 +250,7 @@ struct Texture
 /** Camera properties */
 struct Camera
 {
-    vec3   position             = { 0.f };           // camera x y z pos in world space 
+    vec3   position             = { 0.f };            // camera x y z pos in world space 
     vec3   rotation             = { 0.f };            // pitch, yaw, roll - in that order
     vec3   world_up             = { 0.f, 1.f, 0.f };
 

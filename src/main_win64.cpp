@@ -559,7 +559,7 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     gl_load_texture_from_file(tex_brick, "data/textures/brick.png");
     gl_load_texture_from_file(tex_dirt, "data/textures/dirt.png");
 
-    main_light.set_direction(make_vec3(2.f, -1.f, -2.f));
+    main_light.orientation = direction_to_orientation(make_vec3(2.f, -1.f, -2.f));
     main_light.ambient_intensity = 0.0f;
     main_light.diffuse_intensity = 0.f;
     point_lights[0].colour = { 0.0f, 1.0f, 0.0f };
@@ -575,12 +575,12 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     spot_lights[0].ambient_intensity = 0.f;
     spot_lights[0].diffuse_intensity = 1.f;
     spot_lights[0].set_cutoff_in_degrees(45.f);
-    spot_lights[0].set_direction(make_vec3(-1.f, -1.f, 0.f));
+    spot_lights[0].orientation = direction_to_orientation(make_vec3(-1.f, -1.f, 0.f));
     spot_lights[1].position = { -2.f, 0.f, 0.f };
     spot_lights[1].ambient_intensity = 0.f;
     spot_lights[1].diffuse_intensity = 1.f;
     //spot_lights[1].set_cutoff_in_degrees(45.f);
-    spot_lights[1].set_direction(make_vec3(0.f, -1.f, 0.f));
+    spot_lights[1].orientation = direction_to_orientation(make_vec3(0.f, -1.f, 0.f));
     debugger_set_spotlights(spot_lights, array_count(spot_lights));
 
     /** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)
