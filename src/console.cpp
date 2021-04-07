@@ -157,6 +157,7 @@ INTERNAL void con_printf(const char* fmt, ...)
 
     char message[1024];
     va_start(argptr, fmt);
+    // WARNING: stbsp_vsprintf incorrectly formats strings in some builds?
     stbsp_vsprintf(message, fmt, argptr);
     va_end(argptr);
 
@@ -204,12 +205,12 @@ INTERNAL void con_command(char* text_command)
         }
         else
         {
-            con_printf("%s takes %zd arguments...\n", cmd, cmd_meta.arg_types.size());
+            con_printf("%s takes %zd arguments...\n", cmd.c_str(), cmd_meta.arg_types.size());
         }
     }
     else
     {
-        con_printf("'%s' is not a recognized command...\n", cmd);
+        con_printf("'%s' is not a recognized command...\n", cmd.c_str());
     }
 }
 

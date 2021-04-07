@@ -1,15 +1,16 @@
 /** OpenGL 3D Renderer
 
 TODO:
-    - replace camera rotation with quaternion??
     - kc_truetypeassembler edit documentation, add clip-space vertices option
     - fix bug with calling con_commands from within code
         - the command gets cut off e.g. debug 1 becomes de or debu, etc. random
 Backlog:
+    - Model loading
+    - Arrow rendering for debugging
+        - in the future arrow can also be used for translation gizmo
     - add SIMD for kc_math library
-    - Entity - pos, rot, scale, mesh, few boolean flags, collider, tags
-        - quaternions
-    - Fixed timestep?
+    - Entity - pos, orientation, scale, mesh, few boolean flags, collider, tags
+    - Fixed timestep? for physics only?
     - Face culling
     - Texture GL_NEAREST option
     - Texture do something like source engine
@@ -71,8 +72,8 @@ GLOBAL_VAR int32 g_last_mouse_pos_x = INDEX_NONE;   // Stores mouse state this f
 GLOBAL_VAR int32 g_last_mouse_pos_y = INDEX_NONE;
 GLOBAL_VAR int32 g_curr_mouse_pos_x = INDEX_NONE;
 GLOBAL_VAR int32 g_curr_mouse_pos_y = INDEX_NONE;
-GLOBAL_VAR int32 g_mouse_delta_x;
-GLOBAL_VAR int32 g_mouse_delta_y;
+GLOBAL_VAR int32 g_mouse_delta_x = INDEX_NONE;
+GLOBAL_VAR int32 g_mouse_delta_y = INDEX_NONE;
 
 GLOBAL_VAR Camera g_camera;
 
@@ -269,7 +270,7 @@ INTERNAL bool game_init()
     SDL_SetRelativeMouseMode(SDL_TRUE);         // Lock mouse to window
     g_keystate = SDL_GetKeyboardState(nullptr); // Grab keystate array
     stbi_set_flip_vertically_on_load(true);     // stb_image setting
-    kctta_use_index_buffer(1);                  // kc_truetypeassembler setting
+    kctta_setflags(KCTTA_CREATE_INDEX_BUFFER);  // kc_truetypeassembler setting
 
     // LOAD FONTS
     win64_load_font(&g_font_handle_c64, g_font_atlas_c64, "data/fonts/SourceCodePro.ttf", CON_TEXT_SIZE);
