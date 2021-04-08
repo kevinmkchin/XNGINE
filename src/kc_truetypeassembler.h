@@ -126,7 +126,7 @@ USAGE:
     You can also #define KCTTA_ASCII_FROM X and #define KCTTA_ASCII_TO Y where X and Y are the start and
     end ASCII codepoints to collect the font data for. In other words, if X is the character 'a' and Y is
     the character 'z', then the library will only collect the font data for the ASCII characters from 'a'
-    to 'b'. By default, the start and end codepoints are set to ' ' and '~'.
+    to 'z'. By default, the start and end codepoints are set to ' ' and '~'.
         e.g. #define KCTTA_ASCII_FROM 'a'
              #define KCTTA_ASCII_TO 'z'
              #define KC_TRUETYPEASSEMBLER_IMPLEMENTATION
@@ -214,6 +214,16 @@ EXAMPLE (C code using OpenGL):
                          vb.vertices_array_count * 4,
                          vb.vertex_buffer,
                          GL_STATIC_DRAW);
+            glEnableVertexAttribArray(0); // vertices coordinates stream
+            glVertexAttribPointer(0, 2, // 2 because vertex is 2 floats (x and y)
+                                  GL_FLOAT, GL_FALSE,
+                                  4*4,  // 4 stride (x y u v) * 4 bytes (size of float)
+                                  0);
+            glEnableVertexAttribArray(1); // texture coordinates stream
+            glVertexAttribPointer(0, 2, // 2 because texture coord is 2 floats (u and v)
+                                  GL_FLOAT, GL_FALSE,
+                                  4*4,  // 4 stride (x y u v) * 4 bytes (size of float)
+                                  2*4); // offset of 8 because two floats, x y, come before u v
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_ID);
             glBufferData(GL_ELEMENT_ARRAY_BUFFER,
                          vb.indices_array_count * 4,

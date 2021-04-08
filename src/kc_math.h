@@ -2,17 +2,30 @@
 
  - kevinmkchin's 3D Math Library -
 
-    C++ only
-
     Do this:
         #define KC_MATH_IMPLEMENTATION
     before you include this file in *one* C++ file to create the implementation.
-    // i.e. it should look like this:
-    #include ...
-    #include ...
-    #include ...
-    #define KC_MATH_IMPLEMENTATION
-    #include "kc_math.h"
+        // i.e. it should look like this:
+        #include ...
+        #include ...
+        #include ...
+        #define KC_MATH_IMPLEMENTATION
+        #include "kc_math.h"
+
+INTRO & PURPOSE:
+    Single-header C++ library for math operations in 3D as well as some other common
+    math operations used in game development.
+
+    Right now, provides:
+        
+        - Vectors & vector operations
+        - Matrices & matrix operations
+        - Quaternions & quaternion operations
+        - Methods to create transformation matrices
+        - Methods to create projection matrices
+        - Method to create view matrix
+        - Spherical linear interpolation & vector linear interpolation
+
 */
 #ifndef _INCLUDE_KC_MATH_H_
 #define _INCLUDE_KC_MATH_H_
@@ -182,6 +195,9 @@ inline vec4 &operator-=(vec4& a, vec4 b);
 inline vec4 &operator*=(vec4& a, float b);
 inline vec4 &operator/=(vec4& a, float b);
 
+inline vec3 lerp(vec3 from, vec3 to, float ratio);
+inline vec4 lerp(vec4 from, vec4 to, float ratio);
+
 /**
 
     Matrix Operations
@@ -198,9 +214,6 @@ inline mat3 &operator*=(mat3& a, mat3& b);
 inline vec4 operator*(mat4 A, vec4 v);
 inline mat4 operator*(mat4 a, mat4 b);
 inline mat4 &operator*=(mat4& a, mat4& b);
-
-inline vec3 lerp(vec3 from, vec3 to, float ratio);
-inline vec4 lerp(vec4 from, vec4 to, float ratio);
 
 /** Generates translation matrix for given delta x delta y delta z
     https://en.wikipedia.org/wiki/Translation_(geometry)#Matrix_resentation */
@@ -558,6 +571,9 @@ inline vec4 &operator-=(vec4& a, vec4 b) { return(a = a - b); }
 inline vec4 &operator*=(vec4& a, float b) { return(a = a * b); }
 inline vec4 &operator/=(vec4& a, float b) { return(a = a / b); }
 
+inline vec3 lerp(vec3 from, vec3 to, float ratio) { return((1.0f - ratio) * from + to * ratio); }
+inline vec4 lerp(vec4 from, vec4 to, float ratio) { return((1.0f - ratio) * from + to * ratio); }
+
 /**
 
     Matrix Operations
@@ -628,9 +644,6 @@ inline vec4 operator*(mat4 A, vec4 v) { return(mul(A, v)); }
 inline mat4 operator*(mat4 a, mat4 b) { return(mul(a, b)); }
 inline mat4 &operator*=(mat4& a, mat4& b) { a = mul(a, b); return a; }
 
-inline vec3 lerp(vec3 from, vec3 to, float ratio) { return((1.0f - ratio) * from + to * ratio); }
-inline vec4 lerp(vec4 from, vec4 to, float ratio) { return((1.0f - ratio) * from + to * ratio); }
-
 inline mat4 translation_matrix(float x, float y, float z)
 {
     mat4 ret = identity_mat4();
@@ -643,6 +656,11 @@ inline mat4 translation_matrix(float x, float y, float z)
 inline mat4 translation_matrix(vec3 translation)
 {
     return translation_matrix(translation.x, translation.y, translation.z);
+}
+
+inline mat4 rotation_matrix(quaternion q)
+{
+    return make_mat4(q);
 }
 
 inline mat4 scale_matrix(float x_scale, float y_scale, float z_scale)
@@ -981,11 +999,6 @@ inline mat3 make_mat3(quaternion q)
 inline mat4 make_mat4(quaternion q)
 {
     return quaternion_to_mat4(q);
-}
-
-inline mat4 rotation_matrix(quaternion q)
-{
-    return make_mat4(q);
 }
 
 inline quaternion slerp(const quaternion from, const quaternion to, const float ratio)
