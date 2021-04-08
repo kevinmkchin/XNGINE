@@ -47,7 +47,7 @@ INTERNAL void cmd_camera_speed(float speed)
 
 INTERNAL void cmd_exit()
 {
-    is_running = false;
+    b_is_game_running = false;
 }
 
 INTERNAL void cmd_help()

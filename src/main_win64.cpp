@@ -1,11 +1,10 @@
 /** OpenGL 3D Renderer
 
 TODO:
-    - kc_truetypeassembler edit documentation, add clip-space vertices option
-    - fix bug with calling con_commands from within code
+    - Model loading
+    - <CANT REPRODUCE> fix bug with calling con_commands from within code 
         - the command gets cut off e.g. debug 1 becomes de or debu, etc. random
 Backlog:
-    - Model loading
     - Arrow rendering for debugging
         - in the future arrow can also be used for translation gizmo
     - add SIMD for kc_math library
@@ -63,11 +62,12 @@ BUILD MODES
 #include "console.h"
 #include "core.h"
 // --- global variables  --- note: static variables are initialized to their default values
+// Width and Height of writable buffer
 GLOBAL_VAR uint32 g_buffer_width;
 GLOBAL_VAR uint32 g_buffer_height;
 
+// Global Input Data
 GLOBAL_VAR const uint8* g_keystate = nullptr;       // Stores keyboard state this frame. Access via g_keystate[SDL_Scancode].
-
 GLOBAL_VAR int32 g_last_mouse_pos_x = INDEX_NONE;   // Stores mouse state this frame. mouse_pos is not updated when using SDL RelativeMouseMode.
 GLOBAL_VAR int32 g_last_mouse_pos_y = INDEX_NONE;
 GLOBAL_VAR int32 g_curr_mouse_pos_x = INDEX_NONE;
@@ -75,12 +75,14 @@ GLOBAL_VAR int32 g_curr_mouse_pos_y = INDEX_NONE;
 GLOBAL_VAR int32 g_mouse_delta_x = INDEX_NONE;
 GLOBAL_VAR int32 g_mouse_delta_y = INDEX_NONE;
 
-GLOBAL_VAR Camera g_camera;
-
-GLOBAL_VAR bool is_running = true;
+// Game Window and States
+GLOBAL_VAR bool b_is_game_running = true;
 GLOBAL_VAR bool b_is_update_running = true;
 GLOBAL_VAR SDL_Window* window = nullptr;
 GLOBAL_VAR SDL_GLContext opengl_context = nullptr;
+// -------------------------
+// Temporary
+GLOBAL_VAR Camera g_camera;
 GLOBAL_VAR mat4 g_matrix_projection_ortho;
 GLOBAL_VAR bool g_b_wireframe = false;
 // -------------------------
@@ -308,7 +310,7 @@ INTERNAL void game_process_events()
         {
             case SDL_QUIT:
             {
-                is_running = false;
+                b_is_game_running = false;
             } break;
 
             case SDL_WINDOWEVENT:
@@ -361,7 +363,7 @@ INTERNAL void game_process_events()
 
                 if (event.key.keysym.sym == SDLK_ESCAPE && con_is_hidden())
                 {
-                    is_running = false;
+                    b_is_game_running = false;
                     break;
                 }
 
@@ -601,10 +603,10 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     QueryPerformanceFrequency(&perf_counter_frequency_result);
     int64 perf_counter_frequency = perf_counter_frequency_result.QuadPart;
     int64 last_tick = win64_get_ticks(); // cpu cycles count of last tick
-    while (is_running)
+    while (b_is_game_running)
     {
         game_process_events();
-        if (is_running == false) { break; }
+        if (b_is_game_running == false) { break; }
         int64 this_tick = win64_get_ticks();
         int64 delta_tick = this_tick - last_tick;
         real32 deltatime_secs = (real32) delta_tick / (real32) perf_counter_frequency;
