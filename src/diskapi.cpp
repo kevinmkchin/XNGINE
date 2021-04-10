@@ -18,7 +18,7 @@ INTERNAL void FILE_read_file_binary(BinaryFileHandle& mem_to_read_to, const char
 {
     if(mem_to_read_to.memory)
     {
-        printf("WARNING: Binary File Handle already points to allocated memory. Freeing memory first...\n");
+        con_printf("WARNING: Binary File Handle already points to allocated memory. Freeing memory first...\n");
         FILE_free_file_binary(mem_to_read_to);
     }
 
@@ -32,7 +32,7 @@ INTERNAL void FILE_read_file_binary(BinaryFileHandle& mem_to_read_to, const char
     }
     else
     {
-        printf("Failed to read %s! File doesn't exist.\n", file_path);
+        con_printf("Failed to read %s! File doesn't exist.\n", file_path);
         return;
     }
 }
@@ -45,7 +45,7 @@ INTERNAL std::string FILE_read_file_string(const char* file_path)
     std::ifstream file_stream(file_path, std::ios::in);
     if (file_stream.is_open() == false)
     {
-        printf("Failed to read %s! File doesn't exist.\n", file_path);
+        con_printf("Failed to read %s! File doesn't exist.\n", file_path);
     }
 
     std::string line = "";
@@ -75,7 +75,7 @@ INTERNAL void FILE_read_image(BitmapHandle& image_handle, const char* image_file
 {
     if(image_handle.memory)
     {
-        printf("WARNING: Binary File Handle already points to allocated memory. Freeing memory first...\n");
+        con_printf("WARNING: Binary File Handle already points to allocated memory. Freeing memory first...\n");
         FILE_free_image(image_handle);
     }
 
@@ -86,7 +86,7 @@ INTERNAL void FILE_read_image(BitmapHandle& image_handle, const char* image_file
     }
     else
     {
-        printf("Failed to find image file at: %s\n", image_file_path);
+        con_printf("Failed to find image file at: %s\n", image_file_path);
         image_handle.width = 0;
         image_handle.height = 0;
         image_handle.bit_depth = 0;

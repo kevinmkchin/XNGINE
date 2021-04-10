@@ -1,5 +1,5 @@
 GLOBAL_VAR int      perf_profiler_level = 0;
-GLOBAL_VAR real32   perf_gameloop_elapsed_secs = 0.f;
+GLOBAL_VAR real32   perf_frametime_secs = 0.f;
 
 uint8   PERF_TEXT_SIZE = 17;
 uint16  PERF_DRAW_X = 4;
@@ -33,11 +33,11 @@ INTERNAL void profiler_render(OrthographicShader ui_shader, OrthographicShader t
 
     if(1 <= perf_profiler_level)
     {
-        std::string frametime_temp = std::to_string(1000.f*perf_gameloop_elapsed_secs);
+        std::string frametime_temp = std::to_string(1000.f*perf_frametime_secs);
         std::string perf_frametime_string = "LAST FRAME TIME: " 
             + frametime_temp.substr(0, frametime_temp.find(".")+3)
             + "ms   FPS: "
-            + std::to_string((int16)(1.f/perf_gameloop_elapsed_secs))
+            + std::to_string((int16)(1.f/perf_frametime_secs))
             + "hz";
         kctta_clear_buffer();
         kctta_move_cursor(PERF_DRAW_X, PERF_DRAW_Y);

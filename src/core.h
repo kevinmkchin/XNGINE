@@ -134,7 +134,7 @@ struct LightingShader : PerspectiveShader
         id_uniform_directional_light.diffuse_intensity = uniform_location("directional_light.diffuse_intensity");
         id_uniform_directional_light.direction = uniform_location("directional_light.direction");
         id_uniform_point_light_count = uniform_location("point_light_count");
-        for(mi i = 0; i < MAX_POINT_LIGHTS; ++i)
+        for(size_t i = 0; i < MAX_POINT_LIGHTS; ++i)
         {
             char loc_buffer[128] = {'\0'};
             stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "point_light[%d].colour", i);
@@ -153,7 +153,7 @@ struct LightingShader : PerspectiveShader
             id_uniform_point_light[i].att_quadratic = uniform_location(loc_buffer);
         }
         id_uniform_spot_light_count = uniform_location("spot_light_count");
-        for(mi i = 0; i < MAX_SPOT_LIGHTS; ++i)
+        for(size_t i = 0; i < MAX_SPOT_LIGHTS; ++i)
         {
             char loc_buffer[128] = {0};
             stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "spot_light[%d].plight.colour", i);

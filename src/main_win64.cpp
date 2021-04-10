@@ -1,9 +1,6 @@
 /** OpenGL 3D Renderer
 
 TODO:
-    - Improve model loading code
-        - fuck std vectors (or at least fuck push_back)
-        - keep textures next to their objs?
     - SERIOUSLY THINK ABOUT THE STRUCTURE OF OUR CODEBASE (WOULD OOP BE BETTER? OR AT LEAST INTERFACES?)
     - Temporary Scene class to hold different scenes (for showcasing purpose initially)
         - Create diff scenes (e.g. sponza, minecraft, sponza in diff lightings)
@@ -52,7 +49,6 @@ BUILD MODES
 #include <gl/glew.h>
 #include <SDL.h>
 #include <SDL_syswm.h>
-#include <profileapi.h>
 #include <assimp\Importer.hpp>
 #include <assimp\scene.h>
 #include <assimp\postprocess.h>
@@ -95,6 +91,7 @@ GLOBAL_VAR Camera g_camera;
 GLOBAL_VAR mat4 g_matrix_projection_ortho;
 GLOBAL_VAR bool g_b_wireframe = false;
 // -------------------------
+#include "timer.cpp"
 #include "diskapi.cpp"
 #include "opengl.cpp"
 #include "camera.cpp"
@@ -132,16 +129,6 @@ static const char* text_fs_path = "shaders/text_ui.frag";
 static const char* simple_vs_path = "shaders/simple.vert";
 static const char* simple_fs_path = "shaders/simple.frag";
 
-INTERNAL inline int64 win64_get_ticks()
-{
-    // win64 version of get ticks
-    LARGE_INTEGER ticks;
-    if (!QueryPerformanceCounter(&ticks))
-    {
-        return -1;
-    }
-    return ticks.QuadPart;
-}
 
 INTERNAL inline void win64_load_font(TTAFont* font_handle,
                                         Texture& font_atlas,
@@ -442,6 +429,9 @@ INTERNAL void game_render()
         //gl_bind_spot_lights(shader_common, spot_lights, array_count(spot_lights));
         gl_bind_camera_position(shader_common, g_camera);
 
+        /** We could simply update the game object's position, rotation, scale fields,
+            then construct the model matrix in game_render based on those fields.
+        */
         mat4 matrix_model = identity_mat4();
         // matrix_model *= translation_matrix(0.f, 0.5f, -1.3f);
         // matrix_model *= scale_matrix(0.3f, 0.3f, 0.3f); // scale in each axis by the respective values of the vector
@@ -497,7 +487,7 @@ void calc_average_normals(uint32* indices,
                           uint32 vertex_size,
                           uint32 normal_offset)
 {
-    for(mi i = 0; i < indices_count; i += 3)
+    for(size_t i = 0; i < indices_count; i += 3)
     {
         uint32 in0 = indices[i] * vertex_size;
         uint32 in1 = indices[i+1] * vertex_size;
@@ -524,7 +514,7 @@ void calc_average_normals(uint32* indices,
         vertices[in2+2] += normal.z;
     }
 
-    for(mi i = 0; i < vertices_count/vertex_size; ++i)
+    for(size_t i = 0; i < vertices_count/vertex_size; ++i)
     {
         uint32 v_normal_offset = (int32)i * vertex_size + normal_offset;
         vec3 norm_vec = normalize(make_vec3(vertices[v_normal_offset],
@@ -606,29 +596,15 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     // spot_lights[1].orientation = direction_to_orientation(make_vec3(0.f, -1.f, 0.f));
     // debugger_set_spotlights(spot_lights, array_count(spot_lights));
 
-    /** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)
-        The model matrix, right now, is in Game::render because we want to be able to update the object's transform on tick. However, ideally, the 
-        model matrix creation and transformation should be done in Game::update because that's where we should be updating the object's transformation.
-        That matrix can be stored inside the game object class alongside the VAO. Or we could simply update the game object's position, rotation, scale
-        fields, then construct the model matrix in Game::render based on those fields. Yeah that's probably better.
-    */
     g_camera.position = { 0.f, 0.f, 0.f };
     g_camera.rotation = { 0.f, 270.f, 0.f };
     calculate_perspectivematrix(g_camera, 90.f);
     g_matrix_projection_ortho = projection_matrix_orthographic_2d(0.0f, (real32)g_buffer_width, (real32)g_buffer_height, 0.0f);
 
+    assimp_load_mesh_group(xwing, "data/models/sponza/sponza.obj");
 
     // Game Loop
-    LARGE_INTEGER perf_counter_frequency_result;
-    QueryPerformanceFrequency(&perf_counter_frequency_result);
-    int64 perf_counter_frequency = perf_counter_frequency_result.QuadPart;
-
-    int64 load_time = win64_get_ticks();
-    assimp_load_mesh_group(xwing, "data/models/sponza.obj");
-    load_time = win64_get_ticks() - load_time;
-    real32 loadtsecs = (real32) load_time / (real32) perf_counter_frequency;
-    con_printf("took %f seconds to load sponza", loadtsecs);
-
+    int64 perf_counter_frequency = win64_counter_frequency();
     int64 last_tick = win64_get_ticks(); // cpu cycles count of last tick
     while (b_is_game_running)
     {
@@ -638,7 +614,7 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
         int64 delta_tick = this_tick - last_tick;
         real32 deltatime_secs = (real32) delta_tick / (real32) perf_counter_frequency;
         last_tick = this_tick;
-        perf_gameloop_elapsed_secs = deltatime_secs;
+        perf_frametime_secs = deltatime_secs;
         game_update(deltatime_secs);
         game_render();
     }

@@ -136,7 +136,7 @@ INTERNAL void gl_bind_point_lights(LightingShader& shader, PointLight* plights, 
 {
     count = min(count, LightingShader::MAX_POINT_LIGHTS);
     glUniform1i(shader.id_uniform_point_light_count, count);
-    for(mi i = 0; i < count; ++i)
+    for(size_t i = 0; i < count; ++i)
     {
         glUniform3f(shader.id_uniform_point_light[i].colour, plights[i].colour.x, plights[i].colour.y, plights[i].colour.z);
         glUniform1f(shader.id_uniform_point_light[i].ambient_intensity, plights[i].ambient_intensity);
@@ -153,7 +153,7 @@ INTERNAL void gl_bind_spot_lights(LightingShader& shader, SpotLight* slights, ui
 {
     count = min(count, LightingShader::MAX_SPOT_LIGHTS);
     glUniform1i(shader.id_uniform_spot_light_count, count);
-    for(mi i = 0; i < count; ++i)
+    for(size_t i = 0; i < count; ++i)
     {
         glUniform3f(shader.id_uniform_spot_light[i].colour, slights[i].colour.x, slights[i].colour.y, slights[i].colour.z);
         glUniform1f(shader.id_uniform_spot_light[i].ambient_intensity, slights[i].ambient_intensity);
