@@ -15,77 +15,77 @@
 */
 #include "commands.h"
 
-INTERNAL void cmd_pause()
+internal void cmd_pause()
 {
     b_is_update_running = false;
 }
 
-INTERNAL void cmd_unpause()
+internal void cmd_unpause()
 {
     b_is_update_running = true;
 }
 
-INTERNAL void cmd_wireframe()
+internal void cmd_wireframe()
 {
     g_b_wireframe = !g_b_wireframe;
 }
 
-INTERNAL void cmd_add(float x, float y)
+internal void cmd_add(float x, float y)
 {
-    con_printf("result: %f\n", x + y);
+    console::cprintf("result: %f\n", x + y);
 }
 
-INTERNAL void cmd_sensitivity(float sens)
+internal void cmd_sensitivity(float sens)
 {
     g_camera.turnspeed = sens;
 }
 
-INTERNAL void cmd_camera_speed(float speed)
+internal void cmd_camera_speed(float speed)
 {
     g_camera.movespeed = speed;
 }
 
-INTERNAL void cmd_exit()
+internal void cmd_exit()
 {
     b_is_game_running = false;
 }
 
-INTERNAL void cmd_help()
+internal void cmd_help()
 {
-    con_print("Commands in commmands.cpp\n");
-    con_print("======\n");
+    console::cprint("Commands in commmands.cpp\n");
+    console::cprint("======\n");
     for(auto const& cmd : con_commands)
     {
         std::string cmd_string = cmd.first;
-        con_print(" ");
-        con_printf(cmd_string.c_str());
+        console::cprint(" ");
+        console::cprint(cmd_string.c_str());
         for(size_t type_hash : cmd.second.arg_types)
         {
             if(type_hash == TYPEHASH(int))
             {
-                con_printf(" int");
+                console::cprint(" int");
             }
             else if(type_hash == TYPEHASH(float))
             {
-                con_printf(" float");
+                console::cprint(" float");
             }
             else if(type_hash == TYPEHASH(std::string))
             {
-                con_printf(" string");
+                console::cprint(" string");
             }
             else
             {
-                con_printf(" unknown_arg_type");
+                console::cprint(" unknown_arg_type");
             }
         }
-        con_print("\n");
+        console::cprint("\n");
     }
-    con_print("\n======\n");
+    console::cprint("\n======\n");
 }
 
-INTERNAL void sdl_vsync(int vsync);
+internal void sdl_vsync(int vsync);
 
-INTERNAL void sdl_fullscreen(int fullscreen)
+internal void sdl_fullscreen(int fullscreen)
 {
     switch(fullscreen)
     {
@@ -95,7 +95,7 @@ INTERNAL void sdl_fullscreen(int fullscreen)
     }
 }
 
-INTERNAL void sdl_set_window_size(int w, int h)
+internal void sdl_set_window_size(int w, int h)
 {
     SDL_SetWindowSize(window, w, h);
 }
@@ -106,7 +106,7 @@ INTERNAL void sdl_set_window_size(int w, int h)
 
 ////////////////////////////////////////////////////////////////////////////
 
-INTERNAL void con_register_cmds()
+internal void REGISTER_CONSOLE_COMMANDS()
 {
     ADD_COMMAND_NOARG("help", cmd_help);
     ADD_COMMAND_NOARG("exit", cmd_exit);
@@ -121,8 +121,8 @@ INTERNAL void con_register_cmds()
     ADD_COMMAND_ONEARG("sensitivity", cmd_sensitivity, float);
     ADD_COMMAND_ONEARG("camspeed", cmd_camera_speed, float);
 
-    ADD_COMMAND_ONEARG("profiler", profiler_set_level, int);
-    ADD_COMMAND_ONEARG("debug", debugger_set_debug_level, int);
-    ADD_COMMAND_NOARG("toggle_debug_pointlights", debugger_toggle_debug_pointlights);
+    ADD_COMMAND_ONEARG("profiler", profiler::set_level, int);
+    ADD_COMMAND_ONEARG("debug", debug::set_level, int);
+    ADD_COMMAND_NOARG("toggle_debug_pointlights", debug::toggle_debug_pointlights);
     ADD_COMMAND_NOARG("togglewireframe", cmd_wireframe);
 }

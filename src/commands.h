@@ -21,7 +21,7 @@ struct ConCommandMeta
     std::vector<size_t> arg_types;      // type_info::hash_code of arguments
 };
 
-GLOBAL_VAR std::map<std::string, ConCommandMeta> con_commands; // association of console command strings to their actual commands
+global_var std::map<std::string, ConCommandMeta> con_commands; // association of console command strings to their actual commands
 
 
 /** 
@@ -73,7 +73,7 @@ GLOBAL_VAR std::map<std::string, ConCommandMeta> con_commands; // association of
 
     TODO(maybe): idk I cannot think of a better way to go about this
 */
-INTERNAL inline bool is_number(std::string str)
+internal inline bool __is_number(std::string str)
 {
     size_t len = str.length();
     for (int i = 0; i < len; ++i)
@@ -87,31 +87,31 @@ INTERNAL inline bool is_number(std::string str)
 }
 
 template<typename T1>
-INTERNAL void cmd_finallyinvoke1args(command_func_ptr funcptr, T1 first)
+internal void cmd_finallyinvoke1args(command_func_ptr funcptr, T1 first)
 {
     void(*func)(T1) = (void(*)(T1)) funcptr;
     func(first);
 }
 template<typename T1, typename T2>
-INTERNAL void cmd_finallyinvoke2args(command_func_ptr funcptr, T1 first, T2 second)
+internal void cmd_finallyinvoke2args(command_func_ptr funcptr, T1 first, T2 second)
 {
     void(*func)(T1, T2) = (void(*)(T1, T2)) funcptr;
     func(first, second);
 }
 template<typename T1, typename T2, typename T3>
-INTERNAL void cmd_finallyinvoke3args(command_func_ptr funcptr, T1 first, T2 second, T3 third)
+internal void cmd_finallyinvoke3args(command_func_ptr funcptr, T1 first, T2 second, T3 third)
 {
     void(*func)(T1, T2, T3) = (void(*)(T1, T2, T3)) funcptr;
     func(first, second, third);
 }
 template<typename T1, typename T2, typename T3, typename T4>
-INTERNAL void cmd_finallyinvoke4args(command_func_ptr funcptr, T1 first, T2 second, T3 third, T4 fourth)
+internal void cmd_finallyinvoke4args(command_func_ptr funcptr, T1 first, T2 second, T3 third, T4 fourth)
 {
     void(*func)(T1, T2, T3, T4) = (void(*)(T1, T2, T3, T4)) funcptr;
     func(first, second, third, fourth);
 }
 template<typename T1, typename T2, typename T3>
-INTERNAL void cmd_invokestage4(ConCommandMeta cmd_meta, std::vector<std::string> argslist, T1 first, T2 second, T3 third)
+internal void cmd_invokestage4(ConCommandMeta cmd_meta, std::vector<std::string> argslist, T1 first, T2 second, T3 third)
 {
     if(argslist.size() == 3)
     {
@@ -122,26 +122,26 @@ INTERNAL void cmd_invokestage4(ConCommandMeta cmd_meta, std::vector<std::string>
     size_t argtype = cmd_meta.arg_types[3];
     if(argtype == TYPEHASH(int))
     {   
-        if(is_number(argslist[3]))
+        if(__is_number(argslist[3]))
         {
             int i = atoi(argslist[3].c_str());
             cmd_finallyinvoke4args(cmd_meta.command_func, first, second, third, i);
         }
         else
         {
-            con_print("Invalid arguments: argument 4 must be an integer.\n");
+            console::cprint("Invalid arguments: argument 4 must be an integer.\n");
         }
     }
     else if(argtype == TYPEHASH(float))
     {
-        if(is_number(argslist[3]))
+        if(__is_number(argslist[3]))
         {
             float f = (float) atof(argslist[3].c_str());
             cmd_finallyinvoke4args(cmd_meta.command_func, first, second, third, f);
         }
         else
         {
-            con_print("Invalid arguments: argument 4 must be a float.\n");
+            console::cprint("Invalid arguments: argument 4 must be a float.\n");
         }
     }
     else if(argtype == TYPEHASH(std::string))
@@ -151,7 +151,7 @@ INTERNAL void cmd_invokestage4(ConCommandMeta cmd_meta, std::vector<std::string>
     }
 }
 template<typename T1, typename T2>
-INTERNAL void cmd_invokestage3(ConCommandMeta cmd_meta, std::vector<std::string> argslist, T1 first, T2 second)
+internal void cmd_invokestage3(ConCommandMeta cmd_meta, std::vector<std::string> argslist, T1 first, T2 second)
 {
     if(argslist.size() == 2)
     {
@@ -162,26 +162,26 @@ INTERNAL void cmd_invokestage3(ConCommandMeta cmd_meta, std::vector<std::string>
     size_t argtype = cmd_meta.arg_types[2];
     if(argtype == TYPEHASH(int))
     {
-        if(is_number(argslist[2]))
+        if(__is_number(argslist[2]))
         {
             int i = atoi(argslist[2].c_str());
             cmd_invokestage4(cmd_meta, argslist, first, second, i);
         }
         else
         {
-            con_print("Invalid arguments: argument 3 must be an integer.\n");
+            console::cprint("Invalid arguments: argument 3 must be an integer.\n");
         }
     }
     else if(argtype == TYPEHASH(float))
     {
-        if(is_number(argslist[2]))
+        if(__is_number(argslist[2]))
         {
             float f = (float) atof(argslist[2].c_str());
             cmd_invokestage4(cmd_meta, argslist, first, second, f);
         }
         else
         {
-            con_print("Invalid arguments: argument 3 must be a float.\n");
+            console::cprint("Invalid arguments: argument 3 must be a float.\n");
         }
     }
     else if(argtype == TYPEHASH(std::string))
@@ -191,7 +191,7 @@ INTERNAL void cmd_invokestage3(ConCommandMeta cmd_meta, std::vector<std::string>
     }
 }
 template<typename T1>
-INTERNAL void cmd_invokestage2(ConCommandMeta cmd_meta, std::vector<std::string> argslist, T1 first)
+internal void cmd_invokestage2(ConCommandMeta cmd_meta, std::vector<std::string> argslist, T1 first)
 {
     if(argslist.size() == 1)
     {
@@ -202,26 +202,26 @@ INTERNAL void cmd_invokestage2(ConCommandMeta cmd_meta, std::vector<std::string>
     size_t argtype = cmd_meta.arg_types[1];
     if(argtype == TYPEHASH(int))
     {
-        if(is_number(argslist[1]))
+        if(__is_number(argslist[1]))
         {
             int i = atoi(argslist[1].c_str());
             cmd_invokestage3(cmd_meta, argslist, first, i);
         }
         else
         {
-            con_print("Invalid arguments: argument 2 must be an integer.\n");
+            console::cprint("Invalid arguments: argument 2 must be an integer.\n");
         }
     }
     else if(argtype == TYPEHASH(float))
     {
-        if(is_number(argslist[1]))
+        if(__is_number(argslist[1]))
         {
             float f = (float) atof(argslist[1].c_str());
             cmd_invokestage3(cmd_meta, argslist, first, f);
         }
         else
         {
-            con_print("Invalid arguments: argument 2 must be a float.\n");
+            console::cprint("Invalid arguments: argument 2 must be a float.\n");
         }
     }
     else if(argtype == TYPEHASH(std::string))
@@ -231,7 +231,7 @@ INTERNAL void cmd_invokestage2(ConCommandMeta cmd_meta, std::vector<std::string>
     }
 }
 
-INTERNAL void COMMAND_INVOKE(ConCommandMeta cmd_meta, std::vector<std::string> argslist)
+internal void COMMAND_INVOKE(ConCommandMeta cmd_meta, std::vector<std::string> argslist)
 {
     if(argslist.size() == 0)
     {
@@ -242,26 +242,26 @@ INTERNAL void COMMAND_INVOKE(ConCommandMeta cmd_meta, std::vector<std::string> a
     size_t argtype = cmd_meta.arg_types[0];
     if(argtype == TYPEHASH(int))
     {
-        if(is_number(argslist[0]))
+        if(__is_number(argslist[0]))
         {
             int i = atoi(argslist[0].c_str());
             cmd_invokestage2(cmd_meta, argslist, i);
         }
         else
         {
-            con_print("Invalid arguments: argument 1 must be an integer.\n");
+            console::cprint("Invalid arguments: argument 1 must be an integer.\n");
         }
     }
     else if(argtype == TYPEHASH(float))
     {
-        if(is_number(argslist[0]))
+        if(__is_number(argslist[0]))
         {
             float f = (float) atof(argslist[0].c_str());
             cmd_invokestage2(cmd_meta, argslist, f);
         }
         else
         {
-            con_print("Invalid arguments: argument 1 must be a float.\n");
+            console::cprint("Invalid arguments: argument 1 must be a float.\n");
         }
     }
     else if(argtype == TYPEHASH(std::string))
