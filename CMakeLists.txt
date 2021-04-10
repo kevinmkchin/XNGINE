@@ -8,7 +8,7 @@ project(opengldemo)
 add_executable(${PROJECT_NAME} src/main_win64.cpp)
 # add WIN32 after ${PROJECT_NAME} if compile for SUBSYSTEM:WINDOWS
 
-add_compile_definitions(-DINTERNAL_BUILD=1 -DSLOW_BUILD=1)
+add_compile_definitions(/DINTERNAL_BUILD=1 /DSLOW_BUILD=1)
 
 # Additional Include Directories
 include_directories(${PROJECT_NAME}
