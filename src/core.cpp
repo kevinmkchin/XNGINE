@@ -1,30 +1,30 @@
-INTERNAL void render_mesh_group(MeshGroup& mesh_group)
+internal void render_mesh_group(MeshGroup& mesh_group)
 {
     for(size_t i = 0; i < mesh_group.meshes.size(); ++i)
     {
         uint16 mat_index = mesh_group.mesh_to_texture[i];
         if(mat_index < mesh_group.textures.size() && mesh_group.textures[mat_index].texture_id != 0)
         {
-            gl_use_texture(mesh_group.textures[mat_index]);
+            gl::use_texture(mesh_group.textures[mat_index]);
         }
 
-        gl_render_mesh(mesh_group.meshes[i]);
+        gl::render_mesh(mesh_group.meshes[i]);
     }
 }
 
-INTERNAL void clear_mesh_group(MeshGroup& mesh_group)
+internal void clear_mesh_group(MeshGroup& mesh_group)
 {
     for(size_t i = 0; i < mesh_group.meshes.size(); ++i)
     {
-        gl_delete_mesh(mesh_group.meshes[i]);
+        gl::delete_mesh(mesh_group.meshes[i]);
     }
     for(size_t i = 0; i < mesh_group.textures.size(); ++i)
     {
-        gl_delete_texture(mesh_group.textures[i]);
+        gl::delete_texture(mesh_group.textures[i]);
     }
 }
 
-INTERNAL void __assimp_load_mesh(MeshGroup& mesh_group, size_t mesh_index, aiMesh* mesh_node)
+internal void __assimp_load_mesh(MeshGroup& mesh_group, size_t mesh_index, aiMesh* mesh_node)
 {
     const uint8 vb_entries_per_vertex = 8;
     std::vector<real32> vb(mesh_node->mNumVertices * vb_entries_per_vertex);
@@ -70,12 +70,12 @@ INTERNAL void __assimp_load_mesh(MeshGroup& mesh_group, size_t mesh_index, aiMes
         }
     }
 
-    Mesh mesh = gl_create_mesh_array(&vb[0], &ib[0], (uint32)vb.size(), (uint32)ib.size());
+    Mesh mesh = gl::create_mesh_array(&vb[0], &ib[0], (uint32)vb.size(), (uint32)ib.size());
     mesh_group.meshes[mesh_index] = mesh;
     mesh_group.mesh_to_texture[mesh_index] = mesh_node->mMaterialIndex;
 }
 
-INTERNAL void assimp_load_mesh_group(MeshGroup& mesh_group, const char* file_name)
+internal void assimp_load_mesh_group(MeshGroup& mesh_group, const char* file_name)
 {
     //win64_global_timestamp();
 
@@ -88,16 +88,16 @@ INTERNAL void assimp_load_mesh_group(MeshGroup& mesh_group, const char* file_nam
         );
     if(!scene)
     {
-        con_printf("Model '%s' failed to load: %s\n", file_name, importer.GetErrorString());
+        console::cprintf("Model '%s' failed to load: %s\n", file_name, importer.GetErrorString());
         return;
     }
-    //con_printf("took %f seconds to Importer::ReadFile\n", win64_global_timestamp());
+    //console::cprintf("took %f seconds to Importer::ReadFile\n", clock::global_timestamp());
 
     mesh_group.meshes.resize(scene->mNumMeshes);
     mesh_group.mesh_to_texture.resize(scene->mNumMeshes);
     mesh_group.textures.resize(scene->mNumMaterials);
 
-    //con_printf("took %f seconds to resize 3 vectors\n", win64_global_timestamp());
+    //console::cprintf("took %f seconds to resize 3 vectors\n", clock::global_timestamp());
 
     // Unpack meshes
     for(size_t i = 0; i < scene->mNumMeshes; ++i)
@@ -105,7 +105,7 @@ INTERNAL void assimp_load_mesh_group(MeshGroup& mesh_group, const char* file_nam
         __assimp_load_mesh(mesh_group, i, scene->mMeshes[i]);
     }
 
-    //con_printf("took %f seconds to unpack all the meshes\n", win64_global_timestamp());
+    //console::cprintf("took %f seconds to unpack all the meshes\n", clock::global_timestamp());
 
     // Load diffuse textures
     for(size_t i = 0; i < scene->mNumMaterials; ++i)
@@ -123,10 +123,10 @@ INTERNAL void assimp_load_mesh_group(MeshGroup& mesh_group, const char* file_nam
                 model_file_directory = model_file_directory.substr(0, idx + 1);
 
                 std::string tex_path = model_file_directory + texture_file_name;
-                gl_load_texture_from_file(mesh_group.textures[i], tex_path.c_str());
+                gl::load_texture_from_file(mesh_group.textures[i], tex_path.c_str());
             }
         }
     }
 
-    //con_printf("took %f seconds to load all the textures\n", win64_global_timestamp());
+    //console::cprintf("took %f seconds to load all the textures\n", clock::global_timestamp());
 }

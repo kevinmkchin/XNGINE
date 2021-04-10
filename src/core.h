@@ -45,7 +45,7 @@ struct BaseShader
     {
         GLint location = glGetUniformLocation(id_shader_program, uniform_name);
         if (location == 0xffffffff) {
-            con_printf("Warning! Unable to get the location of uniform '%s' for shader id %d...\n", uniform_name, id_shader_program);
+            console::cprintf("Warning! Unable to get the location of uniform '%s' for shader id %d...\n", uniform_name, id_shader_program);
         }
         return location;
     }
@@ -82,8 +82,8 @@ struct OrthographicShader : BaseShader
 
 struct LightingShader : PerspectiveShader
 {
-    GLOBAL_VAR const unsigned int MAX_POINT_LIGHTS = 4;
-    GLOBAL_VAR const unsigned int MAX_SPOT_LIGHTS = 4;
+    global_var const unsigned int MAX_POINT_LIGHTS = 4;
+    global_var const unsigned int MAX_SPOT_LIGHTS = 4;
 
     GLint   id_uniform_observer_pos = 0;
 
@@ -265,7 +265,7 @@ struct Camera
     vec3   calculated_up        = { 0.f }; 
     vec3   calculated_right     = { 0.f }; 
 
-    real32 movespeed            = 2.f;
+    real32 movespeed            = 10.f;
     real32 turnspeed            = 0.17f;
 
     mat4   matrix_perspective   = { 0.f }; // Perspective projection matrix
