@@ -7,14 +7,17 @@ rem Source Code to Build
 set SOURCE=..\src\main_win64.cpp
 rem *****************************
 
-set PREPROCDEFINES = -DINTERNAL_BUILD=1 -DSLOW_BUILD=1
+set PREPROCDEFINES=/DINTERNAL_BUILD=1 /DSLOW_BUILD=1
+rem The /SUBSYSTEM option tells the OS how to run the .exe file.
+rem The choice of subsystem affects the entry point function that the linker will choose.
+set LINKERSUBSYSTEM=/SUBSYSTEM:WINDOWS
 
 rem Additional Include Directories - preceded by /I
-set ADDINCLUDES=/I"..\libs\GLEW\include" /I"..\libs\SDL\include" /I"..\libs\GLM"
+set ADDINCLUDES=/I"..\libs\GLEW\include" /I"..\libs\SDL\include" /I"..\libs\ASSIMP\include"
 rem Additional Library/Dependency Directories - preceded by /LIBPATH:
-set ADDLIBPATHS=/LIBPATH:"..\libs\GLEW\lib\Release\x64"	/LIBPATH:"..\libs\SDL\lib\x64"
+set ADDLIBPATHS=/LIBPATH:"..\libs\GLEW\lib\Release\x64"	/LIBPATH:"..\libs\SDL\lib\x64" /LIBPATH:"..\libs\ASSIMP\lib"
 rem Additional Dependencies; may be from above ADDLIBPATHS
-set ADDDEPENDENCIES=Shell32.lib opengl32.lib glew32.lib SDL2.lib SDL2main.lib
+set ADDDEPENDENCIES=Shell32.lib opengl32.lib glew32.lib SDL2.lib SDL2main.lib assimp-vc142-mt.lib
 
 rem Binary Output Directory
 set OUTPUTDIR="debug"
@@ -22,7 +25,7 @@ rem Output Executable Name
 set OUTPUTEXE="opengldemo.exe"
 
 rem Linker Options
-set LINKEROPTIONS=/SUBSYSTEM:CONSOLE %ADDLIBPATHS% %ADDDEPENDENCIES%
+set LINKEROPTIONS=%LINKERSUBSYSTEM% %ADDLIBPATHS% %ADDDEPENDENCIES%
 
 if NOT exist build mkdir build
 pushd build
