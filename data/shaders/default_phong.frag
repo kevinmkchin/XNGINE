@@ -55,7 +55,9 @@ uniform vec3 observer_pos; // camera
 
 vec4 calc_light_by_direction(vec3 colour, float ambient_intensity, float diffuse_intensity, vec3 direction)
 {
-    direction = normalize(direction);
+    /** Because normals are pointing AWAY from fragment right now while direction
+        is pointing TO the fragment, we need to invert the direction. */
+    direction = -normalize(direction);
     vec4 ambient_colour = vec4(colour * ambient_intensity, 1.0f);
     float diffuse_factor = max(0.f, dot(normalize(normal), direction));
     vec4 diffuse_colour = vec4(colour * diffuse_intensity * diffuse_factor, 1.0f);

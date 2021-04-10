@@ -14,13 +14,14 @@ add_compile_definitions(-DINTERNAL_BUILD=1 -DSLOW_BUILD=1)
 include_directories(${PROJECT_NAME}
     PUBLIC libs/GLEW/include
     PUBLIC libs/SDL/include
-    PUBLIC libs/GLM
+    PUBLIC libs/ASSIMP/include
 )
 
 # Additional Library/Dependency Directories
 target_link_directories(${PROJECT_NAME} 
     PRIVATE libs/GLEW/lib/Release/x64
     PRIVATE libs/SDL/lib/x64
+    PRIVATE libs/ASSIMP/lib
 )
 
 # Additional Dependencies
@@ -30,4 +31,5 @@ target_link_libraries(${PROJECT_NAME}
     glew32.lib
     SDL2.lib
     SDL2main.lib
+    assimp-vc142-mt.lib
 )
