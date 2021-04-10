@@ -24,8 +24,6 @@ typedef int64_t     int64;
 typedef float       real32;
 typedef double      real64;
 
-typedef size_t      mi;         // memory index
-
 #define INDEX_NONE -1
 #define ASCII_SPACE 32
 #define ASCII_TILDE 126

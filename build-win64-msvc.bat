@@ -10,7 +10,7 @@ rem *****************************
 set PREPROCDEFINES=/DINTERNAL_BUILD=1 /DSLOW_BUILD=1
 rem The /SUBSYSTEM option tells the OS how to run the .exe file.
 rem The choice of subsystem affects the entry point function that the linker will choose.
-set LINKERSUBSYSTEM=/SUBSYSTEM:WINDOWS
+set LINKERSUBSYSTEM=/SUBSYSTEM:CONSOLE
 
 rem Additional Include Directories - preceded by /I
 set ADDINCLUDES=/I"..\libs\GLEW\include" /I"..\libs\SDL\include" /I"..\libs\ASSIMP\include"

@@ -187,7 +187,7 @@ INTERNAL void debugger_render(PerspectiveShader& debug_shader)
         {
             if(debugger_b_debug_pointlights)
             {
-                for(mi i = 0; i < debugger_point_lights_count; ++i)
+                for(size_t i = 0; i < debugger_point_lights_count; ++i)
                 {
                     debug_render_pointlight(debug_shader, debugger_point_lights[i]);
                 }
@@ -195,7 +195,7 @@ INTERNAL void debugger_render(PerspectiveShader& debug_shader)
 
             if(debugger_b_debug_spotlights)
             {
-                for(mi i = 0; i < debugger_spot_lights_count; ++i)
+                for(size_t i = 0; i < debugger_spot_lights_count; ++i)
                 {
                     debug_render_spotlight(debug_shader, debugger_spot_lights[i]);
                 }
