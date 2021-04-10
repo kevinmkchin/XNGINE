@@ -247,6 +247,13 @@ struct Texture
     GLenum      format      = GL_NONE;  // format / bitdepth of texture (GL_RGB would be 3 byte bit depth)
 };
 
+struct MeshGroup
+{
+    std::vector<Mesh> meshes;
+    std::vector<Texture> textures;
+    std::vector<uint16> mesh_to_texture;
+};
+
 /** Camera properties */
 struct Camera
 {

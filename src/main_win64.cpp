@@ -1,10 +1,16 @@
 /** OpenGL 3D Renderer
 
 TODO:
-    - Model loading
-    - <CANT REPRODUCE> fix bug with calling con_commands from within code 
-        - the command gets cut off e.g. debug 1 becomes de or debu, etc. random
+    - Improve model loading code
+        - fuck std vectors (or at least fuck push_back)
+        - keep textures next to their objs?
+    - SERIOUSLY THINK ABOUT THE STRUCTURE OF OUR CODEBASE (WOULD OOP BE BETTER? OR AT LEAST INTERFACES?)
+    - Temporary Scene class to hold different scenes (for showcasing purpose initially)
+        - Create diff scenes (e.g. sponza, minecraft, sponza in diff lightings)
+        - Be able to switch between them (to showcase)
+    - include a vc.bat to detect msvc installation and devenv (visual studio)
 Backlog:
+    - Shadow mapping
     - Arrow rendering for debugging
         - in the future arrow can also be used for translation gizmo
     - add SIMD for kc_math library
@@ -47,6 +53,9 @@ BUILD MODES
 #include <SDL.h>
 #include <SDL_syswm.h>
 #include <profileapi.h>
+#include <assimp\Importer.hpp>
+#include <assimp\scene.h>
+#include <assimp\postprocess.h>
 #define STB_SPRINTF_IMPLEMENTATION
 #include "stb_sprintf.h"
 #define STB_IMAGE_IMPLEMENTATION
@@ -91,6 +100,7 @@ GLOBAL_VAR bool g_b_wireframe = false;
 #include "camera.cpp"
 #include "profiler.cpp"
 #include "debugger.cpp"
+#include "core.cpp"
 #include "commands.cpp"
 #include "console.cpp"
 
@@ -106,6 +116,7 @@ PointLight point_lights[2];
 SpotLight spot_lights[2];
 Material material_shiny = { 4.f, 128.f };
 Material material_dull = { 0.5f, 1.f };
+MeshGroup xwing;
 
 // --- Fonts ---
 TTAFont g_font_handle_c64;
@@ -404,7 +415,7 @@ INTERNAL void game_update(real32 dt)
 /** Process graphics and render them to the screen. */
 INTERNAL void game_render()
 {
-    //glClearColor(0.39f, 0.582f, 0.926f, 1.f);
+    glClearColor(0.39f, 0.582f, 0.926f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear opengl context's buffer
 
 // NOT ALPHA BLENDED
@@ -427,32 +438,40 @@ INTERNAL void game_render()
         gl_bind_view_matrix(shader_common, g_camera.matrix_view.ptr());
         gl_bind_projection_matrix(shader_common, g_camera.matrix_perspective.ptr());
         gl_bind_directional_light(shader_common, main_light);
-        gl_bind_point_lights(shader_common, point_lights, array_count(point_lights));
-        gl_bind_spot_lights(shader_common, spot_lights, array_count(spot_lights));
+        //gl_bind_point_lights(shader_common, point_lights, array_count(point_lights));
+        //gl_bind_spot_lights(shader_common, spot_lights, array_count(spot_lights));
         gl_bind_camera_position(shader_common, g_camera);
 
         mat4 matrix_model = identity_mat4();
-        matrix_model *= translation_matrix(0.f, 0.5f, -1.3f);
-        matrix_model *= scale_matrix(0.3f, 0.3f, 0.3f); // scale in each axis by the respective values of the vector
+        // matrix_model *= translation_matrix(0.f, 0.5f, -1.3f);
+        // matrix_model *= scale_matrix(0.3f, 0.3f, 0.3f); // scale in each axis by the respective values of the vector
+        // gl_bind_model_matrix(shader_common, matrix_model.ptr());
+        // gl_use_texture(tex_brick);
+        // gl_bind_material(shader_common, material_shiny);
+        // gl_render_mesh(meshes[0]);
+
+        // matrix_model = identity_mat4();
+        // matrix_model *= translation_matrix(0.f, -0.5f, -1.3f);
+        // matrix_model *= scale_matrix(0.3f, 0.3f, 0.3f);
+        // gl_bind_model_matrix(shader_common, matrix_model.ptr());
+        // gl_use_texture(tex_dirt);
+        // gl_bind_material(shader_common, material_dull);
+        // gl_render_mesh(meshes[1]);
+
+        // matrix_model = identity_mat4();
+        // matrix_model *= translation_matrix(0.f, -2.0f, 0.f);
+        // gl_bind_model_matrix(shader_common, matrix_model.ptr());
+        // gl_use_texture(tex_dirt);
+        // gl_bind_material(shader_common, material_dull);
+        // gl_render_mesh(meshes[2]);
+
+        matrix_model = identity_mat4();
+        matrix_model *= translation_matrix(0.f, -2.f, 0.f);
+        matrix_model *= scale_matrix(0.04f, 0.04f, 0.04f);
         gl_bind_model_matrix(shader_common, matrix_model.ptr());
-        gl_use_texture(tex_brick);
         gl_bind_material(shader_common, material_shiny);
-        gl_render_mesh(meshes[0]);
+        render_mesh_group(xwing);
 
-        matrix_model = identity_mat4();
-        matrix_model *= translation_matrix(0.f, -0.5f, -1.3f);
-        matrix_model *= scale_matrix(0.3f, 0.3f, 0.3f);
-        gl_bind_model_matrix(shader_common, matrix_model.ptr());
-        gl_use_texture(tex_dirt);
-        gl_bind_material(shader_common, material_dull);
-        gl_render_mesh(meshes[1]);
-
-        matrix_model = identity_mat4();
-        matrix_model *= translation_matrix(0.f, -2.0f, 0.f);
-        gl_bind_model_matrix(shader_common, matrix_model.ptr());
-        gl_use_texture(tex_dirt);
-        gl_bind_material(shader_common, material_dull);
-        gl_render_mesh(meshes[2]);
     glUseProgram(0);
 
 // ALPHA BLENDED
@@ -511,9 +530,9 @@ void calc_average_normals(uint32* indices,
         vec3 norm_vec = normalize(make_vec3(vertices[v_normal_offset],
                                             vertices[v_normal_offset+1],
                                             vertices[v_normal_offset+2]));
-        vertices[v_normal_offset] = norm_vec.x;
-        vertices[v_normal_offset+1] = norm_vec.y;
-        vertices[v_normal_offset+2] = norm_vec.z;
+        vertices[v_normal_offset] = -norm_vec.x;
+        vertices[v_normal_offset+1] = -norm_vec.y;
+        vertices[v_normal_offset+2] = -norm_vec.z;
     }
 }
 
@@ -542,10 +561,10 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     };
 
     GLfloat floor_vertices[32] = {
-        -10.f, 0.f, -10.f, 0.f, 0.f, 0.f, -1.f, 0.f,
-        10.f, 0.f, -10.f, 10.f, 0.f, 0.f, -1.f, 0.f,
-        -10.f, 0.f, 10.f, 0.f, 10.f, 0.f, -1.f, 0.f,
-        10.f, 0.f, 10.f, 10.f, 10.f, 0.f, -1.f, 0.f
+        -10.f, 0.f, -10.f, 0.f, 0.f, 0.f, 1.f, 0.f,
+        10.f, 0.f, -10.f, 10.f, 0.f, 0.f, 1.f, 0.f,
+        -10.f, 0.f, 10.f, 0.f, 10.f, 0.f, 1.f, 0.f,
+        10.f, 0.f, 10.f, 10.f, 10.f, 0.f, 1.f, 0.f
     };
 
     calc_average_normals(indices, 12, vertices, 32, 8, 5);
@@ -563,28 +582,29 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     gl_load_texture_from_file(tex_dirt, "data/textures/dirt.png");
 
     main_light.orientation = direction_to_orientation(make_vec3(2.f, -1.f, -2.f));
-    main_light.ambient_intensity = 0.0f;
-    main_light.diffuse_intensity = 0.f;
-    point_lights[0].colour = { 0.0f, 1.0f, 0.0f };
-    point_lights[0].position = { -4.f, 0.0f, 0.0f };
-    point_lights[0].ambient_intensity = 0.f;
-    point_lights[0].diffuse_intensity = 1.f;
-    point_lights[1].colour = { 0.0f, 0.0f, 1.0f };
-    point_lights[1].position = { 4.f, 0.0f, 0.0f };
-    point_lights[1].ambient_intensity = 0.f;
-    point_lights[1].diffuse_intensity = 1.f;
-    debugger_set_pointlights(point_lights, array_count(point_lights));
-    spot_lights[0].position = { -4.f, 0.f, 0.f };
-    spot_lights[0].ambient_intensity = 0.f;
-    spot_lights[0].diffuse_intensity = 1.f;
-    spot_lights[0].set_cutoff_in_degrees(45.f);
-    spot_lights[0].orientation = direction_to_orientation(make_vec3(-1.f, -1.f, 0.f));
-    spot_lights[1].position = { -2.f, 0.f, 0.f };
-    spot_lights[1].ambient_intensity = 0.f;
-    spot_lights[1].diffuse_intensity = 1.f;
-    //spot_lights[1].set_cutoff_in_degrees(45.f);
-    spot_lights[1].orientation = direction_to_orientation(make_vec3(0.f, -1.f, 0.f));
-    debugger_set_spotlights(spot_lights, array_count(spot_lights));
+    main_light.ambient_intensity = 0.3f;
+    main_light.diffuse_intensity = 1.0f;
+    main_light.colour = { 255.f/255.f, 231.f/255.f, 155.f/255.f };
+    // point_lights[0].colour = { 0.0f, 1.0f, 0.0f };
+    // point_lights[0].position = { -4.f, 0.0f, 0.0f };
+    // point_lights[0].ambient_intensity = 0.f;
+    // point_lights[0].diffuse_intensity = 1.f;
+    // point_lights[1].colour = { 0.0f, 0.0f, 1.0f };
+    // point_lights[1].position = { 4.f, 0.0f, 0.0f };
+    // point_lights[1].ambient_intensity = 0.f;
+    // point_lights[1].diffuse_intensity = 1.f;
+    // debugger_set_pointlights(point_lights, array_count(point_lights));
+    // spot_lights[0].position = { -4.f, 0.f, 0.f };
+    // spot_lights[0].ambient_intensity = 0.f;
+    // spot_lights[0].diffuse_intensity = 1.f;
+    // spot_lights[0].set_cutoff_in_degrees(45.f);
+    // spot_lights[0].orientation = direction_to_orientation(make_vec3(-1.f, -1.f, 0.f));
+    // spot_lights[1].position = { -2.f, 0.f, 0.f };
+    // spot_lights[1].ambient_intensity = 0.f;
+    // spot_lights[1].diffuse_intensity = 1.f;
+    // //spot_lights[1].set_cutoff_in_degrees(45.f);
+    // spot_lights[1].orientation = direction_to_orientation(make_vec3(0.f, -1.f, 0.f));
+    // debugger_set_spotlights(spot_lights, array_count(spot_lights));
 
     /** Going to create the projection matrix here because we only need to create projection matrix once (as long as fov or aspect ratio doesn't change)
         The model matrix, right now, is in Game::render because we want to be able to update the object's transform on tick. However, ideally, the 
@@ -602,6 +622,13 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     LARGE_INTEGER perf_counter_frequency_result;
     QueryPerformanceFrequency(&perf_counter_frequency_result);
     int64 perf_counter_frequency = perf_counter_frequency_result.QuadPart;
+
+    int64 load_time = win64_get_ticks();
+    assimp_load_mesh_group(xwing, "data/models/sponza.obj");
+    load_time = win64_get_ticks() - load_time;
+    real32 loadtsecs = (real32) load_time / (real32) perf_counter_frequency;
+    con_printf("took %f seconds to load sponza", loadtsecs);
+
     int64 last_tick = win64_get_ticks(); // cpu cycles count of last tick
     while (b_is_game_running)
     {
