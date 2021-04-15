@@ -1,0 +1,68 @@
+# Blender MTL File: 'None'
+# Material Count: 6
+
+newmtl models_characters_doommarine_doom
+Ns 94.117647
+Ka 1.000000 1.000000 1.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd models_characters_doommarine_doommarine_legs_c.png
+
+newmtl models_characters_doommarine_doommarine_arms
+Ns 94.117647
+Ka 1.000000 1.000000 1.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd models_characters_doommarine_doommarine_arms_c.png
+
+newmtl models_characters_doommarine_doommarine_cowl
+Ns 94.117647
+Ka 1.000000 1.000000 1.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd models_characters_doommarine_doommarine_cowl_c.png
+
+newmtl models_characters_doommarine_doommarine_helmet
+Ns 94.117647
+Ka 1.000000 1.000000 1.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd models_characters_doommarine_doommarine_helmet_c.png
+
+newmtl models_characters_doommarine_doommarine_torso
+Ns 94.117647
+Ka 1.000000 1.000000 1.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd models_characters_doommarine_doommarine_torso_c.png
+
+newmtl models_characters_doommarine_doommarine_visor
+Ns 94.117647
+Ka 1.000000 1.000000 1.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd models_characters_doommarine_doommarine_visor_c.png
