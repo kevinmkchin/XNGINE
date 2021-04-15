@@ -1,12 +1,12 @@
 /** OpenGL 3D Renderer
 
 TODO:
-    - SERIOUSLY THINK ABOUT THE STRUCTURE OF OUR CODEBASE (WOULD OOP BE BETTER? OR AT LEAST INTERFACES?)
-    - Temporary Scene class to hold different scenes (for showcasing purpose initially)
-        - Create diff scenes (e.g. sponza, minecraft, sponza in diff lightings)
+    - Temporary level class to hold different scenes (for showcasing purpose initially)
+        - Create diff levels (e.g. sponza, minecraft, sponza in diff lightings)
         - Be able to switch between them (to showcase)
     - include a vc.bat to detect msvc installation and devenv (visual studio)
 Backlog:
+    - Memory management / custom memory allocator / replace all mallocs and callocs
     - Shadow mapping
     - Lower case everything except hash defines
     - Arrow rendering for debugging
@@ -68,6 +68,7 @@ BUILD MODES
 #include "gamedefine.h" // defines and typedefs
 #include "console.h"
 #include "core.h"
+
 // --- global variables  --- note: static variables are initialized to their default values
 // Width and Height of writable buffer
 global_var uint32 g_buffer_width;
@@ -87,12 +88,25 @@ global_var bool b_is_game_running = true;
 global_var bool b_is_update_running = true;
 global_var SDL_Window* window = nullptr;
 global_var SDL_GLContext opengl_context = nullptr;
+
 // -------------------------
 // Temporary
 global_var Camera g_camera;
 global_var mat4 g_matrix_projection_ortho;
 global_var bool g_b_wireframe = false;
+
+/* NOTE we're not going to have multiple maps loaded at once later on
+   eventually we want to load maps from disk when we switch maps
+   The only reason we are keeping an array right now is so we can preset
+   the model transforms since we can't read that from disk yet. */
+global_var uint8 active_map_index = 0;
+global_var temp_map_t loaded_maps[4];
+
+// Fonts
+TTAFont g_font_handle_c64;
+Texture g_font_atlas_c64;
 // -------------------------
+
 #include "timer.cpp"
 #include "file.cpp"
 #include "opengl.cpp"
@@ -103,24 +117,12 @@ global_var bool g_b_wireframe = false;
 #include "commands.cpp"
 #include "console.cpp"
 
-Mesh meshes[3];
 LightingShader shader_common;
 OrthographicShader shader_text;
 OrthographicShader shader_ui;
 PerspectiveShader shader_simple;
-Texture tex_brick;
-Texture tex_dirt;
-DirectionalLight main_light;
-PointLight point_lights[2];
-SpotLight spot_lights[2];
 Material material_shiny = { 4.f, 128.f };
 Material material_dull = { 0.5f, 1.f };
-MeshGroup xwing;
-
-// --- Fonts ---
-TTAFont g_font_handle_c64;
-Texture g_font_atlas_c64;
-// -------------
 
 static const char* vertex_shader_path = "shaders/default_phong.vert";
 static const char* frag_shader_path = "shaders/default_phong.frag";
@@ -130,7 +132,6 @@ static const char* text_vs_path = "shaders/text_ui.vert";
 static const char* text_fs_path = "shaders/text_ui.frag";
 static const char* simple_vs_path = "shaders/simple.vert";
 static const char* simple_fs_path = "shaders/simple.frag";
-
 
 internal inline void win64_load_font(TTAFont* font_handle,
                                         Texture& font_atlas,
@@ -404,7 +405,7 @@ internal void game_update(real32 dt)
 /** Process graphics and render them to the screen. */
 internal void game_render()
 {
-    glClearColor(0.39f, 0.582f, 0.926f, 1.f);
+    //glClearColor(0.39f, 0.582f, 0.926f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear opengl context's buffer
 
 // NOT ALPHA BLENDED
@@ -424,45 +425,28 @@ internal void game_render()
     calculate_viewmatrix(g_camera);
     
     gl::use_shader(shader_common);
+
         gl::bind_view_matrix(shader_common, g_camera.matrix_view.ptr());
         gl::bind_projection_matrix(shader_common, g_camera.matrix_perspective.ptr());
-        gl::bind_directional_light(shader_common, main_light);
-        //gl::bind_point_lights(shader_common, point_lights, array_count(point_lights));
-        //gl::bind_spot_lights(shader_common, spot_lights, array_count(spot_lights));
         gl::bind_camera_position(shader_common, g_camera);
+
+        temp_map_t* loaded_map = &loaded_maps[active_map_index];
+        gl::bind_directional_light(shader_common, loaded_map->directionallight);
+        gl::bind_point_lights(shader_common, loaded_map->pointlights.data(), (uint8)loaded_map->pointlights.size());
+        gl::bind_spot_lights(shader_common, loaded_map->spotlights.data(), (uint8)loaded_map->spotlights.size());
 
         /** We could simply update the game object's position, rotation, scale fields,
             then construct the model matrix in game_render based on those fields.
         */
         mat4 matrix_model = identity_mat4();
-        // matrix_model *= translation_matrix(0.f, 0.5f, -1.3f);
-        // matrix_model *= scale_matrix(0.3f, 0.3f, 0.3f); // scale in each axis by the respective values of the vector
-        // gl::bind_model_matrix(shader_common, matrix_model.ptr());
-        // gl::use_texture(tex_brick);
-        // gl::bind_material(shader_common, material_shiny);
-        // gl::render_mesh(meshes[0]);
-
-        // matrix_model = identity_mat4();
-        // matrix_model *= translation_matrix(0.f, -0.5f, -1.3f);
-        // matrix_model *= scale_matrix(0.3f, 0.3f, 0.3f);
-        // gl::bind_model_matrix(shader_common, matrix_model.ptr());
-        // gl::use_texture(tex_dirt);
-        // gl::bind_material(shader_common, material_dull);
-        // gl::render_mesh(meshes[1]);
-
-        // matrix_model = identity_mat4();
-        // matrix_model *= translation_matrix(0.f, -2.0f, 0.f);
-        // gl::bind_model_matrix(shader_common, matrix_model.ptr());
-        // gl::use_texture(tex_dirt);
-        // gl::bind_material(shader_common, material_dull);
-        // gl::render_mesh(meshes[2]);
-
         matrix_model = identity_mat4();
-        matrix_model *= translation_matrix(0.f, -2.f, 0.f);
-        matrix_model *= scale_matrix(0.04f, 0.04f, 0.04f);
+        matrix_model *= translation_matrix(loaded_map->mainobject.pos);
+        matrix_model *= rotation_matrix(loaded_map->mainobject.orient);
+        matrix_model *= scale_matrix(loaded_map->mainobject.scale);
         gl::bind_model_matrix(shader_common, matrix_model.ptr());
-        gl::bind_material(shader_common, material_shiny);
-        render_mesh_group(xwing);
+
+        gl::bind_material(shader_common, material_dull);
+        render_mesh_group(loaded_map->mainobject.model);
 
     glUseProgram(0);
 
@@ -561,22 +545,56 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
 
     calc_average_normals(indices, 12, vertices, 32, 8, 5);
 
-    meshes[0] = gl::create_mesh_array(vertices, indices, 32, 12);
-    meshes[1] = gl::create_mesh_array(vertices, indices, 32, 12);
-    meshes[2] = gl::create_mesh_array(floor_vertices, floor_indices, 32, 6);
-
     gl::load_shader_program_from_file(shader_common, vertex_shader_path, frag_shader_path);
     gl::load_shader_program_from_file(shader_text, text_vs_path, text_fs_path);
     gl::load_shader_program_from_file(shader_ui, ui_vs_path, ui_fs_path);
     gl::load_shader_program_from_file(shader_simple, simple_vs_path, simple_fs_path);
 
-    gl::load_texture_from_file(tex_brick, "data/textures/brick.png");
-    gl::load_texture_from_file(tex_dirt, "data/textures/dirt.png");
+    g_camera.position = { 0.f, 0.f, 0.f };
+    g_camera.rotation = { 0.f, 270.f, 0.f };
+    calculate_perspectivematrix(g_camera, 90.f);
+    g_matrix_projection_ortho = projection_matrix_orthographic_2d(0.0f, (real32)g_buffer_width, (real32)g_buffer_height, 0.0f);
 
-    main_light.orientation = direction_to_orientation(make_vec3(2.f, -1.f, -2.f));
-    main_light.ambient_intensity = 0.3f;
-    main_light.diffuse_intensity = 1.0f;
-    main_light.colour = { 255.f/255.f, 231.f/255.f, 155.f/255.f };
+    // TEMPORARY setting up maps/scenes (TODO replace once we are loading maps from disk)
+    loaded_maps[0].directionallight.orientation = direction_to_orientation(make_vec3(2.f, -1.f, -2.f));
+    loaded_maps[0].directionallight.ambient_intensity = 0.3f;
+    loaded_maps[0].directionallight.diffuse_intensity = 1.0f;
+    loaded_maps[0].directionallight.colour = { 255.f/255.f, 231.f/255.f, 155.f/255.f };
+    loaded_maps[0].temp_obj_path = "data/models/sponza/sponza.obj";
+    loaded_maps[0].mainobject.scale = make_vec3(0.04f, 0.04f, 0.04f);
+    loaded_maps[0].cam_start_pos = make_vec3(14.f, 6.f, -1.5f);
+    loaded_maps[0].cam_start_rot = make_vec3(0.f, 180.f, 0.f);
+
+    loaded_maps[1].directionallight.orientation = direction_to_orientation(make_vec3(2.f, -1.f, -2.f));
+    loaded_maps[1].directionallight.ambient_intensity = 0.3f;
+    loaded_maps[1].directionallight.diffuse_intensity = 1.0f;
+    loaded_maps[1].directionallight.colour = { 255.f/255.f, 231.f/255.f, 155.f/255.f };
+    loaded_maps[1].temp_obj_path = "data/models/doomguy/doommarine.obj";
+    loaded_maps[1].mainobject.scale = make_vec3(0.04f, 0.04f, 0.04f);
+    loaded_maps[1].cam_start_pos = make_vec3(0.f, 7.6f, 6.3f);
+    loaded_maps[1].cam_start_rot = make_vec3(-21.f, -90.f, 0.f);
+
+    loaded_maps[2].directionallight.orientation = direction_to_orientation(make_vec3(2.f, -1.f, -2.f));
+    loaded_maps[2].directionallight.ambient_intensity = 0.3f;
+    loaded_maps[2].directionallight.diffuse_intensity = 1.0f;
+    loaded_maps[2].directionallight.colour = { 255.f/255.f, 231.f/255.f, 155.f/255.f };
+    loaded_maps[2].temp_obj_path = "data/models/Alduin/Alduin.obj";
+    loaded_maps[2].mainobject.scale = make_vec3(0.1f, 0.1f, 0.1f);
+    loaded_maps[2].cam_start_pos = make_vec3(-63.f, 15.f, -14.5f);
+    loaded_maps[2].cam_start_rot = make_vec3(9.69f, 13.6f, 0.f);
+
+    loaded_maps[3].directionallight.orientation = direction_to_orientation(make_vec3(2.f, -1.f, -2.f));
+    loaded_maps[3].directionallight.ambient_intensity = 0.3f;
+    loaded_maps[3].directionallight.diffuse_intensity = 1.0f;
+    loaded_maps[3].directionallight.colour = { 255.f/255.f, 231.f/255.f, 155.f/255.f };
+    loaded_maps[3].temp_obj_path = "data/models/gallery/gallery.obj";
+    loaded_maps[3].mainobject.orient = make_quaternion_deg(-89.f, make_vec3(1.f, 0.f, 0.f));
+    loaded_maps[3].mainobject.scale = make_vec3(10.f, 10.f, 10.f);
+    loaded_maps[3].cam_start_pos = make_vec3(-30.f, 31.f, -70.f);
+    loaded_maps[3].cam_start_rot = make_vec3(-6.8f, -306.f, 0.f);
+
+    game_switch_map(0);
+
     // point_lights[0].colour = { 0.0f, 1.0f, 0.0f };
     // point_lights[0].position = { -4.f, 0.0f, 0.0f };
     // point_lights[0].ambient_intensity = 0.f;
@@ -598,13 +616,6 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     // spot_lights[1].orientation = direction_to_orientation(make_vec3(0.f, -1.f, 0.f));
     // debugger_set_spotlights(spot_lights, array_count(spot_lights));
 
-    g_camera.position = { 0.f, 0.f, 0.f };
-    g_camera.rotation = { 0.f, 270.f, 0.f };
-    calculate_perspectivematrix(g_camera, 90.f);
-    g_matrix_projection_ortho = projection_matrix_orthographic_2d(0.0f, (real32)g_buffer_width, (real32)g_buffer_height, 0.0f);
-
-    assimp_load_mesh_group(xwing, "data/models/sponza/sponza.obj");
-
     // Game Loop
     int64 perf_counter_frequency = timer::counter_frequency();
     int64 last_tick = timer::get_ticks(); // cpu cycles count of last tick
@@ -624,12 +635,6 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     console::cprintf("Game shutting down...\n");
 
     // Cleanup
-    gl::delete_texture(tex_brick);
-    gl::delete_texture(tex_dirt);
-    for (int i = 0; i < array_count(meshes); ++i)
-    {
-        gl::delete_mesh(meshes[i]);
-    }
     gl::delete_shader(shader_common);
     gl::delete_shader(shader_text);
     gl::delete_shader(shader_ui);

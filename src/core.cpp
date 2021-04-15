@@ -77,13 +77,12 @@ internal void __assimp_load_mesh(MeshGroup& mesh_group, size_t mesh_index, aiMes
 
 internal void assimp_load_mesh_group(MeshGroup& mesh_group, const char* file_name)
 {
-    //win64_global_timestamp();
+    timer::global_timestamp();
 
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(file_name,
         aiProcess_Triangulate
-        //|aiProcess_FlipUVs
-        |aiProcess_GenNormals
+        |aiProcess_GenSmoothNormals
         |aiProcess_JoinIdenticalVertices
         );
     if(!scene)
@@ -91,13 +90,13 @@ internal void assimp_load_mesh_group(MeshGroup& mesh_group, const char* file_nam
         console::cprintf("Model '%s' failed to load: %s\n", file_name, importer.GetErrorString());
         return;
     }
-    //console::cprintf("took %f seconds to Importer::ReadFile\n", clock::global_timestamp());
+    console::cprintf("took %f seconds to Importer::ReadFile\n", timer::global_timestamp());
 
     mesh_group.meshes.resize(scene->mNumMeshes);
     mesh_group.mesh_to_texture.resize(scene->mNumMeshes);
     mesh_group.textures.resize(scene->mNumMaterials);
 
-    //console::cprintf("took %f seconds to resize 3 vectors\n", clock::global_timestamp());
+    console::cprintf("took %f seconds to resize 3 vectors\n", timer::global_timestamp());
 
     // Unpack meshes
     for(size_t i = 0; i < scene->mNumMeshes; ++i)
@@ -105,7 +104,7 @@ internal void assimp_load_mesh_group(MeshGroup& mesh_group, const char* file_nam
         __assimp_load_mesh(mesh_group, i, scene->mMeshes[i]);
     }
 
-    //console::cprintf("took %f seconds to unpack all the meshes\n", clock::global_timestamp());
+    console::cprintf("took %f seconds to unpack all the meshes\n", timer::global_timestamp());
 
     // Load diffuse textures
     for(size_t i = 0; i < scene->mNumMaterials; ++i)
@@ -128,5 +127,5 @@ internal void assimp_load_mesh_group(MeshGroup& mesh_group, const char* file_nam
         }
     }
 
-    //console::cprintf("took %f seconds to load all the textures\n", clock::global_timestamp());
+    console::cprintf("took %f seconds to load all the textures\n", timer::global_timestamp());
 }

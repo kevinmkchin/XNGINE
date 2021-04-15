@@ -3,7 +3,10 @@
 #include <cstdint>
 #pragma warning(disable:4996) // disable C Run-Time library deprecation warnings
 
+////////////////////////////////////////////////////////////////////////////////////
 /** DEFINES AND TYPEDEFS **/
+////////////////////////////////////////////////////////////////////////////////////
+
 /* Put INTERNAL in front of all functions, and that prevents them from ever going into the linking table.
 This causes the compiler to treat them as intra-unit linkage and it doesn't ever have to even do the work
  of moving to the link phase. */
@@ -41,8 +44,19 @@ typedef double      real64;
 #define loop(x) for(int i=0;i<x;++i)
 #endif
 
+
+////////////////////////////////////////////////////////////////////////////////////
 /** GAME SPECIFIC **/
+////////////////////////////////////////////////////////////////////////////////////
+
 #define WIDTH 1792
 #define HEIGHT 1008
+
+enum gameobject_flags
+{
+    UPDATEACTIVE = 1 << 0,
+    COLLIDABLE   = 1 << 1,
+
+};
 
 #endif

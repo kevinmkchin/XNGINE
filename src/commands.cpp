@@ -100,6 +100,36 @@ internal void sdl_set_window_size(int w, int h)
     SDL_SetWindowSize(window, w, h);
 }
 
+internal void game_switch_map(int map_index) //TODO move this to gamemode.cpp and replace console command with a cmd_map(std::string mapname)
+{
+    if(0 <= map_index && map_index < array_count(loaded_maps))
+    {
+        active_map_index = map_index;
+        g_camera.position = loaded_maps[active_map_index].cam_start_pos;
+        g_camera.rotation = loaded_maps[active_map_index].cam_start_rot;
+        update_camera(g_camera, 0.f);
+        debug::set_debug_pointlights(loaded_maps[active_map_index].pointlights.data(), (uint8)loaded_maps[active_map_index].pointlights.size());
+        debug::set_debug_spotlights(loaded_maps[active_map_index].spotlights.data(), (uint8)loaded_maps[active_map_index].spotlights.size());
+        if(loaded_maps[active_map_index].mainobject.model.meshes.size() <= 0)
+        {
+            assimp_load_mesh_group(loaded_maps[active_map_index].mainobject.model, loaded_maps[active_map_index].temp_obj_path);
+        }
+        console::cprintf("Loaded scene with model: %s\n", loaded_maps[active_map_index].temp_obj_path);
+    }
+    else
+    {
+        console::cprintf("Map index is out of bounds. Try something between 0 and %d\n", array_count(loaded_maps));
+    }
+}
+
+internal void cmd_print_camera_properties()
+{
+    console::cprintf("Camera position x: %f, y: %f, z: %f \n", g_camera.position.x, g_camera.position.y, g_camera.position.z);
+    console::cprintf("Camera rotation pitch: %f, yaw: %f, roll: %f \n", g_camera.rotation.x, g_camera.rotation.y, g_camera.rotation.z);
+    console::cprintf("Camera speed: %f\n", g_camera.movespeed);
+    console::cprintf("Camera sensitivity: %f\n", g_camera.turnspeed);
+}
+
 // find entities where x attribute is true or has x attribute
 
 // goto entity
@@ -125,4 +155,8 @@ internal void REGISTER_CONSOLE_COMMANDS()
     ADD_COMMAND_ONEARG("debug", debug::set_level, int);
     ADD_COMMAND_NOARG("toggle_debug_pointlights", debug::toggle_debug_pointlights);
     ADD_COMMAND_NOARG("togglewireframe", cmd_wireframe);
+
+    ADD_COMMAND_NOARG("camstats", cmd_print_camera_properties);
+
+    ADD_COMMAND_ONEARG("map", game_switch_map, int);
 }

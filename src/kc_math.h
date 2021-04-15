@@ -227,6 +227,7 @@ inline mat4 rotation_matrix(quaternion q);
 /** Generates scaling matrix for given x y z scales
     https://en.wikipedia.org/wiki/Scaling_(geometry)#Using_homogeneous_coordinates */
 inline mat4 scale_matrix(float x_scale, float y_scale, float z_scale);
+inline mat4 scale_matrix(vec3 scale);
 
 /** Creates a matrix for a symetric perspective-view frustum based on the default handedness and default near and far clip planes definition.
     fovy: Specifies the field of view angle in the y direction. Expressed in radians.
@@ -671,6 +672,11 @@ inline mat4 scale_matrix(float x_scale, float y_scale, float z_scale)
     ret[2][2] = z_scale;
     ret[3][3] = 1.f;
     return ret;
+}
+
+inline mat4 scale_matrix(vec3 scale)
+{
+    return scale_matrix(scale.x, scale.y, scale.z);
 }
 
 inline mat4 projection_matrix_perspective(float fovy, float aspect, float nearclip, float farclip)

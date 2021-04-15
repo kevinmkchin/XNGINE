@@ -219,15 +219,6 @@ private:
     real32 cos_cutoff = 0.866f;
 };
 
-/*
-struct ShaderGroup
-{
-    CommonShader
-    TextShader
-    UIShader
-};
-*/
-
 /** Stores mesh { VAO, VBO, IBO } info. Handle for VAO on GPU memory */
 struct Mesh
 {
@@ -272,21 +263,39 @@ struct Camera
     mat4   matrix_view          = { 0.f }; // Last calculated view matrix
 };
 
-/**  */
-/* 
-struct Entity
+/*
+struct ShaderGroup
 {
-    glm::vec3   pos     = glm::vec3(0.f);
-    quaternion  rot     = ;
-    glm::vec3   scale   = glm::vec3(0.f);
-    Mesh        mesh;
-    // Collider col
-    // boolean flags
-    // bool b_act; // active flag
-    // bool b_col; // collidable flag
-    // Tags tags[4]; // primary, secondary, tertiary, quaternary tags
+    CommonShader
+    TextShader
+    UIShader
 };
 */
+struct gameobject_t
+{
+    // TODO this is not very data oriented of you
+    vec3        pos = {0.f};
+    quaternion  orient = identity_quaternion();
+    vec3        scale = {1.f,1.f,1.f};
+    MeshGroup   model;
+    // collider_t col;
+    // int32 flags
+    // Tags tags[4]; // primary, secondary, tertiary, quaternary tags
+};
+
+struct temp_map_t
+{
+    // temporary
+    gameobject_t mainobject;
+    const char* temp_obj_path;
+    vec3 cam_start_pos = {0.f};
+    vec3 cam_start_rot = {0.f};
+
+    // prob going to stay
+    std::vector<PointLight> pointlights;
+    std::vector<SpotLight> spotlights;
+    DirectionalLight directionallight;
+};
 
 /*
 // Data-oriented example:
