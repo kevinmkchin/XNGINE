@@ -24,7 +24,6 @@ TODO:
 
 Backlog:
     - Memory management / custom memory allocator / replace all mallocs and callocs
-    - Lower case everything except hash defines
     - Arrow rendering for debugging
         - in the future arrow can also be used for translation gizmo
     - add SIMD for kc_math library
@@ -86,36 +85,36 @@ BUILD MODES
 
 // --- global variables  --- note: static variables are initialized to their default values
 // Width and Height of writable buffer
-global_var uint32 g_buffer_width;
-global_var uint32 g_buffer_height;
+GLOBAL_VAR uint32 g_buffer_width;
+GLOBAL_VAR uint32 g_buffer_height;
 
 // Global Input Data
-global_var const uint8* g_keystate = nullptr;       // Stores keyboard state this frame. Access via g_keystate[SDL_Scancode].
-global_var int32 g_last_mouse_pos_x = INDEX_NONE;   // Stores mouse state this frame. mouse_pos is not updated when using SDL RelativeMouseMode.
-global_var int32 g_last_mouse_pos_y = INDEX_NONE;
-global_var int32 g_curr_mouse_pos_x = INDEX_NONE;
-global_var int32 g_curr_mouse_pos_y = INDEX_NONE;
-global_var int32 g_mouse_delta_x = INDEX_NONE;
-global_var int32 g_mouse_delta_y = INDEX_NONE;
+GLOBAL_VAR const uint8* g_keystate = nullptr;       // Stores keyboard state this frame. Access via g_keystate[SDL_Scancode].
+GLOBAL_VAR int32 g_last_mouse_pos_x = INDEX_NONE;   // Stores mouse state this frame. mouse_pos is not updated when using SDL RelativeMouseMode.
+GLOBAL_VAR int32 g_last_mouse_pos_y = INDEX_NONE;
+GLOBAL_VAR int32 g_curr_mouse_pos_x = INDEX_NONE;
+GLOBAL_VAR int32 g_curr_mouse_pos_y = INDEX_NONE;
+GLOBAL_VAR int32 g_mouse_delta_x = INDEX_NONE;
+GLOBAL_VAR int32 g_mouse_delta_y = INDEX_NONE;
 
 // Game Window and States
-global_var bool b_is_game_running = true;
-global_var bool b_is_update_running = true;
-global_var SDL_Window* window = nullptr;
-global_var SDL_GLContext opengl_context = nullptr;
+GLOBAL_VAR bool b_is_game_running = true;
+GLOBAL_VAR bool b_is_update_running = true;
+GLOBAL_VAR SDL_Window* window = nullptr;
+GLOBAL_VAR SDL_GLContext opengl_context = nullptr;
 
 // -------------------------
 // Temporary
-global_var Camera g_camera;
-global_var mat4 g_matrix_projection_ortho;
-global_var bool g_b_wireframe = false;
+GLOBAL_VAR Camera g_camera;
+GLOBAL_VAR mat4 g_matrix_projection_ortho;
+GLOBAL_VAR bool g_b_wireframe = false;
 
 /* NOTE we're not going to have multiple maps loaded at once later on
    eventually we want to load maps from disk when we switch maps
    The only reason we are keeping an array right now is so we can preset
    the model transforms since we can't read that from disk yet. */
-global_var uint8 active_map_index = 0;
-global_var temp_map_t loaded_maps[4];
+GLOBAL_VAR uint8 active_map_index = 0;
+GLOBAL_VAR temp_map_t loaded_maps[4];
 
 // Fonts
 TTAFont g_font_handle_c64;
@@ -123,7 +122,7 @@ Texture g_font_atlas_c64;
 // -------------------------
 
 #include "timer.cpp"
-#include "file.cpp"
+#include "diskapi.cpp"
 #include "opengl.cpp"
 #include "camera.cpp"
 #include "profiler.cpp"
@@ -148,19 +147,19 @@ static const char* text_fs_path = "shaders/text_ui.frag";
 static const char* simple_vs_path = "shaders/simple.vert";
 static const char* simple_fs_path = "shaders/simple.frag";
 
-internal inline void win64_load_font(TTAFont* font_handle,
+INTERNAL inline void win64_load_font(TTAFont* font_handle,
                                         Texture& font_atlas,
                                         const char* font_path,
                                         uint8 font_size)
 {
     BinaryFileHandle fontfile;
-    file::read_binary(fontfile, font_path);
+    FILE_read_file_binary(fontfile, font_path);
         if(fontfile.memory)
         {
             kctta_init_font(font_handle, (uint8*) fontfile.memory, font_size);
         }
-    file::free_binary(fontfile);
-    gl::load_texture_from_bitmap(font_atlas,
+    FILE_free_file_binary(fontfile);
+    gl_load_texture_from_bitmap(font_atlas,
                                 font_handle->font_atlas.pixels,
                                 font_handle->font_atlas.width,
                                 font_handle->font_atlas.height,
@@ -168,7 +167,7 @@ internal inline void win64_load_font(TTAFont* font_handle,
     free(font_handle->font_atlas.pixels);
 }
 
-internal inline void sdl_vsync(int vsync)
+INTERNAL inline void sdl_vsync(int vsync)
 {
     /** This makes our Buffer Swap (SDL_GL_SwapWindow) synchronized with the monitor's 
     vertical refresh - basically vsync; 0 = immediate, 1 = vsync, -1 = adaptive vsync. 
@@ -179,11 +178,11 @@ internal inline void sdl_vsync(int vsync)
         case 0:{SDL_GL_SetSwapInterval(0);}break;
         case 1:{SDL_GL_SetSwapInterval(1);}break;
         case 2:{if(SDL_GL_SetSwapInterval(-1)==-1) SDL_GL_SetSwapInterval(1);}break;
-        default:{console::cprint("Invalid vsync option; 0 = immediate, 1 = vsync, 2 = adaptive vsync");}break;
+        default:{con_print("Invalid vsync option; 0 = immediate, 1 = vsync, 2 = adaptive vsync");}break;
     }
 }
 
-internal inline void gl_update_viewport_size()
+INTERNAL inline void gl_update_viewport_size()
 {
     /** Get the size of window's underlying drawable in pixels (for use with glViewport).
     Remark: This may differ from SDL_GetWindowSize() if we're rendering to a high-DPI drawable, i.e. the window was created 
@@ -191,11 +190,11 @@ internal inline void gl_update_viewport_size()
     SDL_HINT_VIDEO_HIGHDPI_DISABLED hint. */
     SDL_GL_GetDrawableSize(window, (int*)&g_buffer_width, (int*)&g_buffer_height);
     glViewport(0, 0, g_buffer_width, g_buffer_height);
-    console::cprintf("Viewport updated - x: %d y: %d\n", g_buffer_width, g_buffer_height);
+    con_printf("Viewport updated - x: %d y: %d\n", g_buffer_width, g_buffer_height);
 }
 
 /** Create window, set up OpenGL context, initialize SDL and GLEW */
-internal bool game_init()
+INTERNAL bool game_init()
 {
     // Initialize SDL
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
@@ -256,12 +255,12 @@ internal bool game_init()
 #endif
         }
 
-        console::cprintf("This program is running SDL version %u.%u.%u on %s\n", sys_windows_info.version.major, 
+        con_printf("This program is running SDL version %u.%u.%u on %s\n", sys_windows_info.version.major, 
             sys_windows_info.version.minor, sys_windows_info.version.patch, subsystem);
     }
     else 
     {
-        console::cprintf("Couldn't get window information: %s\n", SDL_GetError());
+        con_printf("Couldn't get window information: %s\n", SDL_GetError());
     }
 
     // Set context for SDL to use. Let SDL know that this window is the window that the OpenGL context should be tied to; everything that is drawn should be drawn to this window.
@@ -270,7 +269,7 @@ internal bool game_init()
         printf("Failed to create OpenGL Context with SDL.\n");
         return false;
     }
-    console::cprintf("OpenGL context created.\n");
+    con_printf("OpenGL context created.\n");
 
     // Initialize GLEW
     glewExperimental = GL_TRUE; // Enable us to access modern opengl extension features
@@ -279,7 +278,7 @@ internal bool game_init()
         printf("GLEW failed to initialize.\n");
         return false;
     }
-    console::cprintf("GLEW initialized.\n");
+    con_printf("GLEW initialized.\n");
 
     gl_update_viewport_size();
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // alpha blending func: a * (rgb) + (1 - a) * (rgb) = final color output
@@ -291,17 +290,17 @@ internal bool game_init()
     kctta_setflags(KCTTA_CREATE_INDEX_BUFFER);  // kc_truetypeassembler setting
 
     // LOAD FONTS
-    win64_load_font(&g_font_handle_c64, g_font_atlas_c64, "data/fonts/SourceCodePro.ttf", console::CON_TEXT_SIZE);
+    win64_load_font(&g_font_handle_c64, g_font_atlas_c64, "data/fonts/SourceCodePro.ttf", CON_TEXT_SIZE);
 
-    console::initialize(&g_font_handle_c64, g_font_atlas_c64);
-    profiler::initialize(&g_font_handle_c64, g_font_atlas_c64);
-    debug::initialize();
+    con_initialize(&g_font_handle_c64, g_font_atlas_c64);
+    profiler_initialize(&g_font_handle_c64, g_font_atlas_c64);
+    debugger_initialize();
 
     return true;
 }
 
 /** Process input and SDL events */
-internal void game_process_events()
+INTERNAL void game_process_events()
 {
     // Store Mouse state
     SDL_bool b_relative_mouse = SDL_GetRelativeMouseMode();
@@ -350,15 +349,15 @@ internal void game_process_events()
 
             case SDL_MOUSEWHEEL:
             {
-                if(console::is_shown() && g_curr_mouse_pos_y < console::CON_HEIGHT)
+                if(con_is_shown() && g_curr_mouse_pos_y < CON_HEIGHT)
                 {
                     if(event.wheel.y > 0)
                     {
-                        console::scroll_up();
+                        con_scroll_up();
                     }
                     else if(event.wheel.y < 0)
                     {
-                        console::scroll_down();
+                        con_scroll_down();
                     }
                 }
             } break;
@@ -367,17 +366,17 @@ internal void game_process_events()
             {
                 if (event.key.keysym.sym == SDLK_BACKQUOTE)
                 {
-                    console::toggle();
+                    con_toggle();
                     break;
                 }
 
-                if (console::is_shown())
+                if (con_is_shown())
                 {
-                    console::keydown(event.key);
+                    con_keydown(event.key);
                     break;
                 }
 
-                if (event.key.keysym.sym == SDLK_ESCAPE && console::is_hidden())
+                if (event.key.keysym.sym == SDLK_ESCAPE && con_is_hidden())
                 {
                     b_is_game_running = false;
                     break;
@@ -385,20 +384,20 @@ internal void game_process_events()
 
                 if (event.key.keysym.sym == SDLK_F1)
                 {
-                    profiler::perf_profiler_level ? console::command("profiler 0") : console::command("profiler 1");
+                    perf_profiler_level ? con_command("profiler 0") : con_command("profiler 1");
                     break;
                 }
 
                 if (event.key.keysym.sym == SDLK_F2)
                 {
-                    debug::debugger_level ? console::command("debug 0") : console::command("debug 1");
+                    debugger_level ? con_command("debug 0") : con_command("debug 1");
                     break;
                 }
 
                 if (event.key.keysym.sym == SDLK_z)
                 {
                     SDL_SetRelativeMouseMode((SDL_bool) !b_relative_mouse);
-                    console::cprintf("mouse grab = %s\n", !b_relative_mouse ? "true" : "false");
+                    con_printf("mouse grab = %s\n", !b_relative_mouse ? "true" : "false");
                     break;
                 }
             } break;
@@ -407,9 +406,9 @@ internal void game_process_events()
 }
 
 /** Tick game logic. Delta time is in seconds. */
-internal void game_update(real32 dt)
+INTERNAL void game_update(real32 dt)
 {
-    console::update(dt);
+    con_update(dt);
 
     if(b_is_update_running)
     {
@@ -418,7 +417,7 @@ internal void game_update(real32 dt)
 }
 
 /** Process graphics and render them to the screen. */
-internal void game_render()
+INTERNAL void game_render()
 {
     //glClearColor(0.39f, 0.582f, 0.926f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear opengl context's buffer
@@ -439,16 +438,16 @@ internal void game_render()
     
     calculate_viewmatrix(g_camera);
     
-    gl::use_shader(shader_common);
+    gl_use_shader(shader_common);
 
-        gl::bind_view_matrix(shader_common, g_camera.matrix_view.ptr());
-        gl::bind_projection_matrix(shader_common, g_camera.matrix_perspective.ptr());
-        gl::bind_camera_position(shader_common, g_camera);
+        gl_bind_view_matrix(shader_common, g_camera.matrix_view.ptr());
+        gl_bind_projection_matrix(shader_common, g_camera.matrix_perspective.ptr());
+        gl_bind_camera_position(shader_common, g_camera);
 
         temp_map_t* loaded_map = &loaded_maps[active_map_index];
-        gl::bind_directional_light(shader_common, loaded_map->directionallight);
-        gl::bind_point_lights(shader_common, loaded_map->pointlights.data(), (uint8)loaded_map->pointlights.size());
-        gl::bind_spot_lights(shader_common, loaded_map->spotlights.data(), (uint8)loaded_map->spotlights.size());
+        gl_bind_directional_light(shader_common, loaded_map->directionallight);
+        gl_bind_point_lights(shader_common, loaded_map->pointlights.data(), (uint8)loaded_map->pointlights.size());
+        gl_bind_spot_lights(shader_common, loaded_map->spotlights.data(), (uint8)loaded_map->spotlights.size());
 
         /** We could simply update the game object's position, rotation, scale fields,
             then construct the model matrix in game_render based on those fields.
@@ -458,23 +457,23 @@ internal void game_render()
         matrix_model *= translation_matrix(loaded_map->mainobject.pos);
         matrix_model *= rotation_matrix(loaded_map->mainobject.orient);
         matrix_model *= scale_matrix(loaded_map->mainobject.scale);
-        gl::bind_model_matrix(shader_common, matrix_model.ptr());
+        gl_bind_model_matrix(shader_common, matrix_model.ptr());
 
-        gl::bind_material(shader_common, material_dull);
+        gl_bind_material(shader_common, material_dull);
         render_mesh_group(loaded_map->mainobject.model);
 
     glUseProgram(0);
 
 // ALPHA BLENDED
     glEnable(GL_BLEND);
-    debug::render(shader_simple);
+    debugger_render(shader_simple);
 
 // NOT DEPTH TESTED
     glDisable(GL_DEPTH_TEST); 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    profiler::render(shader_ui, shader_text);
-    console::render(shader_ui, shader_text);
+    profiler_render(shader_ui, shader_text);
+    con_render(shader_ui, shader_text);
 
     /* Swap our buffer to display the current contents of buffer on screen. 
     This is used with double-buffered OpenGL contexts, which are the default. */
@@ -560,10 +559,10 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
 
     calc_average_normals(indices, 12, vertices, 32, 8, 5);
 
-    gl::load_shader_program_from_file(shader_common, vertex_shader_path, frag_shader_path);
-    gl::load_shader_program_from_file(shader_text, text_vs_path, text_fs_path);
-    gl::load_shader_program_from_file(shader_ui, ui_vs_path, ui_fs_path);
-    gl::load_shader_program_from_file(shader_simple, simple_vs_path, simple_fs_path);
+    gl_load_shader_program_from_file(shader_common, vertex_shader_path, frag_shader_path);
+    gl_load_shader_program_from_file(shader_text, text_vs_path, text_fs_path);
+    gl_load_shader_program_from_file(shader_ui, ui_vs_path, ui_fs_path);
+    gl_load_shader_program_from_file(shader_simple, simple_vs_path, simple_fs_path);
 
     g_camera.position = { 0.f, 0.f, 0.f };
     g_camera.rotation = { 0.f, 270.f, 0.f };
@@ -632,27 +631,27 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     // debugger_set_spotlights(spot_lights, array_count(spot_lights));
 
     // Game Loop
-    int64 perf_counter_frequency = timer::counter_frequency();
-    int64 last_tick = timer::get_ticks(); // cpu cycles count of last tick
+    int64 perf_counter_frequency = win64_counter_frequency();
+    int64 last_tick = win64_get_ticks(); // cpu cycles count of last tick
     while (b_is_game_running)
     {
         game_process_events();
         if (b_is_game_running == false) { break; }
-        int64 this_tick = timer::get_ticks();
+        int64 this_tick = win64_get_ticks();
         int64 delta_tick = this_tick - last_tick;
         real32 deltatime_secs = (real32) delta_tick / (real32) perf_counter_frequency;
         last_tick = this_tick;
-        profiler::perf_frametime_secs = deltatime_secs;
+        perf_frametime_secs = deltatime_secs;
         game_update(deltatime_secs);
         game_render();
     }
 
-    console::cprintf("Game shutting down...\n");
+    con_printf("Game shutting down...\n");
 
     // Cleanup
-    gl::delete_shader(shader_common);
-    gl::delete_shader(shader_text);
-    gl::delete_shader(shader_ui);
+    gl_delete_shader(shader_common);
+    gl_delete_shader(shader_text);
+    gl_delete_shader(shader_ui);
 
     SDL_DestroyWindow(window);
     SDL_GL_DeleteContext(opengl_context);

@@ -10,9 +10,9 @@
 /* Put INTERNAL in front of all functions, and that prevents them from ever going into the linking table.
 This causes the compiler to treat them as intra-unit linkage and it doesn't ever have to even do the work
  of moving to the link phase. */
-#define internal static             // static functions are internal to the translation unit
-#define local_persist static        // local static variables are only accessible within the scope of its declaration
-#define global_var static           // global static variables are global to the translation unit
+#define INTERNAL static             // static functions are internal to the translation unit
+#define LOCAL_PERSIST static        // local static variables are only accessible within the scope of its declaration
+#define GLOBAL_VAR static           // global static variables are global to the translation unit
 
 typedef uint8_t     uint8;
 typedef uint16_t    uint16;
@@ -40,9 +40,7 @@ typedef double      real64;
 
 #define TYPEHASH(T) typeid(T).hash_code()
 #define array_count(arr) (sizeof(arr) / (sizeof(arr[0])))
-#if INTERNAL_BUILD
 #define loop(x) for(int i=0;i<x;++i)
-#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////////

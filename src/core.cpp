@@ -1,30 +1,30 @@
-internal void render_mesh_group(MeshGroup& mesh_group)
+INTERNAL void render_mesh_group(MeshGroup& mesh_group)
 {
     for(size_t i = 0; i < mesh_group.meshes.size(); ++i)
     {
         uint16 mat_index = mesh_group.mesh_to_texture[i];
         if(mat_index < mesh_group.textures.size() && mesh_group.textures[mat_index].texture_id != 0)
         {
-            gl::use_texture(mesh_group.textures[mat_index]);
+            gl_use_texture(mesh_group.textures[mat_index]);
         }
 
-        gl::render_mesh(mesh_group.meshes[i]);
+        gl_render_mesh(mesh_group.meshes[i]);
     }
 }
 
-internal void clear_mesh_group(MeshGroup& mesh_group)
+INTERNAL void clear_mesh_group(MeshGroup& mesh_group)
 {
     for(size_t i = 0; i < mesh_group.meshes.size(); ++i)
     {
-        gl::delete_mesh(mesh_group.meshes[i]);
+        gl_delete_mesh(mesh_group.meshes[i]);
     }
     for(size_t i = 0; i < mesh_group.textures.size(); ++i)
     {
-        gl::delete_texture(mesh_group.textures[i]);
+        gl_delete_texture(mesh_group.textures[i]);
     }
 }
 
-internal void __assimp_load_mesh(MeshGroup& mesh_group, size_t mesh_index, aiMesh* mesh_node)
+INTERNAL void __assimp_load_mesh(MeshGroup& mesh_group, size_t mesh_index, aiMesh* mesh_node)
 {
     const uint8 vb_entries_per_vertex = 8;
     std::vector<real32> vb(mesh_node->mNumVertices * vb_entries_per_vertex);
@@ -70,14 +70,14 @@ internal void __assimp_load_mesh(MeshGroup& mesh_group, size_t mesh_index, aiMes
         }
     }
 
-    Mesh mesh = gl::create_mesh_array(&vb[0], &ib[0], (uint32)vb.size(), (uint32)ib.size());
+    Mesh mesh = gl_create_mesh_array(&vb[0], &ib[0], (uint32)vb.size(), (uint32)ib.size());
     mesh_group.meshes[mesh_index] = mesh;
     mesh_group.mesh_to_texture[mesh_index] = mesh_node->mMaterialIndex;
 }
 
-internal void assimp_load_mesh_group(MeshGroup& mesh_group, const char* file_name)
+INTERNAL void assimp_load_mesh_group(MeshGroup& mesh_group, const char* file_name)
 {
-    timer::global_timestamp();
+    //win64_global_timestamp();
 
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(file_name,
@@ -87,16 +87,16 @@ internal void assimp_load_mesh_group(MeshGroup& mesh_group, const char* file_nam
         );
     if(!scene)
     {
-        console::cprintf("Model '%s' failed to load: %s\n", file_name, importer.GetErrorString());
+        con_printf("Model '%s' failed to load: %s\n", file_name, importer.GetErrorString());
         return;
     }
-    console::cprintf("took %f seconds to Importer::ReadFile\n", timer::global_timestamp());
+    //con_printf("took %f seconds to Importer::ReadFile\n", win64_global_timestamp());
 
     mesh_group.meshes.resize(scene->mNumMeshes);
     mesh_group.mesh_to_texture.resize(scene->mNumMeshes);
     mesh_group.textures.resize(scene->mNumMaterials);
 
-    console::cprintf("took %f seconds to resize 3 vectors\n", timer::global_timestamp());
+    //con_printf("took %f seconds to resize 3 vectors\n", win64_global_timestamp());
 
     // Unpack meshes
     for(size_t i = 0; i < scene->mNumMeshes; ++i)
@@ -104,7 +104,7 @@ internal void assimp_load_mesh_group(MeshGroup& mesh_group, const char* file_nam
         __assimp_load_mesh(mesh_group, i, scene->mMeshes[i]);
     }
 
-    console::cprintf("took %f seconds to unpack all the meshes\n", timer::global_timestamp());
+    //con_printf("took %f seconds to unpack all the meshes\n", win64_global_timestamp());
 
     // Load diffuse textures
     for(size_t i = 0; i < scene->mNumMaterials; ++i)
@@ -122,10 +122,10 @@ internal void assimp_load_mesh_group(MeshGroup& mesh_group, const char* file_nam
                 model_file_directory = model_file_directory.substr(0, idx + 1);
 
                 std::string tex_path = model_file_directory + texture_file_name;
-                gl::load_texture_from_file(mesh_group.textures[i], tex_path.c_str());
+                gl_load_texture_from_file(mesh_group.textures[i], tex_path.c_str());
             }
         }
     }
 
-    console::cprintf("took %f seconds to load all the textures\n", timer::global_timestamp());
+    //con_printf("took %f seconds to load all the textures\n", win64_global_timestamp());
 }
