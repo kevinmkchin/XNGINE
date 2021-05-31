@@ -4,6 +4,8 @@ echo Build started: %time%
 
 rem *****************************
 rem Source Code to Build
+rem You can do "somedirectory\*.cpp" to compile all source files in that directory
+rem see https://stackoverflow.com/questions/33662375/how-can-you-compile-all-cpp-files-in-a-directory
 set SOURCE=..\src\main_win64.cpp
 rem *****************************
 

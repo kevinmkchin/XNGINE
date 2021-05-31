@@ -1,17 +1,32 @@
 /** OpenGL 3D Renderer
 
 TODO:
-    - Temporary level class to hold different scenes (for showcasing purpose initially)
-        - Create diff levels (e.g. sponza, minecraft, sponza in diff lightings)
-        - Be able to switch between them (to showcase)
-    - include a vc.bat to detect msvc installation and devenv (visual studio)
+    - Can I make console.cpp its own kc library? - i could include the .cpp twice but only
+        #define implementation in the second include.
+    - I could still use struct/class member functions and also do single translation unit
+    - BUG console command bug - commands get cut off when entered
+    - Shadow mapping
+    - Skyboxes
+    - Map Editor:
+        - console command 'editor' to enter
+        - quits the game inside the gamemode, and simply loads the map into the editor (keep camera in same transformation)
+        - use console to load and save
+            - 'save folder/path/name.map'
+            - 'load folder/path/name.map' load automatically saves current map
+            - maybe keep loaded maps in memory? until we explicitly call unload? or there are too many maps loaded?
+                - so that we can switch between maps without losing the map data in memory
+                    - then we can have a "palette" map with a collection of loaded model objs that we can copy instead of finding on disk
+            - use console commands to create geometry? or is that retarded?
+        - texture blending - store the bitmap in memory, and we can write it to map data or an actual bitmap whatever
+            - brush system like in unity/unreal where you paint textures, and behind the scenes we can edit the blend map in memory
+    - Modify kc_truetypeassembler.h documentation to say that one can use translation and scaling matrices with the resulting
+      vertices in order to transform them on the screen (e.g. animate the text).
+
 Backlog:
     - Memory management / custom memory allocator / replace all mallocs and callocs
-    - Shadow mapping
     - Lower case everything except hash defines
     - Arrow rendering for debugging
         - in the future arrow can also be used for translation gizmo
-
     - add SIMD for kc_math library
     - Entity - pos, orientation, scale, mesh, few boolean flags, collider, tags
     - Fixed timestep? for physics only?
