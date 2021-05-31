@@ -160,8 +160,7 @@ namespace console
 
         char message[1024];
         va_start(argptr, fmt);
-        // WARNING: stbsp_vsprintf incorrectly formats strings in some builds?
-        vsprintf(message, fmt, argptr);
+        stbsp_vsprintf(message, fmt, argptr);
         va_end(argptr);
 
         console::cprint(message);
