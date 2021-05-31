@@ -4,7 +4,7 @@
 
 */
 
-INTERNAL void FILE_free_file_binary(BinaryFileHandle& binary_file_to_free)
+internal void FILE_free_file_binary(BinaryFileHandle& binary_file_to_free)
 {
     free(binary_file_to_free.memory);
     binary_file_to_free.memory = NULL;
@@ -14,7 +14,7 @@ INTERNAL void FILE_free_file_binary(BinaryFileHandle& binary_file_to_free)
 /** Allocates memory, stores the binary file data in memory, makes BinaryFileHandle.memory
     point to it. Pass along a BinaryFileHandle to receive the pointer to the file data in
     memory and the size in bytes. */
-INTERNAL void FILE_read_file_binary(BinaryFileHandle& mem_to_read_to, const char* file_path)
+internal void FILE_read_file_binary(BinaryFileHandle& mem_to_read_to, const char* file_path)
 {
     if(mem_to_read_to.memory)
     {
@@ -38,7 +38,7 @@ INTERNAL void FILE_read_file_binary(BinaryFileHandle& mem_to_read_to, const char
 }
 
 /** Returns the string content of a file as an std::string */
-INTERNAL std::string FILE_read_file_string(const char* file_path)
+internal std::string FILE_read_file_string(const char* file_path)
 {
     std::string string_content;
 
@@ -60,7 +60,7 @@ INTERNAL std::string FILE_read_file_string(const char* file_path)
     return string_content;
 }
 
-INTERNAL void FILE_free_image(BitmapHandle& image_handle)
+internal void FILE_free_image(BitmapHandle& image_handle)
 {
     FILE_free_file_binary(image_handle);
     image_handle.width = 0;
@@ -71,7 +71,7 @@ INTERNAL void FILE_free_image(BitmapHandle& image_handle)
 /** Allocates memory, loads an image file as an UNSIGNED BYTE bitmap, makes BitmapHandle.memory
     point to it. Pass along a BitmapHandle to receive the pointer to the bitmap in memory and
     bitmap information. */
-INTERNAL void FILE_read_image(BitmapHandle& image_handle, const char* image_file_path)
+internal void FILE_read_image(BitmapHandle& image_handle, const char* image_file_path)
 {
     if(image_handle.memory)
     {

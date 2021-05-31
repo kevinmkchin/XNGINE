@@ -1,6 +1,7 @@
 /** OpenGL 3D Renderer
 
 TODO:
+    - refactor pass
     - Can I make console.cpp its own kc library? - i could include the .cpp twice but only
         #define implementation in the second include.
     - I could still use struct/class member functions and also do single translation unit
@@ -85,36 +86,36 @@ BUILD MODES
 
 // --- global variables  --- note: static variables are initialized to their default values
 // Width and Height of writable buffer
-GLOBAL_VAR uint32 g_buffer_width;
-GLOBAL_VAR uint32 g_buffer_height;
+global_var uint32 g_buffer_width;
+global_var uint32 g_buffer_height;
 
 // Global Input Data
-GLOBAL_VAR const uint8* g_keystate = nullptr;       // Stores keyboard state this frame. Access via g_keystate[SDL_Scancode].
-GLOBAL_VAR int32 g_last_mouse_pos_x = INDEX_NONE;   // Stores mouse state this frame. mouse_pos is not updated when using SDL RelativeMouseMode.
-GLOBAL_VAR int32 g_last_mouse_pos_y = INDEX_NONE;
-GLOBAL_VAR int32 g_curr_mouse_pos_x = INDEX_NONE;
-GLOBAL_VAR int32 g_curr_mouse_pos_y = INDEX_NONE;
-GLOBAL_VAR int32 g_mouse_delta_x = INDEX_NONE;
-GLOBAL_VAR int32 g_mouse_delta_y = INDEX_NONE;
+global_var const uint8* g_keystate = nullptr;       // Stores keyboard state this frame. Access via g_keystate[SDL_Scancode].
+global_var int32 g_last_mouse_pos_x = INDEX_NONE;   // Stores mouse state this frame. mouse_pos is not updated when using SDL RelativeMouseMode.
+global_var int32 g_last_mouse_pos_y = INDEX_NONE;
+global_var int32 g_curr_mouse_pos_x = INDEX_NONE;
+global_var int32 g_curr_mouse_pos_y = INDEX_NONE;
+global_var int32 g_mouse_delta_x = INDEX_NONE;
+global_var int32 g_mouse_delta_y = INDEX_NONE;
 
 // Game Window and States
-GLOBAL_VAR bool b_is_game_running = true;
-GLOBAL_VAR bool b_is_update_running = true;
-GLOBAL_VAR SDL_Window* window = nullptr;
-GLOBAL_VAR SDL_GLContext opengl_context = nullptr;
+global_var bool b_is_game_running = true;
+global_var bool b_is_update_running = true;
+global_var SDL_Window* window = nullptr;
+global_var SDL_GLContext opengl_context = nullptr;
 
 // -------------------------
 // Temporary
-GLOBAL_VAR Camera g_camera;
-GLOBAL_VAR mat4 g_matrix_projection_ortho;
-GLOBAL_VAR bool g_b_wireframe = false;
+global_var Camera g_camera;
+global_var mat4 g_matrix_projection_ortho;
+global_var bool g_b_wireframe = false;
 
 /* NOTE we're not going to have multiple maps loaded at once later on
    eventually we want to load maps from disk when we switch maps
    The only reason we are keeping an array right now is so we can preset
    the model transforms since we can't read that from disk yet. */
-GLOBAL_VAR uint8 active_map_index = 0;
-GLOBAL_VAR temp_map_t loaded_maps[4];
+global_var uint8 active_map_index = 0;
+global_var temp_map_t loaded_maps[4];
 
 // Fonts
 TTAFont g_font_handle_c64;
@@ -147,7 +148,7 @@ static const char* text_fs_path = "shaders/text_ui.frag";
 static const char* simple_vs_path = "shaders/simple.vert";
 static const char* simple_fs_path = "shaders/simple.frag";
 
-INTERNAL inline void win64_load_font(TTAFont* font_handle,
+internal inline void win64_load_font(TTAFont* font_handle,
                                         Texture& font_atlas,
                                         const char* font_path,
                                         uint8 font_size)
@@ -167,7 +168,7 @@ INTERNAL inline void win64_load_font(TTAFont* font_handle,
     free(font_handle->font_atlas.pixels);
 }
 
-INTERNAL inline void sdl_vsync(int vsync)
+internal inline void sdl_vsync(int vsync)
 {
     /** This makes our Buffer Swap (SDL_GL_SwapWindow) synchronized with the monitor's 
     vertical refresh - basically vsync; 0 = immediate, 1 = vsync, -1 = adaptive vsync. 
@@ -182,7 +183,7 @@ INTERNAL inline void sdl_vsync(int vsync)
     }
 }
 
-INTERNAL inline void gl_update_viewport_size()
+internal inline void gl_update_viewport_size()
 {
     /** Get the size of window's underlying drawable in pixels (for use with glViewport).
     Remark: This may differ from SDL_GetWindowSize() if we're rendering to a high-DPI drawable, i.e. the window was created 
@@ -194,7 +195,7 @@ INTERNAL inline void gl_update_viewport_size()
 }
 
 /** Create window, set up OpenGL context, initialize SDL and GLEW */
-INTERNAL bool game_init()
+internal bool game_init()
 {
     // Initialize SDL
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
@@ -300,7 +301,7 @@ INTERNAL bool game_init()
 }
 
 /** Process input and SDL events */
-INTERNAL void game_process_events()
+internal void game_process_events()
 {
     // Store Mouse state
     SDL_bool b_relative_mouse = SDL_GetRelativeMouseMode();
@@ -406,7 +407,7 @@ INTERNAL void game_process_events()
 }
 
 /** Tick game logic. Delta time is in seconds. */
-INTERNAL void game_update(real32 dt)
+internal void game_update(real32 dt)
 {
     con_update(dt);
 
@@ -417,7 +418,7 @@ INTERNAL void game_update(real32 dt)
 }
 
 /** Process graphics and render them to the screen. */
-INTERNAL void game_render()
+internal void game_render()
 {
     //glClearColor(0.39f, 0.582f, 0.926f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear opengl context's buffer

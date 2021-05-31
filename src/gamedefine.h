@@ -1,5 +1,6 @@
 #ifndef __GAME_DEFINE__
 #define __GAME_DEFINE__
+
 #include <cstdint>
 #pragma warning(disable:4996) // disable C Run-Time library deprecation warnings
 
@@ -10,9 +11,9 @@
 /* Put INTERNAL in front of all functions, and that prevents them from ever going into the linking table.
 This causes the compiler to treat them as intra-unit linkage and it doesn't ever have to even do the work
  of moving to the link phase. */
-#define INTERNAL static             // static functions are internal to the translation unit
-#define LOCAL_PERSIST static        // local static variables are only accessible within the scope of its declaration
-#define GLOBAL_VAR static           // global static variables are global to the translation unit
+#define internal        static  // static functions are internal to the translation unit
+#define local_persist   static  // local static variables are only accessible within the scope of its declaration
+#define global_var      static  // global static variables are global to the translation unit
 
 typedef uint8_t     uint8;
 typedef uint16_t    uint16;
@@ -57,4 +58,4 @@ enum gameobject_flags
 
 };
 
-#endif
+#endif //__GAME_DEFINE__

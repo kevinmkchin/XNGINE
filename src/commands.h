@@ -10,18 +10,18 @@
     ADD_COMMAND_THREEARG        := Register command function with 3 arguments
     ADD_COMMAND_FOURARG         := Register command function with 4 arguments
 
-    COMMAND_INVOKE              := invokes a console command (identified by the ConCommandMeta) using the args list
+    COMMAND_INVOKE              := invokes a console command (identified by the console_command_meta_t) using the args list
 */
 
 typedef void(*command_func_ptr)();
 
-struct ConCommandMeta
+struct console_command_meta_t
 {
     command_func_ptr    command_func;
     std::vector<size_t> arg_types;      // type_info::hash_code of arguments
 };
 
-GLOBAL_VAR std::map<std::string, ConCommandMeta> con_commands; // association of console command strings to their actual commands
+global_var std::map<std::string, console_command_meta_t> con_commands; // association of console command strings to their actual commands
 
 
 /** 
@@ -29,20 +29,20 @@ GLOBAL_VAR std::map<std::string, ConCommandMeta> con_commands; // association of
 */
 #define ADD_COMMAND_NOARG(cmd_str, cmd_func) \
             { \
-                ConCommandMeta cmd_meta; \
+                console_command_meta_t cmd_meta; \
                 cmd_meta.command_func = (command_func_ptr) cmd_func; \
                 con_commands.emplace(cmd_str, cmd_meta); \
             }
 #define ADD_COMMAND_ONEARG(cmd_str, cmd_func, argtype1) \
             { \
-                ConCommandMeta cmd_meta; \
+                console_command_meta_t cmd_meta; \
                 cmd_meta.command_func = (command_func_ptr) cmd_func; \
                 cmd_meta.arg_types.push_back(typeid(argtype1).hash_code()); \
                 con_commands.emplace(cmd_str, cmd_meta); \
             }
 #define ADD_COMMAND_TWOARG(cmd_str, cmd_func, argtype1, argtype2); \
             { \
-                ConCommandMeta cmd_meta; \
+                console_command_meta_t cmd_meta; \
                 cmd_meta.command_func = (command_func_ptr) cmd_func; \
                 cmd_meta.arg_types.push_back(typeid(argtype1).hash_code()); \
                 cmd_meta.arg_types.push_back(typeid(argtype2).hash_code()); \
@@ -50,7 +50,7 @@ GLOBAL_VAR std::map<std::string, ConCommandMeta> con_commands; // association of
             }
 #define ADD_COMMAND_THREEARG(cmd_str, cmd_func, argtype1, argtype2, argtype3); \
             { \
-                ConCommandMeta cmd_meta; \
+                console_command_meta_t cmd_meta; \
                 cmd_meta.command_func = (command_func_ptr) cmd_func; \
                 cmd_meta.arg_types.push_back(typeid(argtype1).hash_code()); \
                 cmd_meta.arg_types.push_back(typeid(argtype2).hash_code()); \
@@ -59,7 +59,7 @@ GLOBAL_VAR std::map<std::string, ConCommandMeta> con_commands; // association of
             }
 #define ADD_COMMAND_FOURARG(cmd_str, cmd_func, argtype1, argtype2, argtype3, argtype4); \
             { \
-                ConCommandMeta cmd_meta; \
+                console_command_meta_t cmd_meta; \
                 cmd_meta.command_func = (command_func_ptr) cmd_func; \
                 cmd_meta.arg_types.push_back(typeid(argtype1).hash_code()); \
                 cmd_meta.arg_types.push_back(typeid(argtype2).hash_code()); \
@@ -73,7 +73,7 @@ GLOBAL_VAR std::map<std::string, ConCommandMeta> con_commands; // association of
 
     TODO(maybe): idk I cannot think of a better way to go about this
 */
-INTERNAL inline bool is_number(std::string str)
+internal inline bool is_number(std::string str)
 {
     size_t len = str.length();
     for (int i = 0; i < len; ++i)
@@ -87,31 +87,31 @@ INTERNAL inline bool is_number(std::string str)
 }
 
 template<typename T1>
-INTERNAL void cmd_finallyinvoke1args(command_func_ptr funcptr, T1 first)
+internal void cmd_finallyinvoke1args(command_func_ptr funcptr, T1 first)
 {
     void(*func)(T1) = (void(*)(T1)) funcptr;
     func(first);
 }
 template<typename T1, typename T2>
-INTERNAL void cmd_finallyinvoke2args(command_func_ptr funcptr, T1 first, T2 second)
+internal void cmd_finallyinvoke2args(command_func_ptr funcptr, T1 first, T2 second)
 {
     void(*func)(T1, T2) = (void(*)(T1, T2)) funcptr;
     func(first, second);
 }
 template<typename T1, typename T2, typename T3>
-INTERNAL void cmd_finallyinvoke3args(command_func_ptr funcptr, T1 first, T2 second, T3 third)
+internal void cmd_finallyinvoke3args(command_func_ptr funcptr, T1 first, T2 second, T3 third)
 {
     void(*func)(T1, T2, T3) = (void(*)(T1, T2, T3)) funcptr;
     func(first, second, third);
 }
 template<typename T1, typename T2, typename T3, typename T4>
-INTERNAL void cmd_finallyinvoke4args(command_func_ptr funcptr, T1 first, T2 second, T3 third, T4 fourth)
+internal void cmd_finallyinvoke4args(command_func_ptr funcptr, T1 first, T2 second, T3 third, T4 fourth)
 {
     void(*func)(T1, T2, T3, T4) = (void(*)(T1, T2, T3, T4)) funcptr;
     func(first, second, third, fourth);
 }
 template<typename T1, typename T2, typename T3>
-INTERNAL void cmd_invokestage4(ConCommandMeta cmd_meta, std::vector<std::string> argslist, T1 first, T2 second, T3 third)
+internal void cmd_invokestage4(console_command_meta_t cmd_meta, std::vector<std::string> argslist, T1 first, T2 second, T3 third)
 {
     if(argslist.size() == 3)
     {
@@ -151,7 +151,7 @@ INTERNAL void cmd_invokestage4(ConCommandMeta cmd_meta, std::vector<std::string>
     }
 }
 template<typename T1, typename T2>
-INTERNAL void cmd_invokestage3(ConCommandMeta cmd_meta, std::vector<std::string> argslist, T1 first, T2 second)
+internal void cmd_invokestage3(console_command_meta_t cmd_meta, std::vector<std::string> argslist, T1 first, T2 second)
 {
     if(argslist.size() == 2)
     {
@@ -191,7 +191,7 @@ INTERNAL void cmd_invokestage3(ConCommandMeta cmd_meta, std::vector<std::string>
     }
 }
 template<typename T1>
-INTERNAL void cmd_invokestage2(ConCommandMeta cmd_meta, std::vector<std::string> argslist, T1 first)
+internal void cmd_invokestage2(console_command_meta_t cmd_meta, std::vector<std::string> argslist, T1 first)
 {
     if(argslist.size() == 1)
     {
@@ -231,7 +231,7 @@ INTERNAL void cmd_invokestage2(ConCommandMeta cmd_meta, std::vector<std::string>
     }
 }
 
-INTERNAL void COMMAND_INVOKE(ConCommandMeta cmd_meta, std::vector<std::string> argslist)
+internal void COMMAND_INVOKE(console_command_meta_t cmd_meta, std::vector<std::string> argslist)
 {
     if(argslist.size() == 0)
     {

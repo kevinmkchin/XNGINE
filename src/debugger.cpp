@@ -1,4 +1,4 @@
-GLOBAL_VAR int debugger_level = 0;
+global_var int debugger_level = 0;
 bool debugger_b_debug_pointlights = true;
 PointLight* debugger_point_lights = 0x0;
 uint8 debugger_point_lights_count = 0;
@@ -15,7 +15,7 @@ Mesh debug_cone_mesh;
 // TODO debug forward vector (i.e. show direction of object)
 
 // TODO create circle in x y z axis
-INTERNAL void create_circle_vertex_buffer(real32* vertices, uint32* indices,
+internal void create_circle_vertex_buffer(real32* vertices, uint32* indices,
                                           uint32* vertex_count, uint32* indices_count,
                                           real32 x, real32 y, real32 z,
                                           real32 radius, uint8 axis=0)
@@ -46,7 +46,7 @@ INTERNAL void create_circle_vertex_buffer(real32* vertices, uint32* indices,
     }
 }
 
-INTERNAL Mesh create_circle_mesh(real32 pos_x, real32 pos_y, real32 pos_z, real32 radius, uint8 axis=0)
+internal Mesh create_circle_mesh(real32 pos_x, real32 pos_y, real32 pos_z, real32 radius, uint8 axis=0)
 {
     real32 vertices[387]; // 129 vertices * 3 floats
     uint32 vertex_count = 0;
@@ -56,7 +56,7 @@ INTERNAL Mesh create_circle_mesh(real32 pos_x, real32 pos_y, real32 pos_z, real3
     return gl_create_mesh_array(vertices, indices, vertex_count * 3, indices_count, 3, 0, 0);
 }
 
-INTERNAL Mesh create_cone_mesh(real32 apex_x, real32 apex_y, real32 apex_z,
+internal Mesh create_cone_mesh(real32 apex_x, real32 apex_y, real32 apex_z,
                                real32 height, real32 base_radius)
 {
     real32 vertices[411]; // 129 vertices * 3 floats + 8 vertices * 3 floats
@@ -81,7 +81,7 @@ INTERNAL Mesh create_cone_mesh(real32 apex_x, real32 apex_y, real32 apex_z,
     return gl_create_mesh_array(vertices, indices, vertex_count * 3, indices_count, 3, 0, 0);
 }
 
-INTERNAL void debug_render_sphere(PerspectiveShader& shader, real32 x, real32 y, real32 z, real32 radius)
+internal void debug_render_sphere(PerspectiveShader& shader, real32 x, real32 y, real32 z, real32 radius)
 {
     mat4 sphere_transform = identity_mat4();
     sphere_transform *= translation_matrix(x, y, z);
@@ -96,7 +96,7 @@ INTERNAL void debug_render_sphere(PerspectiveShader& shader, real32 x, real32 y,
     gl_render_mesh(debug_sphere_mesh, GL_LINES);
 }
 
-INTERNAL void debug_render_cone(PerspectiveShader& shader,
+internal void debug_render_cone(PerspectiveShader& shader,
                                 real32 x, real32 y, real32 z,
                                 real32 height, real32 base_radius,
                                 quaternion orientation)
@@ -111,12 +111,12 @@ INTERNAL void debug_render_cone(PerspectiveShader& shader,
     gl_render_mesh(debug_cone_mesh, GL_LINES);
 }
 
-INTERNAL void debug_render_line()
+internal void debug_render_line()
 {
     // TODO
 }
 
-INTERNAL real32 debug_calculate_attenuation_range(real32 c, real32 l, real32 q)
+internal real32 debug_calculate_attenuation_range(real32 c, real32 l, real32 q)
 {
     c -= 1.f / ATTENUATION_FACTOR_TO_CALC_RANGE_FOR;
     real32 discriminant = l * l - 4 * q * c;
@@ -133,7 +133,7 @@ INTERNAL real32 debug_calculate_attenuation_range(real32 c, real32 l, real32 q)
     }
 }
 
-INTERNAL void debug_render_pointlight(PerspectiveShader& shader, PointLight& plight)
+internal void debug_render_pointlight(PerspectiveShader& shader, PointLight& plight)
 {
     real32 att_radius = debug_calculate_attenuation_range(plight.att_constant,
                                                           plight.att_linear,
@@ -148,7 +148,7 @@ INTERNAL void debug_render_pointlight(PerspectiveShader& shader, PointLight& pli
     }
 }
 
-INTERNAL void debug_render_spotlight(PerspectiveShader& shader, SpotLight& slight)
+internal void debug_render_spotlight(PerspectiveShader& shader, SpotLight& slight)
 {
     real32 att_radius = debug_calculate_attenuation_range(slight.att_constant,
                                                       slight.att_linear,
@@ -166,13 +166,13 @@ INTERNAL void debug_render_spotlight(PerspectiveShader& shader, SpotLight& sligh
     }
 }
 
-INTERNAL void debugger_initialize()
+internal void debugger_initialize()
 {
     debug_sphere_mesh = create_circle_mesh(0.f, 0.f, 0.f, 1.f);
     debug_cone_mesh = create_cone_mesh(0.f, 0.f, 0.f, 1.f, 1.f);
 }
 
-INTERNAL void debugger_render(PerspectiveShader& debug_shader)
+internal void debugger_render(PerspectiveShader& debug_shader)
 {
     if(!debugger_level)
     {
@@ -206,29 +206,29 @@ INTERNAL void debugger_render(PerspectiveShader& debug_shader)
     glUseProgram(0);
 }
 
-INTERNAL void debugger_set_pointlights(PointLight* point_lights_array, uint8 count)
+internal void debugger_set_pointlights(PointLight* point_lights_array, uint8 count)
 {
     debugger_point_lights = point_lights_array;
     debugger_point_lights_count = count;
 }
 
-INTERNAL void debugger_toggle_debug_pointlights()
+internal void debugger_toggle_debug_pointlights()
 {
     debugger_b_debug_pointlights = !debugger_b_debug_pointlights;
 }
 
-INTERNAL void debugger_set_spotlights(SpotLight* spot_lights_array, uint8 count)
+internal void debugger_set_spotlights(SpotLight* spot_lights_array, uint8 count)
 {
     debugger_spot_lights = spot_lights_array;
     debugger_spot_lights_count = count;
 }
 
-INTERNAL void debugger_toggle_debug_spotlights()
+internal void debugger_toggle_debug_spotlights()
 {
     debugger_b_debug_spotlights = !debugger_b_debug_spotlights;
 }
 
-INTERNAL void debugger_set_debug_level(int level)
+internal void debugger_set_debug_level(int level)
 {
     debugger_level = level;
 }

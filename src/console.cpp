@@ -72,7 +72,7 @@ Mesh        con_text_vaos[CON_ROWS_MAX] = {}; // one vao is one line
 
 // TODO buffer to hold previous commands (max 20 commands)
 
-INTERNAL void con_initialize(TTAFont* console_font_handle, Texture console_font_atlas)
+internal void con_initialize(TTAFont* console_font_handle, Texture console_font_atlas)
 {
     // ADD COMMANDS
     con_register_cmds();
@@ -128,10 +128,10 @@ INTERNAL void con_initialize(TTAFont* console_font_handle, Texture console_font_
 }
 
 /** logs the message into the messages buffer */
-INTERNAL void con_print(const char* message)
+internal void con_print(const char* message)
 {
 
-#if INTERNAL_BUILD
+#if internal_BUILD
     printf(message);
 #endif
 
@@ -151,7 +151,7 @@ INTERNAL void con_print(const char* message)
     con_b_messages_dirty = true;
 }
 
-INTERNAL void con_printf(const char* fmt, ...)
+internal void con_printf(const char* fmt, ...)
 {
     va_list argptr;
 
@@ -163,7 +163,7 @@ INTERNAL void con_printf(const char* fmt, ...)
     con_print(message);
 }
 
-INTERNAL void con_command(char* text_command)
+internal void con_command(char* text_command)
 {
     char text_command_buffer[CON_COLS_MAX];
     strcpy_s(text_command_buffer, CON_COLS_MAX, text_command);//because text_command might point to read-only data
@@ -183,7 +183,7 @@ INTERNAL void con_command(char* text_command)
     cmd = std::string(token_buff);
     if (con_commands.find(cmd) != con_commands.end()) 
     {
-        ConCommandMeta cmd_meta = con_commands.at(cmd);
+        console_command_meta_t cmd_meta = con_commands.at(cmd);
 
         // get list of args
         int argcount = 0;
@@ -213,7 +213,7 @@ INTERNAL void con_command(char* text_command)
     }
 }
 
-INTERNAL void con_toggle()
+internal void con_toggle()
 {
     if(con_state == CON_HIDING || con_state == CON_SHOWING)
     {
@@ -234,7 +234,7 @@ INTERNAL void con_toggle()
     }
 }
 
-INTERNAL void con_update_messages()
+internal void con_update_messages()
 {
     if(con_b_messages_dirty)
     {
@@ -292,7 +292,7 @@ INTERNAL void con_update_messages()
     }
 }
 
-INTERNAL void con_update(real32 dt)
+internal void con_update(real32 dt)
 {
     if(!con_b_initialized || con_state == CON_HIDDEN)
     {
@@ -341,7 +341,7 @@ INTERNAL void con_update(real32 dt)
     }
 }
 
-INTERNAL void con_render(OrthographicShader ui_shader, OrthographicShader text_shader)
+internal void con_render(OrthographicShader ui_shader, OrthographicShader text_shader)
 {
     if(!con_b_initialized || con_state == CON_HIDDEN)
     {
@@ -395,7 +395,7 @@ INTERNAL void con_render(OrthographicShader ui_shader, OrthographicShader text_s
     glUseProgram(0);
 }
 
-INTERNAL void con_scroll_up()
+internal void con_scroll_up()
 {
     int temp_cursor = con_messages_read_cursor - 1;
     char c = con_messages[temp_cursor];
@@ -425,7 +425,7 @@ INTERNAL void con_scroll_up()
     con_b_messages_dirty = true;
 }
 
-INTERNAL void con_scroll_down()
+internal void con_scroll_down()
 {
     if(con_messages_read_cursor != con_messages_write_cursor)
     {
@@ -449,7 +449,7 @@ INTERNAL void con_scroll_down()
     }
 }
 
-INTERNAL void con_keydown(SDL_KeyboardEvent& keyevent)
+internal void con_keydown(SDL_KeyboardEvent& keyevent)
 {
     SDL_Keycode keycode = keyevent.keysym.sym;
 
@@ -568,12 +568,12 @@ INTERNAL void con_keydown(SDL_KeyboardEvent& keyevent)
     }
 }
 
-INTERNAL bool con_is_shown()
+internal bool con_is_shown()
 {
     return con_b_initialized && con_state == CON_SHOWN;
 }
 
-INTERNAL bool con_is_hidden()
+internal bool con_is_hidden()
 {
     return con_state == CON_HIDDEN;
 }

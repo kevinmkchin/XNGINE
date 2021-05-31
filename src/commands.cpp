@@ -15,42 +15,42 @@
 */
 #include "commands.h"
 
-INTERNAL void cmd_pause()
+internal void cmd_pause()
 {
     b_is_update_running = false;
 }
 
-INTERNAL void cmd_unpause()
+internal void cmd_unpause()
 {
     b_is_update_running = true;
 }
 
-INTERNAL void cmd_wireframe()
+internal void cmd_wireframe()
 {
     g_b_wireframe = !g_b_wireframe;
 }
 
-INTERNAL void cmd_add(float x, float y)
+internal void cmd_add(float x, float y)
 {
     con_printf("result: %f\n", x + y);
 }
 
-INTERNAL void cmd_sensitivity(float sens)
+internal void cmd_sensitivity(float sens)
 {
     g_camera.turnspeed = sens;
 }
 
-INTERNAL void cmd_camera_speed(float speed)
+internal void cmd_camera_speed(float speed)
 {
     g_camera.movespeed = speed;
 }
 
-INTERNAL void cmd_exit()
+internal void cmd_exit()
 {
     b_is_game_running = false;
 }
 
-INTERNAL void cmd_help()
+internal void cmd_help()
 {
     con_print("Commands in commmands.cpp\n");
     con_print("======\n");
@@ -83,9 +83,9 @@ INTERNAL void cmd_help()
     con_print("\n======\n");
 }
 
-INTERNAL void sdl_vsync(int vsync);
+internal void sdl_vsync(int vsync);
 
-INTERNAL void sdl_fullscreen(int fullscreen)
+internal void sdl_fullscreen(int fullscreen)
 {
     switch(fullscreen)
     {
@@ -95,12 +95,12 @@ INTERNAL void sdl_fullscreen(int fullscreen)
     }
 }
 
-INTERNAL void sdl_set_window_size(int w, int h)
+internal void sdl_set_window_size(int w, int h)
 {
     SDL_SetWindowSize(window, w, h);
 }
 
-INTERNAL void game_switch_map(int map_index) //TODO move this to gamemode.cpp and replace console command with a cmd_map(std::string mapname)
+internal void game_switch_map(int map_index) //TODO move this to gamemode.cpp and replace console command with a cmd_map(std::string mapname)
 {
     if(0 <= map_index && map_index < array_count(loaded_maps))
     {
@@ -122,7 +122,7 @@ INTERNAL void game_switch_map(int map_index) //TODO move this to gamemode.cpp an
     }
 }
 
-INTERNAL void cmd_print_camera_properties()
+internal void cmd_print_camera_properties()
 {
     con_printf("Camera position x: %f, y: %f, z: %f \n", g_camera.position.x, g_camera.position.y, g_camera.position.z);
     con_printf("Camera rotation pitch: %f, yaw: %f, roll: %f \n", g_camera.rotation.x, g_camera.rotation.y, g_camera.rotation.z);
@@ -136,7 +136,7 @@ INTERNAL void cmd_print_camera_properties()
 
 ////////////////////////////////////////////////////////////////////////////
 
-INTERNAL void con_register_cmds()
+internal void con_register_cmds()
 {
     ADD_COMMAND_NOARG("help", cmd_help);
     ADD_COMMAND_NOARG("exit", cmd_exit);
