@@ -15,9 +15,9 @@ rem The choice of subsystem affects the entry point function that the linker wil
 set LINKERSUBSYSTEM=/SUBSYSTEM:CONSOLE
 
 rem Additional Include Directories - preceded by /I
-set ADDINCLUDES=/I"..\libs\GLEW\include" /I"..\libs\SDL\include" /I"..\libs\ASSIMP\include"
+set ADDINCLUDES=/I"..\lib\GLEW\include" /I"..\lib\SDL\include" /I"..\lib\ASSIMP\include"
 rem Additional Library/Dependency Directories - preceded by /LIBPATH:
-set ADDLIBPATHS=/LIBPATH:"..\libs\GLEW\lib\Release\x64"	/LIBPATH:"..\libs\SDL\lib\x64" /LIBPATH:"..\libs\ASSIMP\lib"
+set ADDLIBPATHS=/LIBPATH:"..\lib\GLEW\lib\Release\x64"	/LIBPATH:"..\lib\SDL\lib\x64" /LIBPATH:"..\lib\ASSIMP\lib"
 rem Additional Dependencies; may be from above ADDLIBPATHS
 set ADDDEPENDENCIES=Shell32.lib opengl32.lib glew32.lib SDL2.lib SDL2main.lib assimp-vc142-mt.lib
 
