@@ -1,5 +1,5 @@
-GLOBAL_VAR int      perf_profiler_level = 0;
-GLOBAL_VAR real32   perf_frametime_secs = 0.f;
+global_var int      perf_profiler_level = 0;
+global_var real32   perf_frametime_secs = 0.f;
 
 uint8   PERF_TEXT_SIZE = 17;
 uint16  PERF_DRAW_X = 4;
@@ -12,19 +12,19 @@ Texture     perf_font_atlas;
 // Meshes
 Mesh        perf_frametime_vao;
 
-INTERNAL void profiler_set_level(int level)
+internal void profiler_set_level(int level)
 {
     perf_profiler_level = level;
 }
 
-INTERNAL void profiler_initialize(TTAFont* in_perf_font_handle, Texture in_perf_font_atlas)
+internal void profiler_initialize(TTAFont* in_perf_font_handle, Texture in_perf_font_atlas)
 {
     perf_font_handle = in_perf_font_handle;
     perf_font_atlas = in_perf_font_atlas;
     perf_frametime_vao = gl_create_mesh_array(0, 0, 0, 0, 2, 2, 0, GL_DYNAMIC_DRAW);
 }
 
-INTERNAL void profiler_render(OrthographicShader ui_shader, OrthographicShader text_shader)
+internal void profiler_render(OrthographicShader ui_shader, OrthographicShader text_shader)
 {
     if(!perf_profiler_level)
     {

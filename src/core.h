@@ -82,8 +82,8 @@ struct OrthographicShader : BaseShader
 
 struct LightingShader : PerspectiveShader
 {
-    GLOBAL_VAR const unsigned int MAX_POINT_LIGHTS = 4;
-    GLOBAL_VAR const unsigned int MAX_SPOT_LIGHTS = 4;
+    global_var const unsigned int MAX_POINT_LIGHTS = 4;
+    global_var const unsigned int MAX_SPOT_LIGHTS = 4;
 
     GLint   id_uniform_observer_pos = 0;
 
