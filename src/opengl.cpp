@@ -32,7 +32,7 @@ internal void gl_compile_shader(uint32 program_id, const char* shader_code, GLen
     glAttachShader(program_id, id_shader);
 }
 
-internal void gl_create_shader_program(BaseShader& shader, const char* vertex_shader_str, const char* fragment_shader_str)
+internal void gl_create_shader_program(shader_base_t& shader, const char* vertex_shader_str, const char* fragment_shader_str)
 {
     // Create an empty shader program and get the id
     shader.id_shader_program = glCreateProgram();
@@ -69,7 +69,7 @@ internal void gl_create_shader_program(BaseShader& shader, const char* vertex_sh
     shader.load_uniforms();
 }
 
-internal void gl_load_shader_program_from_file(BaseShader& shader, const char* vertex_path, const char* fragment_path)
+internal void gl_load_shader_program_from_file(shader_base_t& shader, const char* vertex_path, const char* fragment_path)
 {
     std::string v = FILE_read_file_string(vertex_path);
     std::string f = FILE_read_file_string(fragment_path);
@@ -77,7 +77,7 @@ internal void gl_load_shader_program_from_file(BaseShader& shader, const char* v
 }
 
 /** Telling opengl to start using this shader program */
-internal void gl_use_shader(BaseShader& shader)
+internal void gl_use_shader(shader_base_t& shader)
 {
     if (shader.id_shader_program == 0)
     {
@@ -88,7 +88,7 @@ internal void gl_use_shader(BaseShader& shader)
 }
 
 /** Delete the shader program off GPU memory */
-internal void gl_delete_shader(BaseShader& shader)
+internal void gl_delete_shader(shader_base_t& shader)
 {
     if (shader.id_shader_program == 0)
     {
@@ -98,32 +98,32 @@ internal void gl_delete_shader(BaseShader& shader)
     glDeleteProgram(shader.id_shader_program);
 }
 
-internal void gl_bind_model_matrix(BaseShader& shader, const GLfloat* matrix)
+internal void gl_bind_model_matrix(shader_base_t& shader, const GLfloat* matrix)
 {
     glUniformMatrix4fv(shader.id_uniform_model, 1, GL_FALSE, matrix);
 }
 
-internal void gl_bind_view_matrix(PerspectiveShader& shader, const GLfloat* matrix)
+internal void gl_bind_view_matrix(shader_perspective_t& shader, const GLfloat* matrix)
 {
     glUniformMatrix4fv(shader.id_uniform_view, 1, GL_FALSE, matrix);
 }
 
-internal void gl_bind_projection_matrix(PerspectiveShader& shader, const GLfloat* matrix)
+internal void gl_bind_projection_matrix(shader_perspective_t& shader, const GLfloat* matrix)
 {
     glUniformMatrix4fv(shader.id_uniform_proj_perspective, 1, GL_FALSE, matrix);
 }
 
-internal void gl_bind_projection_matrix(OrthographicShader& shader, const GLfloat* matrix)
+internal void gl_bind_projection_matrix(shader_orthographic_t& shader, const GLfloat* matrix)
 {
     glUniformMatrix4fv(shader.id_uniform_proj_orthographic, 1, GL_FALSE, matrix);
 }
 
-internal void gl_bind_camera_position(LightingShader& shader, Camera& camera)
+internal void gl_bind_camera_position(shader_lighting_t& shader, camera_t& camera)
 {
     glUniform3f(shader.id_uniform_observer_pos, camera.position.x, camera.position.y, camera.position.z);
 }
 
-internal void gl_bind_directional_light(LightingShader& shader, DirectionalLight& light)
+internal void gl_bind_directional_light(shader_lighting_t& shader, light_directional_t& light)
 {
     glUniform3f(shader.id_uniform_directional_light.colour, light.colour.x, light.colour.y, light.colour.z);
     glUniform1f(shader.id_uniform_directional_light.ambient_intensity, light.ambient_intensity);
@@ -132,9 +132,9 @@ internal void gl_bind_directional_light(LightingShader& shader, DirectionalLight
     glUniform3f(shader.id_uniform_directional_light.direction, direction.x, direction.y, direction.z);
 }
 
-internal void gl_bind_point_lights(LightingShader& shader, PointLight* plights, uint8 count)
+internal void gl_bind_point_lights(shader_lighting_t& shader, light_point_t* plights, uint8 count)
 {
-    count = min(count, LightingShader::MAX_POINT_LIGHTS);
+    count = min(count, shader_lighting_t::MAX_POINT_LIGHTS);
     glUniform1i(shader.id_uniform_point_light_count, count);
     for(size_t i = 0; i < count; ++i)
     {
@@ -149,9 +149,9 @@ internal void gl_bind_point_lights(LightingShader& shader, PointLight* plights, 
     }
 }
 
-internal void gl_bind_spot_lights(LightingShader& shader, SpotLight* slights, uint8 count)
+internal void gl_bind_spot_lights(shader_lighting_t& shader, light_spot_t* slights, uint8 count)
 {
-    count = min(count, LightingShader::MAX_SPOT_LIGHTS);
+    count = min(count, shader_lighting_t::MAX_SPOT_LIGHTS);
     glUniform1i(shader.id_uniform_spot_light_count, count);
     for(size_t i = 0; i < count; ++i)
     {
@@ -170,7 +170,7 @@ internal void gl_bind_spot_lights(LightingShader& shader, SpotLight* slights, ui
     }
 }
 
-internal void gl_bind_material(LightingShader& shader, Material& material)
+internal void gl_bind_material(shader_lighting_t& shader, material_t& material)
 {
     glUniform1f(shader.id_uniform_specular_intensity, material.specular_intensity);
     glUniform1f(shader.id_uniform_shininess, material.shininess);
@@ -183,19 +183,19 @@ internal void gl_bind_material(LightingShader& shader, Material& material)
 
 */
 
-/** Create a Mesh with the given vertices and indices. 
+/** Create a mesh_t with the given vertices and indices.
     vertex_attrib_size: vertex coords size (e.g. 3 if x y z)
     texture_attrib_size: texture coords size (e.g. 2 if u v)
     draw_usage: affects optimization; GL_STATIC_DRAW buffer data 
     only set once, GL_DYNAMIC_DRAW if buffer modified repeatedly */
-internal Mesh gl_create_mesh_array(real32* vertices, 
-                                   uint32* indices,
-                                   uint32 vertices_array_count,
-                                   uint32 indices_array_count,
-                                   uint8 vertex_attrib_size = 3,
-                                   uint8 texture_attrib_size = 2,
-                                   uint8 normal_attrib_size = 3,
-                                   GLenum draw_usage = GL_STATIC_DRAW)
+internal mesh_t gl_create_mesh_array(real32* vertices,
+                                     uint32* indices,
+                                     uint32 vertices_array_count,
+                                     uint32 indices_array_count,
+                                     uint8 vertex_attrib_size = 3,
+                                     uint8 texture_attrib_size = 2,
+                                     uint8 normal_attrib_size = 3,
+                                     GLenum draw_usage = GL_STATIC_DRAW)
 {
     uint8 stride = 0;
     if(texture_attrib_size)
@@ -207,8 +207,8 @@ internal Mesh gl_create_mesh_array(real32* vertices,
         }
     }
 
-    Mesh mesh;
-    // Need to store to index_count because we need the count of indices when we are drawing in Mesh::render_mesh
+    mesh_t mesh;
+    // Need to store to index_count because we need the count of indices when we are drawing in mesh_t::render_mesh
     mesh.index_count = indices_array_count;
 
     glGenVertexArrays(1, &mesh.id_vao); // Defining some space in the GPU for a vertex array and giving you the vao ID
@@ -254,8 +254,8 @@ internal Mesh gl_create_mesh_array(real32* vertices,
 }
 
 /** Overwrite existing buffer data */
-internal void gl_rebind_buffers(Mesh& mesh,
-                                real32* vertices, 
+internal void gl_rebind_buffers(mesh_t& mesh,
+                                real32* vertices,
                                 uint32* indices,
                                 uint32 vertices_array_count,
                                 uint32 indices_array_count,
@@ -277,7 +277,7 @@ internal void gl_rebind_buffers(Mesh& mesh,
 }
 
 /** Binds VAO and draws elements. Bind a shader program and texture before calling gl_render_mesh */
-internal void gl_render_mesh(Mesh& mesh, GLenum mode = GL_TRIANGLES)
+internal void gl_render_mesh(mesh_t& mesh, GLenum mode = GL_TRIANGLES)
 {
     if (mesh.index_count == 0) // Early out if index_count == 0, nothing to draw
     {
@@ -295,7 +295,7 @@ internal void gl_render_mesh(Mesh& mesh, GLenum mode = GL_TRIANGLES)
 
 /** Clearing GPU memory: glDeleteBuffers and glDeleteVertexArrays deletes the buffer
     object and vertex array object off the GPU memory. */
-internal void gl_delete_mesh(Mesh& mesh)
+internal void gl_delete_mesh(mesh_t& mesh)
 {
     if (mesh.id_ibo != 0)
     {
@@ -318,12 +318,12 @@ internal void gl_delete_mesh(Mesh& mesh)
 
 /**
 
-    Texture 
+    texture_t
 
 */
 
 /** Deletes texture object from GPU memory; resets texture_id, width, height, bit_depth to 0. */
-internal void gl_delete_texture(Texture& texture)
+internal void gl_delete_texture(texture_t& texture)
 {
     if(texture.texture_id == 0)
     {
@@ -340,7 +340,7 @@ internal void gl_delete_texture(Texture& texture)
 /** Loads texture from bitmap; generates a new texture object in GPU mem; store the id
     of the new texture object into texture.texture_id; sets texture parameters; copies texture data
     into the texture object in GPU mem; and generates mip maps automatically. */
-internal void gl_load_texture_from_bitmap(Texture&          texture,
+internal void gl_load_texture_from_bitmap(texture_t&          texture,
                                           unsigned char*    bitmap,
                                           uint32            bitmap_width,
                                           uint32            bitmap_height,
@@ -349,7 +349,7 @@ internal void gl_load_texture_from_bitmap(Texture&          texture,
 {
     if(texture.texture_id != 0)
     {
-        con_printf("WARNING: Trying to load a Texture when there is already a texture loaded! Clearing texture first...\n");
+        con_printf("WARNING: Trying to load a texture_t when there is already a texture loaded! Clearing texture first...\n");
         gl_delete_texture(texture);
     }
 
@@ -380,23 +380,23 @@ internal void gl_load_texture_from_bitmap(Texture&          texture,
 /** Loads texture at file_path; generates a new texture object in GPU mem; stores the id
     of the new texture object into texture.texture_id; sets texture parameters; copies 
     texture data into the texture object in GPU mem; and generates mip maps automatically. */
-internal void gl_load_texture_from_file(Texture&    texture,
+internal void gl_load_texture_from_file(texture_t&    texture,
                                         const char* texture_file_path)
 {
-    BitmapHandle texture_handle;
+    bitmap_handle_t texture_handle;
     FILE_read_image(texture_handle, texture_file_path);
         gl_load_texture_from_bitmap(texture, (unsigned char*)texture_handle.memory, texture_handle.width, 
             texture_handle.height, GL_RGBA, (texture_handle.bit_depth == 3 ? GL_RGB : GL_RGBA));
     FILE_free_image(texture_handle); // texture data has been copied to GPU memory, so we can free image from memory
 }
 
-// Binds this texture to Texture Unit 0
-// When we are drawing and try to access Texture Unit 0, we will be accessing this texture now
+// Binds this texture to texture_t Unit 0
+// When we are drawing and try to access texture_t Unit 0, we will be accessing this texture now
 // Anything drawn after this point will use these textures
-/** If we have multiple texture samplers or multiple Texture Units, ensure sampler2D uniforms
-    know which Texture Unit to access via:
+/** If we have multiple texture samplers or multiple texture_t Units, ensure sampler2D uniforms
+    know which texture_t Unit to access via:
         glUnifrom1i(<texture_sampler_uniform_id>, <texture_unit_number>); */
-internal void gl_use_texture(Texture& texture)
+internal void gl_use_texture(texture_t& texture)
 {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture.texture_id); 

@@ -17,7 +17,7 @@
 #define CON_SCROLL_SPEED 2000.f
 #define CON_COLS_MAX 124        // char columns in line
 #define CON_ROWS_MAX 27         // we can store more messages than this, but this is just rows that are being displayed
-enum ConState
+enum console_state_t
 {
     CON_HIDING,
     CON_HIDDEN,
@@ -42,7 +42,7 @@ GLfloat con_line_vertex_buffer[] = {
 };
 
 bool        con_b_initialized = false;
-ConState    con_state = CON_HIDDEN;
+console_state_t    con_state = CON_HIDDEN;
 real32      con_y;
 
 float       CON_HEIGHT = 400.f;
@@ -65,14 +65,14 @@ bool        con_b_messages_dirty = false;
 
 // Text visuals
 TTAFont*    con_font_handle;
-Texture     con_font_atlas;
+texture_t     con_font_atlas;
 // Input text & Messages VAOs
-Mesh        con_input_vao; // con_input_vao gets added to con_text_vaos (after eviction) if user "returns" command
-Mesh        con_text_vaos[CON_ROWS_MAX] = {}; // one vao is one line
+mesh_t        con_input_vao; // con_input_vao gets added to con_text_vaos (after eviction) if user "returns" command
+mesh_t        con_text_vaos[CON_ROWS_MAX] = {}; // one vao is one line
 
 // TODO buffer to hold previous commands (max 20 commands)
 
-internal void con_initialize(TTAFont* console_font_handle, Texture console_font_atlas)
+internal void con_initialize(TTAFont* console_font_handle, texture_t console_font_atlas)
 {
     // ADD COMMANDS
     con_register_cmds();
@@ -80,14 +80,14 @@ internal void con_initialize(TTAFont* console_font_handle, Texture console_font_
     con_font_handle = console_font_handle;
     con_font_atlas = console_font_atlas;
 
-    // INIT TEXT Mesh OBJECTS
+    // INIT TEXT mesh_t OBJECTS
     kctta_clear_buffer();
     kctta_move_cursor(CON_INPUT_DRAW_X, CON_INPUT_DRAW_Y);
     kctta_append_glyph('>', con_font_handle, CON_TEXT_SIZE);
     TTAVertexBuffer vb = kctta_grab_buffer();
     con_input_vao = gl_create_mesh_array(vb.vertex_buffer, vb.index_buffer, 
         vb.vertices_array_count, vb.indices_array_count, 2, 2, 0, GL_DYNAMIC_DRAW);
-    // INIT MESSAGES Mesh OBJECTS
+    // INIT MESSAGES mesh_t OBJECTS
     for(int i = 0; i < CON_ROWS_MAX; ++i)
     {
         con_text_vaos[i] = gl_create_mesh_array(NULL, NULL, 0, 0, 2, 2, 0, GL_DYNAMIC_DRAW);
@@ -341,7 +341,7 @@ internal void con_update(real32 dt)
     }
 }
 
-internal void con_render(OrthographicShader ui_shader, OrthographicShader text_shader)
+internal void con_render(shader_orthographic_t ui_shader, shader_orthographic_t text_shader)
 {
     if(!con_b_initialized || con_state == CON_HIDDEN)
     {
@@ -384,7 +384,7 @@ internal void con_render(OrthographicShader ui_shader, OrthographicShader text_s
         glUniform3f(text_shader.uniform_location("text_colour"), 0.8f, 0.8f, 0.8f);
         for(int i = 0; i < CON_ROWS_MAX; ++i)
         {
-            Mesh m = con_text_vaos[i];
+            mesh_t m = con_text_vaos[i];
             if(m.index_count > 0)
             {
                 gl_bind_model_matrix(text_shader, con_transform.ptr());

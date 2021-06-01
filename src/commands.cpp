@@ -124,10 +124,10 @@ internal void game_switch_map(int map_index) //TODO move this to gamemode.cpp an
 
 internal void cmd_print_camera_properties()
 {
-    con_printf("Camera position x: %f, y: %f, z: %f \n", g_camera.position.x, g_camera.position.y, g_camera.position.z);
-    con_printf("Camera rotation pitch: %f, yaw: %f, roll: %f \n", g_camera.rotation.x, g_camera.rotation.y, g_camera.rotation.z);
-    con_printf("Camera speed: %f\n", g_camera.movespeed);
-    con_printf("Camera sensitivity: %f\n", g_camera.turnspeed);
+    con_printf("camera_t position x: %f, y: %f, z: %f \n", g_camera.position.x, g_camera.position.y, g_camera.position.z);
+    con_printf("camera_t rotation pitch: %f, yaw: %f, roll: %f \n", g_camera.rotation.x, g_camera.rotation.y, g_camera.rotation.z);
+    con_printf("camera_t speed: %f\n", g_camera.movespeed);
+    con_printf("camera_t sensitivity: %f\n", g_camera.turnspeed);
 }
 
 // find entities where x attribute is true or has x attribute
