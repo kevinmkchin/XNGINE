@@ -7,24 +7,24 @@ uint16  PERF_DRAW_Y = PERF_TEXT_SIZE + 3;
 
 // Font
 TTAFont*    perf_font_handle;
-Texture     perf_font_atlas;
+texture_t     perf_font_atlas;
 
 // Meshes
-Mesh        perf_frametime_vao;
+mesh_t        perf_frametime_vao;
 
 internal void profiler_set_level(int level)
 {
     perf_profiler_level = level;
 }
 
-internal void profiler_initialize(TTAFont* in_perf_font_handle, Texture in_perf_font_atlas)
+internal void profiler_initialize(TTAFont* in_perf_font_handle, texture_t in_perf_font_atlas)
 {
     perf_font_handle = in_perf_font_handle;
     perf_font_atlas = in_perf_font_atlas;
     perf_frametime_vao = gl_create_mesh_array(0, 0, 0, 0, 2, 2, 0, GL_DYNAMIC_DRAW);
 }
 
-internal void profiler_render(OrthographicShader ui_shader, OrthographicShader text_shader)
+internal void profiler_render(shader_orthographic_t ui_shader, shader_orthographic_t text_shader)
 {
     if(!perf_profiler_level)
     {

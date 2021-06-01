@@ -31,8 +31,8 @@ Backlog:
     - Entity - pos, orientation, scale, mesh, few boolean flags, collider, tags
     - Fixed timestep? for physics only?
     - Face culling
-    - Texture GL_NEAREST option
-    - Texture do something like source engine
+    - texture_t GL_NEAREST option
+    - texture_t do something like source engine
         - Build simple polygons and shapes, and the textures get wrapped
           automatically(1 unit in vertices is 1 unit in texture uv)
     - Console:
@@ -106,7 +106,7 @@ global_var SDL_GLContext opengl_context = nullptr;
 
 // -------------------------
 // Temporary
-global_var Camera g_camera;
+global_var camera_t g_camera;
 global_var mat4 g_matrix_projection_ortho;
 global_var bool g_b_wireframe = false;
 
@@ -119,7 +119,7 @@ global_var temp_map_t loaded_maps[4];
 
 // Fonts
 TTAFont g_font_handle_c64;
-Texture g_font_atlas_c64;
+texture_t g_font_atlas_c64;
 // -------------------------
 
 #include "timer.cpp"
@@ -132,12 +132,12 @@ Texture g_font_atlas_c64;
 #include "commands.cpp"
 #include "console.cpp"
 
-LightingShader shader_common;
-OrthographicShader shader_text;
-OrthographicShader shader_ui;
-PerspectiveShader shader_simple;
-Material material_shiny = { 4.f, 128.f };
-Material material_dull = { 0.5f, 1.f };
+shader_lighting_t shader_common;
+shader_orthographic_t shader_text;
+shader_orthographic_t shader_ui;
+shader_perspective_t shader_simple;
+material_t material_shiny = {4.f, 128.f };
+material_t material_dull = {0.5f, 1.f };
 
 static const char* vertex_shader_path = "shaders/default_phong.vert";
 static const char* frag_shader_path = "shaders/default_phong.frag";
@@ -149,11 +149,11 @@ static const char* simple_vs_path = "shaders/simple.vert";
 static const char* simple_fs_path = "shaders/simple.frag";
 
 internal inline void win64_load_font(TTAFont* font_handle,
-                                        Texture& font_atlas,
-                                        const char* font_path,
-                                        uint8 font_size)
+                                     texture_t& font_atlas,
+                                     const char* font_path,
+                                     uint8 font_size)
 {
-    BinaryFileHandle fontfile;
+    binary_file_handle_t fontfile;
     FILE_read_file_binary(fontfile, font_path);
         if(fontfile.memory)
         {

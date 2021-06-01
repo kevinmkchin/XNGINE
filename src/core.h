@@ -7,14 +7,14 @@
 */
 
 /** Handle for a file in memory */
-struct BinaryFileHandle 
+struct binary_file_handle_t
 {
     uint64  size    = 0;    // size of file in memory
     void*   memory  = NULL; // pointer to file in memory
 };
 
 /** Handle for an UNSIGNED BYTE bitmap in memory */
-struct BitmapHandle : BinaryFileHandle
+struct bitmap_handle_t : binary_file_handle_t
 {
     uint32  width = 0;      // image width
     uint32  height = 0;     // image height
@@ -35,7 +35,7 @@ struct BitmapHandle : BinaryFileHandle
 */
 
 /** Handle for Shader Program stored in GPU memory */
-struct BaseShader
+struct shader_base_t
 {
     GLuint  id_shader_program = 0;    // id of this shader program in GPU memory
 
@@ -56,31 +56,31 @@ struct BaseShader
     }
 };
 
-struct PerspectiveShader : BaseShader
+struct shader_perspective_t : shader_base_t
 {
     GLint id_uniform_proj_perspective = 0; // location id for the perspective projection matrix
     GLint id_uniform_view = 0;    // location id for the view matrix uniform variable
 
     virtual void load_uniforms() override
     {
-        BaseShader::load_uniforms();
+        shader_base_t::load_uniforms();
         id_uniform_proj_perspective = uniform_location("matrix_proj_perspective");
         id_uniform_view = uniform_location("matrix_view");
     }
 };
 
-struct OrthographicShader : BaseShader
+struct shader_orthographic_t : shader_base_t
 {
     GLint id_uniform_proj_orthographic = 0; // location id for the perspective projection matrix
 
     virtual void load_uniforms() override
     {
-        BaseShader::load_uniforms();
+        shader_base_t::load_uniforms();
         id_uniform_proj_orthographic = uniform_location("matrix_proj_orthographic");
     }
 };
 
-struct LightingShader : PerspectiveShader
+struct shader_lighting_t : shader_perspective_t
 {
     global_var const unsigned int MAX_POINT_LIGHTS = 4;
     global_var const unsigned int MAX_SPOT_LIGHTS = 4;
@@ -127,7 +127,7 @@ struct LightingShader : PerspectiveShader
 
     virtual void load_uniforms() override
     {
-        PerspectiveShader::load_uniforms();
+        shader_perspective_t::load_uniforms();
         id_uniform_observer_pos = uniform_location("observer_pos");
         id_uniform_directional_light.colour = uniform_location("directional_light.colour");
         id_uniform_directional_light.ambient_intensity = uniform_location("directional_light.ambient_intensity");
@@ -180,25 +180,25 @@ struct LightingShader : PerspectiveShader
     }
 };
 
-struct Material
+struct material_t
 {
     real32 specular_intensity = 0.f;
     real32 shininess = 1.f;
 };
 
-struct Light
+struct light_t
 {
     vec3    colour = { 1.f, 1.f, 1.f };
     real32  ambient_intensity = 0.2f;
     real32  diffuse_intensity = 1.0f;  
 };
 
-struct DirectionalLight : Light
+struct light_directional_t : light_t
 {
     quaternion orientation = { 0.7071068f, 0.f, 0.f, 0.7071068f };
 };
 
-struct PointLight : Light
+struct light_point_t : light_t
 {
     vec3        position = { 0.f, 0.f, 0.f };
     // Attenuation coefficients
@@ -207,7 +207,7 @@ struct PointLight : Light
     GLfloat     att_quadratic = 0.1f;
 };
 
-struct SpotLight : PointLight
+struct light_spot_t : light_point_t
 {
     quaternion orientation = { 0.7071068f, 0.f, 0.f, 0.7071068f };
 
@@ -229,7 +229,7 @@ struct ShaderGroup
 */
 
 /** Stores mesh { VAO, VBO, IBO } info. Handle for VAO on GPU memory */
-struct Mesh
+struct mesh_t
 {
     // Holds the ID for the VAO, VBO, IBO in the GPU memory
     uint32  id_vao          = 0;
@@ -238,8 +238,8 @@ struct Mesh
     int32   index_count     = 0;
 };
 
-/** Handle for Texture stored in GPU memory */
-struct Texture
+/** Handle for texture_t stored in GPU memory */
+struct texture_t
 {
     GLuint      texture_id  = 0;        // ID for the texture in GPU memory
     int32       width       = 0;        // Width of the texture
@@ -247,15 +247,15 @@ struct Texture
     GLenum      format      = GL_NONE;  // format / bitdepth of texture (GL_RGB would be 3 byte bit depth)
 };
 
-struct MeshGroup
+struct meshgroup_t
 {
-    std::vector<Mesh> meshes;
-    std::vector<Texture> textures;
+    std::vector<mesh_t> meshes;
+    std::vector<texture_t> textures;
     std::vector<uint16> mesh_to_texture;
 };
 
-/** Camera properties */
-struct Camera
+/** camera_t properties */
+struct camera_t
 {
     vec3   position             = { 0.f };            // camera x y z pos in world space 
     vec3   rotation             = { 0.f };            // pitch, yaw, roll - in that order
@@ -278,7 +278,7 @@ struct gameobject_t
     vec3        pos = {0.f};
     quaternion  orient = identity_quaternion();
     vec3        scale = {1.f,1.f,1.f};
-    MeshGroup   model;
+    meshgroup_t   model;
     // collider_t col;
     // int32 flags
     // Tags tags[4]; // primary, secondary, tertiary, quaternary tags
@@ -293,9 +293,9 @@ struct temp_map_t
     vec3 cam_start_rot = {0.f};
 
     // prob going to stay
-    std::vector<PointLight> pointlights;
-    std::vector<SpotLight> spotlights;
-    DirectionalLight directionallight;
+    std::vector<light_point_t> pointlights;
+    std::vector<light_spot_t> spotlights;
+    light_directional_t directionallight;
 };
 
 /**  */
@@ -305,7 +305,7 @@ struct Entity
     glm::vec3   pos     = glm::vec3(0.f);
     quaternion  rot     = ;
     glm::vec3   scale   = glm::vec3(0.f);
-    Mesh        mesh;
+    mesh_t        mesh;
     // Collider col
     // boolean flags
     // bool b_act; // active flag

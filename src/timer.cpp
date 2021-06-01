@@ -39,5 +39,3 @@ internal inline real32 win64_global_timestamp()
     last_tick = this_tick;
     return deltatime_secs;
 }
-
-/** function timers */

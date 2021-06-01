@@ -2,6 +2,8 @@ bin/
 build/
 line-count.bat
 line-counter.exe
+.idea/
+cmake-build-*/
 
 # VS User-specific files
 *.rsuser

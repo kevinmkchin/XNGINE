@@ -1,4 +1,4 @@
-internal void render_mesh_group(MeshGroup& mesh_group)
+internal void render_mesh_group(meshgroup_t& mesh_group)
 {
     for(size_t i = 0; i < mesh_group.meshes.size(); ++i)
     {
@@ -12,7 +12,7 @@ internal void render_mesh_group(MeshGroup& mesh_group)
     }
 }
 
-internal void clear_mesh_group(MeshGroup& mesh_group)
+internal void clear_mesh_group(meshgroup_t& mesh_group)
 {
     for(size_t i = 0; i < mesh_group.meshes.size(); ++i)
     {
@@ -24,7 +24,7 @@ internal void clear_mesh_group(MeshGroup& mesh_group)
     }
 }
 
-internal void __assimp_load_mesh(MeshGroup& mesh_group, size_t mesh_index, aiMesh* mesh_node)
+internal void __assimp_load_mesh(meshgroup_t& mesh_group, size_t mesh_index, aiMesh* mesh_node)
 {
     const uint8 vb_entries_per_vertex = 8;
     std::vector<real32> vb(mesh_node->mNumVertices * vb_entries_per_vertex);
@@ -70,12 +70,12 @@ internal void __assimp_load_mesh(MeshGroup& mesh_group, size_t mesh_index, aiMes
         }
     }
 
-    Mesh mesh = gl_create_mesh_array(&vb[0], &ib[0], (uint32)vb.size(), (uint32)ib.size());
+    mesh_t mesh = gl_create_mesh_array(&vb[0], &ib[0], (uint32)vb.size(), (uint32)ib.size());
     mesh_group.meshes[mesh_index] = mesh;
     mesh_group.mesh_to_texture[mesh_index] = mesh_node->mMaterialIndex;
 }
 
-internal void assimp_load_mesh_group(MeshGroup& mesh_group, const char* file_name)
+internal void assimp_load_mesh_group(meshgroup_t& mesh_group, const char* file_name)
 {
     //win64_global_timestamp();
 
