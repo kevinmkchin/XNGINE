@@ -45,7 +45,8 @@ struct shader_base_t
     {
         GLint location = glGetUniformLocation(id_shader_program, uniform_name);
         if (location == 0xffffffff) {
-            con_printf("Warning! Unable to get the location of uniform '%s' for shader id %d...\n", uniform_name, id_shader_program);
+            console_printf("Warning! Unable to get the location of uniform '%s' for shader id %d...\n", uniform_name,
+                           id_shader_program);
         }
         return location;
     }

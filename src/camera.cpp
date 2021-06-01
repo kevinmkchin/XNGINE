@@ -24,7 +24,7 @@ internal void update_camera(camera_t& camera, real32 dt)
     camera.calculated_right = normalize(cross(camera.calculated_direction, camera.world_up)); // right vector is cross product of direction and up direction of world
     camera.calculated_up = normalize(cross(camera.calculated_right, camera.calculated_direction)); // up vector is cross product of right vector and direction
 
-    if(con_is_hidden())
+    if(console_is_hidden())
     {
         // Check Inputs
         if (g_keystate[SDL_SCANCODE_W])

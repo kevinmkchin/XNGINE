@@ -13,20 +13,20 @@
 
 */
 
-#define CON_MAX_PRINT_MSGS 8096
-#define CON_SCROLL_SPEED 2000.f
-#define CON_COLS_MAX 124        // char columns in line
-#define CON_ROWS_MAX 27         // we can store more messages than this, but this is just rows that are being displayed
+#define CONSOLE_MAX_PRINT_MSGS 8096
+#define CONSOLE_SCROLL_SPEED 2000.f
+#define CONSOLE_COLS_MAX 124        // char columns in line
+#define CONSOLE_ROWS_MAX 27         // we can store more messages than this, but this is just rows that are being displayed
 enum console_state_t
 {
-    CON_HIDING,
-    CON_HIDDEN,
-    CON_SHOWING,
-    CON_SHOWN
+    CONSOLE_HIDING,
+    CONSOLE_HIDDEN,
+    CONSOLE_SHOWING,
+    CONSOLE_SHOWN
 };
-GLuint con_id_vao = 0;
-GLuint con_id_vbo = 0;
-GLfloat con_vertex_buffer[] = {
+GLuint console_background_vao_id = 0;
+GLuint console_background_vbo_id = 0;
+GLfloat console_background_vertex_buffer[] = {
     0.f, 0.f, 0.f, 0.f,
     0.f, 400.f, 0.f, 1.f,
     1280.f, 400.f, 1.f, 1.f,
@@ -34,101 +34,101 @@ GLfloat con_vertex_buffer[] = {
     0.f, 0.f, 0.f, 0.f,
     1280.f, 400.f, 1.f, 1.f
 };
-GLuint con_line_id_vao = 0;
-GLuint con_line_id_vbo = 0;
-GLfloat con_line_vertex_buffer[] = {
+GLuint console_line_vao_id = 0;
+GLuint console_line_vbo_id = 0;
+GLfloat console_line_vertex_buffer[] = {
     0.f, 400.f,
     1280.f, 400.f
 };
 
-bool        con_b_initialized = false;
-console_state_t    con_state = CON_HIDDEN;
-real32      con_y;
+bool        console_b_initialized = false;
+console_state_t    console_state = CONSOLE_HIDDEN;
+real32      console_y;
 
-float       CON_HEIGHT = 400.f;
-uint8       CON_TEXT_SIZE = 20;
-uint8       CON_TEXT_PADDING_BOTTOM = 4;
-uint16      CON_INPUT_DRAW_X = 4;
-uint16      CON_INPUT_DRAW_Y = (uint16) (CON_HEIGHT - (float) CON_TEXT_PADDING_BOTTOM);
+float       CONSOLE_HEIGHT = 400.f;
+uint8       CONSOLE_TEXT_SIZE = 20;
+uint8       CONSOLE_TEXT_PADDING_BOTTOM = 4;
+uint16      CONSOLE_INPUT_DRAW_X = 4;
+uint16      CONSOLE_INPUT_DRAW_Y = (uint16) (CONSOLE_HEIGHT - (float) CONSOLE_TEXT_PADDING_BOTTOM);
 
 // Input character buffer
-char        con_input_buffer[CON_COLS_MAX]; // line of text buffer used for both input and output
-bool        con_b_input_buffer_dirty = false;
-uint8       con_input_cursor = 0;
-uint8       con_input_buffer_count = 0;
+char        console_input_buffer[CONSOLE_COLS_MAX];
+bool        console_b_input_buffer_dirty = false;
+uint8       console_input_cursor = 0;
+uint8       console_input_buffer_count = 0;
 
 // Hidden character buffer
-char        con_messages[CON_MAX_PRINT_MSGS] = {};
-uint16      con_messages_read_cursor = 0;
-uint16      con_messages_write_cursor = 0;
-bool        con_b_messages_dirty = false;
+char        console_messages[CONSOLE_MAX_PRINT_MSGS] = {};
+uint16      console_messages_read_cursor = 0;
+uint16      console_messages_write_cursor = 0;
+bool        console_b_messages_dirty = false;
 
 // Text visuals
-tta_font_t*    con_font_handle;
-texture_t     con_font_atlas;
+tta_font_t*   console_font_handle;
+texture_t     console_font_atlas;
 // Input text & Messages VAOs
-mesh_t        con_input_vao; // con_input_vao gets added to con_text_vaos (after eviction) if user "returns" command
-mesh_t        con_text_vaos[CON_ROWS_MAX] = {}; // one vao is one line
+mesh_t        console_inputtext_vao; // console_inputtext_vao gets added to console_messages_vaos if user "returns" command
+mesh_t        console_messages_vaos[CONSOLE_ROWS_MAX] = {}; // one vao is one line
 
 // TODO buffer to hold previous commands (max 20 commands)
 
-internal void con_initialize(tta_font_t* console_font_handle, texture_t console_font_atlas)
+internal void console_initialize(tta_font_t* in_console_font_handle, texture_t in_console_font_atlas)
 {
     // ADD COMMANDS
-    con_register_cmds();
+    console_register_commands();
 
-    con_font_handle = console_font_handle;
-    con_font_atlas = console_font_atlas;
+    console_font_handle = in_console_font_handle;
+    console_font_atlas = in_console_font_atlas;
 
     // INIT TEXT mesh_t OBJECTS
     kctta_clear_buffer();
-    kctta_move_cursor(CON_INPUT_DRAW_X, CON_INPUT_DRAW_Y);
-    kctta_append_glyph('>', con_font_handle, CON_TEXT_SIZE);
+    kctta_move_cursor(CONSOLE_INPUT_DRAW_X, CONSOLE_INPUT_DRAW_Y);
+    kctta_append_glyph('>', console_font_handle, CONSOLE_TEXT_SIZE);
     tta_vertex_buffer_t vb = kctta_grab_buffer();
-    con_input_vao = gl_create_mesh_array(vb.vertex_buffer, vb.index_buffer, 
-        vb.vertices_array_count, vb.indices_array_count, 2, 2, 0, GL_DYNAMIC_DRAW);
+    console_inputtext_vao = gl_create_mesh_array(vb.vertex_buffer, vb.index_buffer,
+                                                 vb.vertices_array_count, vb.indices_array_count, 2, 2, 0, GL_DYNAMIC_DRAW);
     // INIT MESSAGES mesh_t OBJECTS
-    for(int i = 0; i < CON_ROWS_MAX; ++i)
+    for(int i = 0; i < CONSOLE_ROWS_MAX; ++i)
     {
-        con_text_vaos[i] = gl_create_mesh_array(NULL, NULL, 0, 0, 2, 2, 0, GL_DYNAMIC_DRAW);
+        console_messages_vaos[i] = gl_create_mesh_array(NULL, NULL, 0, 0, 2, 2, 0, GL_DYNAMIC_DRAW);
     }
 
     // INIT CONSOLE GUI
-    con_vertex_buffer[8] = (float) g_buffer_width;
-    con_vertex_buffer[12] = (float) g_buffer_width;
-    con_vertex_buffer[20] = (float) g_buffer_width;
-    con_vertex_buffer[5] = CON_HEIGHT;
-    con_vertex_buffer[9] = CON_HEIGHT;
-    con_vertex_buffer[21] = CON_HEIGHT;
-    glGenVertexArrays(1, &con_id_vao);
-    glBindVertexArray(con_id_vao);
-        glGenBuffers(1, &con_id_vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, con_id_vbo);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(con_vertex_buffer), con_vertex_buffer, GL_STATIC_DRAW);
+    console_background_vertex_buffer[8] = (float) g_buffer_width;
+    console_background_vertex_buffer[12] = (float) g_buffer_width;
+    console_background_vertex_buffer[20] = (float) g_buffer_width;
+    console_background_vertex_buffer[5] = CONSOLE_HEIGHT;
+    console_background_vertex_buffer[9] = CONSOLE_HEIGHT;
+    console_background_vertex_buffer[21] = CONSOLE_HEIGHT;
+    glGenVertexArrays(1, &console_background_vao_id);
+    glBindVertexArray(console_background_vao_id);
+        glGenBuffers(1, &console_background_vbo_id);
+        glBindBuffer(GL_ARRAY_BUFFER, console_background_vbo_id);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(console_background_vertex_buffer), console_background_vertex_buffer, GL_STATIC_DRAW);
             glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(real32) * 4, 0);
             glEnableVertexAttribArray(0);
             glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(real32) * 4, (void*)(sizeof(real32) * 2));
             glEnableVertexAttribArray(1);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-    con_line_vertex_buffer[1] = CON_HEIGHT - (float) CON_TEXT_SIZE - CON_TEXT_PADDING_BOTTOM;
-    con_line_vertex_buffer[2] = (float) g_buffer_width;
-    con_line_vertex_buffer[3] = CON_HEIGHT - (float) CON_TEXT_SIZE - CON_TEXT_PADDING_BOTTOM;
-    glGenVertexArrays(1, &con_line_id_vao);
-    glBindVertexArray(con_line_id_vao);
-        glGenBuffers(1, &con_line_id_vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, con_line_id_vbo);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(con_line_vertex_buffer), con_line_vertex_buffer, GL_STATIC_DRAW);
+    console_line_vertex_buffer[1] = CONSOLE_HEIGHT - (float) CONSOLE_TEXT_SIZE - CONSOLE_TEXT_PADDING_BOTTOM;
+    console_line_vertex_buffer[2] = (float) g_buffer_width;
+    console_line_vertex_buffer[3] = CONSOLE_HEIGHT - (float) CONSOLE_TEXT_SIZE - CONSOLE_TEXT_PADDING_BOTTOM;
+    glGenVertexArrays(1, &console_line_vao_id);
+    glBindVertexArray(console_line_vao_id);
+        glGenBuffers(1, &console_line_vbo_id);
+        glBindBuffer(GL_ARRAY_BUFFER, console_line_vbo_id);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(console_line_vertex_buffer), console_line_vertex_buffer, GL_STATIC_DRAW);
             glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
             glEnableVertexAttribArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    con_b_initialized = true;
-    con_print("Console initialized.\n");
+    console_b_initialized = true;
+    console_print("Console initialized.\n");
 }
 
 /** logs the message into the messages buffer */
-internal void con_print(const char* message)
+internal void console_print(const char* message)
 {
 
 #if internal_BUILD
@@ -139,19 +139,19 @@ internal void con_print(const char* message)
     int i = 0;
     while(*(message + i) != '\0')
     {
-        con_messages[con_messages_write_cursor] = *(message + i);
-        ++con_messages_write_cursor;
-        if(con_messages_write_cursor >= CON_MAX_PRINT_MSGS)
+        console_messages[console_messages_write_cursor] = *(message + i);
+        ++console_messages_write_cursor;
+        if(console_messages_write_cursor >= CONSOLE_MAX_PRINT_MSGS)
         {
-            con_messages_write_cursor = 0;
+            console_messages_write_cursor = 0;
         }
         ++i;
     }
-    con_messages_read_cursor = con_messages_write_cursor;
-    con_b_messages_dirty = true;
+    console_messages_read_cursor = console_messages_write_cursor;
+    console_b_messages_dirty = true;
 }
 
-internal void con_printf(const char* fmt, ...)
+internal void console_printf(const char* fmt, ...)
 {
     va_list argptr;
 
@@ -160,13 +160,13 @@ internal void con_printf(const char* fmt, ...)
     stbsp_vsprintf(message, fmt, argptr);
     va_end(argptr);
 
-    con_print(message);
+    console_print(message);
 }
 
-internal void con_command(char* text_command)
+internal void console_command(char* text_command)
 {
-    char text_command_buffer[CON_COLS_MAX];
-    strcpy_s(text_command_buffer, CON_COLS_MAX, text_command);//because text_command might point to read-only data
+    char text_command_buffer[CONSOLE_COLS_MAX];
+    strcpy_s(text_command_buffer, CONSOLE_COLS_MAX, text_command);//because text_command might point to read-only data
 
     if(*text_command_buffer == '\0')
     {
@@ -175,7 +175,7 @@ internal void con_command(char* text_command)
 
     std::string cmd = std::string(text_command_buffer);
     cmd = ">" + cmd + "\n";
-    con_print(cmd.c_str());
+    console_print(cmd.c_str());
 
     char* token_buff;
     const char delim = ' ';
@@ -204,151 +204,151 @@ internal void con_command(char* text_command)
         }
         else
         {
-            con_printf("%s takes %zd arguments...\n", cmd.c_str(), cmd_meta.arg_types.size());
+            console_printf("%s takes %zd arguments...\n", cmd.c_str(), cmd_meta.arg_types.size());
         }
     }
     else
     {
-        con_printf("'%s' is not a recognized command...\n", cmd.c_str());
+        console_printf("'%s' is not a recognized command...\n", cmd.c_str());
     }
 }
 
-internal void con_toggle()
+internal void console_toggle()
 {
-    if(con_state == CON_HIDING || con_state == CON_SHOWING)
+    if(console_state == CONSOLE_HIDING || console_state == CONSOLE_SHOWING)
     {
         return;
     }
 
-    if(con_state == CON_HIDDEN)
+    if(console_state == CONSOLE_HIDDEN)
     {
         b_is_update_running = false;
         SDL_SetRelativeMouseMode(SDL_FALSE);
-        con_state = CON_SHOWING;
+        console_state = CONSOLE_SHOWING;
     }
-    else if(con_state == CON_SHOWN)
+    else if(console_state == CONSOLE_SHOWN)
     {
         b_is_update_running = true;
         SDL_SetRelativeMouseMode(SDL_TRUE);
-        con_state = CON_HIDING;
+        console_state = CONSOLE_HIDING;
     }
 }
 
-internal void con_update_messages()
+internal void console_update_messages()
 {
-    if(con_b_messages_dirty)
+    if(console_b_messages_dirty)
     {
-        int msg_iterator = con_messages_read_cursor - 1;
+        int msg_iterator = console_messages_read_cursor - 1;
         for(int row = 0;
-            row < CON_ROWS_MAX;
+            row < CONSOLE_ROWS_MAX;
             ++row)
         {
             // get line
             int line_len = 0;
-            if(con_messages[msg_iterator] == '\n')
+            if(console_messages[msg_iterator] == '\n')
             {
                 ++line_len;
                 --msg_iterator;
             }
-            for(char c = con_messages[msg_iterator];
+            for(char c = console_messages[msg_iterator];
                 c != '\n' && c != '\0'; 
-                c = con_messages[msg_iterator])
+                c = console_messages[msg_iterator])
             {
                 ++line_len;
                 --msg_iterator;
                 if(msg_iterator < 0)
                 {
-                    msg_iterator = CON_MAX_PRINT_MSGS - 1;
+                    msg_iterator = CONSOLE_MAX_PRINT_MSGS - 1;
                 }
             }
             // rebind vao
             {
                 kctta_clear_buffer();
-                kctta_move_cursor(CON_INPUT_DRAW_X, CON_INPUT_DRAW_Y);
+                kctta_move_cursor(CONSOLE_INPUT_DRAW_X, CONSOLE_INPUT_DRAW_Y);
                 for(int i = 0; i < line_len; ++i)
                 {
                     int j = msg_iterator + i + 1;
-                    if(j >= CON_MAX_PRINT_MSGS)
+                    if(j >= CONSOLE_MAX_PRINT_MSGS)
                     {
-                        j -= CON_MAX_PRINT_MSGS;
+                        j -= CONSOLE_MAX_PRINT_MSGS;
                     }
-                    char c = con_messages[j];
+                    char c = console_messages[j];
                     if(c != '\n')
                     {
-                        kctta_append_glyph(c, con_font_handle, CON_TEXT_SIZE);
+                        kctta_append_glyph(c, console_font_handle, CONSOLE_TEXT_SIZE);
                     }
                     else
                     {
-                        kctta_new_line(CON_INPUT_DRAW_X, con_font_handle);
+                        kctta_new_line(CONSOLE_INPUT_DRAW_X, console_font_handle);
                     }
                 }
                 tta_vertex_buffer_t vb = kctta_grab_buffer();
-                gl_rebind_buffers(con_text_vaos[row], vb.vertex_buffer, vb.index_buffer, 
-                    vb.vertices_array_count, vb.indices_array_count);
+                gl_rebind_buffers(console_messages_vaos[row], vb.vertex_buffer, vb.index_buffer,
+                                  vb.vertices_array_count, vb.indices_array_count);
             }
         }
 
-        con_b_messages_dirty = false;
+        console_b_messages_dirty = false;
     }
 }
 
-internal void con_update(real32 dt)
+internal void console_update(real32 dt)
 {
-    if(!con_b_initialized || con_state == CON_HIDDEN)
+    if(!console_b_initialized || console_state == CONSOLE_HIDDEN)
     {
         return;
     }
 
-    switch(con_state)
+    switch(console_state)
     {
-        case CON_SHOWN: 
+        case CONSOLE_SHOWN:
         {
-            if(con_b_input_buffer_dirty)
+            if(console_b_input_buffer_dirty)
             {
                 // update input vao
                 kctta_clear_buffer();
-                kctta_move_cursor(CON_INPUT_DRAW_X, CON_INPUT_DRAW_Y);
-                std::string input_text = ">" + std::string(con_input_buffer);
-                kctta_append_line(input_text.c_str(), con_font_handle, CON_TEXT_SIZE);
+                kctta_move_cursor(CONSOLE_INPUT_DRAW_X, CONSOLE_INPUT_DRAW_Y);
+                std::string input_text = ">" + std::string(console_input_buffer);
+                kctta_append_line(input_text.c_str(), console_font_handle, CONSOLE_TEXT_SIZE);
                 tta_vertex_buffer_t vb = kctta_grab_buffer();
-                gl_rebind_buffers(con_input_vao, vb.vertex_buffer, vb.index_buffer, 
-                    vb.vertices_array_count, vb.indices_array_count);
-                con_b_input_buffer_dirty = false;
+                gl_rebind_buffers(console_inputtext_vao, vb.vertex_buffer, vb.index_buffer,
+                                  vb.vertices_array_count, vb.indices_array_count);
+                console_b_input_buffer_dirty = false;
             }
 
-            con_update_messages();
+            console_update_messages();
         } break;
-        case CON_HIDING:
+        case CONSOLE_HIDING:
         {
-            con_y -= CON_SCROLL_SPEED * dt;
-            if(con_y < 0.f)
+            console_y -= CONSOLE_SCROLL_SPEED * dt;
+            if(console_y < 0.f)
             {
-                con_y = 0.f;
-                con_state = CON_HIDDEN;
+                console_y = 0.f;
+                console_state = CONSOLE_HIDDEN;
             }
         } break;
-        case CON_SHOWING: 
+        case CONSOLE_SHOWING:
         {
-            con_y += CON_SCROLL_SPEED * dt;
-            if(con_y > CON_HEIGHT)
+            console_y += CONSOLE_SCROLL_SPEED * dt;
+            if(console_y > CONSOLE_HEIGHT)
             {
-                con_y = CON_HEIGHT;
-                con_state = CON_SHOWN;
+                console_y = CONSOLE_HEIGHT;
+                console_state = CONSOLE_SHOWN;
             }
 
-            con_update_messages();
+            console_update_messages();
         } break;
     }
 }
 
-internal void con_render(shader_orthographic_t ui_shader, shader_orthographic_t text_shader)
+internal void console_render(shader_orthographic_t ui_shader, shader_orthographic_t text_shader)
 {
-    if(!con_b_initialized || con_state == CON_HIDDEN)
+    if(!console_b_initialized || console_state == CONSOLE_HIDDEN)
     {
         return;
     }
 
-    float console_translation_y = con_y - (float) CON_HEIGHT;
+    float console_translation_y = console_y - (float) CONSOLE_HEIGHT;
     mat4 con_transform = identity_mat4();
     con_transform *= translation_matrix(0.f, console_translation_y, 0.f);
     // render console
@@ -358,98 +358,98 @@ internal void con_render(shader_orthographic_t ui_shader, shader_orthographic_t 
         glUniform1i(id_uniform_b_use_colour, true);
         gl_bind_model_matrix(ui_shader, con_transform.ptr());
         gl_bind_projection_matrix(ui_shader, g_matrix_projection_ortho.ptr());
-        glBindVertexArray(con_id_vao);
+        glBindVertexArray(console_background_vao_id);
             glUniform4f(id_uniform_ui_element_colour, 0.1f, 0.1f, 0.1f, 0.7f);
             glDrawArrays(GL_TRIANGLES, 0, 6); // Last param could be pointer to indices but no need cuz IBO is already bound
-        glBindVertexArray(con_line_id_vao);
+        glBindVertexArray(console_line_vao_id);
             glUniform4f(id_uniform_ui_element_colour, 0.8f, 0.8f, 0.8f, 1.f);
             glDrawArrays(GL_LINES, 0, 2);
         glBindVertexArray(0);
     gl_use_shader(text_shader);
         // RENDER CONSOLE TEXT
         gl_bind_projection_matrix(text_shader, g_matrix_projection_ortho.ptr());
-        gl_use_texture(con_font_atlas);
+        gl_use_texture(console_font_atlas);
 
         // Input text visual
         glUniform3f(text_shader.uniform_location("text_colour"), 1.f, 1.f, 1.f);
         gl_bind_model_matrix(text_shader, con_transform.ptr());
-        if(con_input_vao.index_count > 0)
+        if(console_inputtext_vao.index_count > 0)
         {
-            gl_render_mesh(con_input_vao);
+            gl_render_mesh(console_inputtext_vao);
         }
         // move transform matrix up a lil
         con_transform[3][1] -= 30.f;
 
         // Messages text visual
         glUniform3f(text_shader.uniform_location("text_colour"), 0.8f, 0.8f, 0.8f);
-        for(int i = 0; i < CON_ROWS_MAX; ++i)
+        for(int i = 0; i < CONSOLE_ROWS_MAX; ++i)
         {
-            mesh_t m = con_text_vaos[i];
+            mesh_t m = console_messages_vaos[i];
             if(m.index_count > 0)
             {
                 gl_bind_model_matrix(text_shader, con_transform.ptr());
-                con_transform[3][1] -= (float) CON_TEXT_SIZE + 3.f;
+                con_transform[3][1] -= (float) CONSOLE_TEXT_SIZE + 3.f;
                 gl_render_mesh(m);
             }
         }
     glUseProgram(0);
 }
 
-internal void con_scroll_up()
+internal void console_scroll_up()
 {
-    int temp_cursor = con_messages_read_cursor - 1;
-    char c = con_messages[temp_cursor];
+    int temp_cursor = console_messages_read_cursor - 1;
+    char c = console_messages[temp_cursor];
     if(c == '\n')
     {
         --temp_cursor;
         if(temp_cursor < 0)
         {
-            temp_cursor += CON_MAX_PRINT_MSGS;
+            temp_cursor += CONSOLE_MAX_PRINT_MSGS;
         }
-        c = con_messages[temp_cursor];
+        c = console_messages[temp_cursor];
     }
-    while(c != '\n' && c != '\0' && temp_cursor != con_messages_write_cursor)
+    while(c != '\n' && c != '\0' && temp_cursor != console_messages_write_cursor)
     {
         --temp_cursor;
         if(temp_cursor < 0)
         {
-            temp_cursor += CON_MAX_PRINT_MSGS;
+            temp_cursor += CONSOLE_MAX_PRINT_MSGS;
         }
-        c = con_messages[temp_cursor];
+        c = console_messages[temp_cursor];
     }
-    con_messages_read_cursor = temp_cursor + 1;
-    if(con_messages_read_cursor < 0)
+    console_messages_read_cursor = temp_cursor + 1;
+    if(console_messages_read_cursor < 0)
     {
-        con_messages_read_cursor += CON_MAX_PRINT_MSGS;
+        console_messages_read_cursor += CONSOLE_MAX_PRINT_MSGS;
     }
-    con_b_messages_dirty = true;
+    console_b_messages_dirty = true;
 }
 
-internal void con_scroll_down()
+internal void console_scroll_down()
 {
-    if(con_messages_read_cursor != con_messages_write_cursor)
+    if(console_messages_read_cursor != console_messages_write_cursor)
     {
-        int temp_cursor = con_messages_read_cursor;
-        char c = con_messages[temp_cursor];
-        while(c != '\n' && c != '\0' && temp_cursor != con_messages_write_cursor - 1)
+        int temp_cursor = console_messages_read_cursor;
+        char c = console_messages[temp_cursor];
+        while(c != '\n' && c != '\0' && temp_cursor != console_messages_write_cursor - 1)
         {
             ++temp_cursor;
-            if(temp_cursor >= CON_MAX_PRINT_MSGS)
+            if(temp_cursor >= CONSOLE_MAX_PRINT_MSGS)
             {
                 temp_cursor = 0;
             }
-            c = con_messages[temp_cursor];
+            c = console_messages[temp_cursor];
         }
-        con_messages_read_cursor = temp_cursor + 1;
-        if(con_messages_read_cursor > CON_MAX_PRINT_MSGS)
+        console_messages_read_cursor = temp_cursor + 1;
+        if(console_messages_read_cursor > CONSOLE_MAX_PRINT_MSGS)
         {
-            con_messages_read_cursor = 0;
-        } 
-        con_b_messages_dirty = true;   
+            console_messages_read_cursor = 0;
+        }
+        console_b_messages_dirty = true;
     }
 }
 
-internal void con_keydown(SDL_KeyboardEvent& keyevent)
+internal void console_keydown(SDL_KeyboardEvent& keyevent)
 {
     SDL_Keycode keycode = keyevent.keysym.sym;
 
@@ -458,42 +458,42 @@ internal void con_keydown(SDL_KeyboardEvent& keyevent)
     {
         case SDLK_ESCAPE:
         {
-            con_toggle();
+            console_toggle();
             return;
         }
         // COMMAND
         case SDLK_RETURN:
         {
             // take current input buffer and use that as command
-            con_command(con_input_buffer);
-            memset(con_input_buffer, 0, con_input_buffer_count);
-            con_input_cursor = 0;
-            con_input_buffer_count = 0;
-            con_b_input_buffer_dirty = true;
+            console_command(console_input_buffer);
+            memset(console_input_buffer, 0, console_input_buffer_count);
+            console_input_cursor = 0;
+            console_input_buffer_count = 0;
+            console_b_input_buffer_dirty = true;
         }break;
         // Delete char before cursor
         case SDLK_BACKSPACE:
         {
-            if(con_input_cursor > 0)
+            if(console_input_cursor > 0)
             {
-                --con_input_cursor;
-                con_input_buffer[con_input_cursor] = 0;
-                --con_input_buffer_count;
-                con_b_input_buffer_dirty = true;
+                --console_input_cursor;
+                console_input_buffer[console_input_cursor] = 0;
+                --console_input_buffer_count;
+                console_b_input_buffer_dirty = true;
             }
         }break;
         case SDLK_PAGEUP:
         {
             for(int i=0;i<10;++i)
             {
-                con_scroll_up();
+                console_scroll_up();
             }
         }break;
         case SDLK_PAGEDOWN:
         {
             loop(10)
             {
-                con_scroll_down();
+                console_scroll_down();
             }
         }break;
         // TODO Move cursor left right
@@ -558,22 +558,22 @@ internal void con_keydown(SDL_KeyboardEvent& keyevent)
     // CHECK INPUT
     if((ASCII_SPACE <= keycode && keycode <= ASCII_TILDE))
     {
-        if(con_input_buffer_count < CON_COLS_MAX)
+        if(console_input_buffer_count < CONSOLE_COLS_MAX)
         {
-            con_input_buffer[con_input_cursor] = keycode;
-            ++con_input_cursor;
-            ++con_input_buffer_count;
-            con_b_input_buffer_dirty = true;
+            console_input_buffer[console_input_cursor] = keycode;
+            ++console_input_cursor;
+            ++console_input_buffer_count;
+            console_b_input_buffer_dirty = true;
         }
     }
 }
 
-internal bool con_is_shown()
+internal bool console_is_shown()
 {
-    return con_b_initialized && con_state == CON_SHOWN;
+    return console_b_initialized && console_state == CONSOLE_SHOWN;
 }
 
-internal bool con_is_hidden()
+internal bool console_is_hidden()
 {
-    return con_state == CON_HIDDEN;
+    return console_state == CONSOLE_HIDDEN;
 }
