@@ -6,7 +6,7 @@ uint16  PERF_DRAW_X = 4;
 uint16  PERF_DRAW_Y = PERF_TEXT_SIZE + 3;
 
 // Font
-TTAFont*    perf_font_handle;
+tta_font_t*    perf_font_handle;
 texture_t     perf_font_atlas;
 
 // Meshes
@@ -17,7 +17,7 @@ internal void profiler_set_level(int level)
     perf_profiler_level = level;
 }
 
-internal void profiler_initialize(TTAFont* in_perf_font_handle, texture_t in_perf_font_atlas)
+internal void profiler_initialize(tta_font_t* in_perf_font_handle, texture_t in_perf_font_atlas)
 {
     perf_font_handle = in_perf_font_handle;
     perf_font_atlas = in_perf_font_atlas;
@@ -42,7 +42,7 @@ internal void profiler_render(shader_orthographic_t ui_shader, shader_orthograph
         kctta_clear_buffer();
         kctta_move_cursor(PERF_DRAW_X, PERF_DRAW_Y);
         kctta_append_line(perf_frametime_string.c_str(), perf_font_handle, PERF_TEXT_SIZE);
-        TTAVertexBuffer vb = kctta_grab_buffer();
+        tta_vertex_buffer_t vb = kctta_grab_buffer();
         gl_rebind_buffers(perf_frametime_vao, 
             vb.vertex_buffer, vb.index_buffer, 
             vb.vertices_array_count, vb.indices_array_count);

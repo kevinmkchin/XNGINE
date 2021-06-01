@@ -118,7 +118,7 @@ global_var uint8 active_map_index = 0;
 global_var temp_map_t loaded_maps[4];
 
 // Fonts
-TTAFont g_font_handle_c64;
+tta_font_t g_font_handle_c64;
 texture_t g_font_atlas_c64;
 // -------------------------
 
@@ -148,7 +148,7 @@ static const char* text_fs_path = "shaders/text_ui.frag";
 static const char* simple_vs_path = "shaders/simple.vert";
 static const char* simple_fs_path = "shaders/simple.frag";
 
-internal inline void win64_load_font(TTAFont* font_handle,
+internal inline void win64_load_font(tta_font_t* font_handle,
                                      texture_t& font_atlas,
                                      const char* font_path,
                                      uint8 font_size)
