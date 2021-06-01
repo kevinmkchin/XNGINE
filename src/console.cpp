@@ -64,7 +64,7 @@ uint16      con_messages_write_cursor = 0;
 bool        con_b_messages_dirty = false;
 
 // Text visuals
-TTAFont*    con_font_handle;
+tta_font_t*    con_font_handle;
 texture_t     con_font_atlas;
 // Input text & Messages VAOs
 mesh_t        con_input_vao; // con_input_vao gets added to con_text_vaos (after eviction) if user "returns" command
@@ -72,7 +72,7 @@ mesh_t        con_text_vaos[CON_ROWS_MAX] = {}; // one vao is one line
 
 // TODO buffer to hold previous commands (max 20 commands)
 
-internal void con_initialize(TTAFont* console_font_handle, texture_t console_font_atlas)
+internal void con_initialize(tta_font_t* console_font_handle, texture_t console_font_atlas)
 {
     // ADD COMMANDS
     con_register_cmds();
@@ -84,7 +84,7 @@ internal void con_initialize(TTAFont* console_font_handle, texture_t console_fon
     kctta_clear_buffer();
     kctta_move_cursor(CON_INPUT_DRAW_X, CON_INPUT_DRAW_Y);
     kctta_append_glyph('>', con_font_handle, CON_TEXT_SIZE);
-    TTAVertexBuffer vb = kctta_grab_buffer();
+    tta_vertex_buffer_t vb = kctta_grab_buffer();
     con_input_vao = gl_create_mesh_array(vb.vertex_buffer, vb.index_buffer, 
         vb.vertices_array_count, vb.indices_array_count, 2, 2, 0, GL_DYNAMIC_DRAW);
     // INIT MESSAGES mesh_t OBJECTS
@@ -282,7 +282,7 @@ internal void con_update_messages()
                         kctta_new_line(CON_INPUT_DRAW_X, con_font_handle);
                     }
                 }
-                TTAVertexBuffer vb = kctta_grab_buffer();
+                tta_vertex_buffer_t vb = kctta_grab_buffer();
                 gl_rebind_buffers(con_text_vaos[row], vb.vertex_buffer, vb.index_buffer, 
                     vb.vertices_array_count, vb.indices_array_count);
             }
@@ -310,7 +310,7 @@ internal void con_update(real32 dt)
                 kctta_move_cursor(CON_INPUT_DRAW_X, CON_INPUT_DRAW_Y);
                 std::string input_text = ">" + std::string(con_input_buffer);
                 kctta_append_line(input_text.c_str(), con_font_handle, CON_TEXT_SIZE);
-                TTAVertexBuffer vb = kctta_grab_buffer();
+                tta_vertex_buffer_t vb = kctta_grab_buffer();
                 gl_rebind_buffers(con_input_vao, vb.vertex_buffer, vb.index_buffer, 
                     vb.vertices_array_count, vb.indices_array_count);
                 con_b_input_buffer_dirty = false;
