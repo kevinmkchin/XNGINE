@@ -1,10 +1,6 @@
 /** OpenGL 3D Renderer
 
 TODO:
-    - refactor pass
-    - Can I make console.cpp its own kc library? - i could include the .cpp twice but only
-        #define implementation in the second include.
-    - I could still use struct/class member functions and also do single translation unit
     - BUG console command bug - commands get cut off when entered
     - Shadow mapping
     - Skyboxes
@@ -154,12 +150,12 @@ internal inline void win64_load_font(tta_font_t* font_handle,
                                      uint8 font_size)
 {
     binary_file_handle_t fontfile;
-    FILE_read_file_binary(fontfile, font_path);
+    read_file_binary(fontfile, font_path);
         if(fontfile.memory)
         {
             kctta_init_font(font_handle, (uint8*) fontfile.memory, font_size);
         }
-    FILE_free_file_binary(fontfile);
+    free_file_binary(fontfile);
     gl_load_texture_from_bitmap(font_atlas,
                                 font_handle->font_atlas.pixels,
                                 font_handle->font_atlas.width,
@@ -179,7 +175,8 @@ internal inline void sdl_vsync(int vsync)
         case 0:{SDL_GL_SetSwapInterval(0);}break;
         case 1:{SDL_GL_SetSwapInterval(1);}break;
         case 2:{if(SDL_GL_SetSwapInterval(-1)==-1) SDL_GL_SetSwapInterval(1);}break;
-        default:{con_print("Invalid vsync option; 0 = immediate, 1 = vsync, 2 = adaptive vsync");}break;
+        default:{
+            console_print("Invalid vsync option; 0 = immediate, 1 = vsync, 2 = adaptive vsync");}break;
     }
 }
 
@@ -191,7 +188,7 @@ internal inline void gl_update_viewport_size()
     SDL_HINT_VIDEO_HIGHDPI_DISABLED hint. */
     SDL_GL_GetDrawableSize(window, (int*)&g_buffer_width, (int*)&g_buffer_height);
     glViewport(0, 0, g_buffer_width, g_buffer_height);
-    con_printf("Viewport updated - x: %d y: %d\n", g_buffer_width, g_buffer_height);
+    console_printf("Viewport updated - x: %d y: %d\n", g_buffer_width, g_buffer_height);
 }
 
 /** Create window, set up OpenGL context, initialize SDL and GLEW */
@@ -256,12 +253,12 @@ internal bool game_init()
 #endif
         }
 
-        con_printf("This program is running SDL version %u.%u.%u on %s\n", sys_windows_info.version.major, 
-            sys_windows_info.version.minor, sys_windows_info.version.patch, subsystem);
+        console_printf("This program is running SDL version %u.%u.%u on %s\n", sys_windows_info.version.major,
+                       sys_windows_info.version.minor, sys_windows_info.version.patch, subsystem);
     }
     else 
     {
-        con_printf("Couldn't get window information: %s\n", SDL_GetError());
+        console_printf("Couldn't get window information: %s\n", SDL_GetError());
     }
 
     // Set context for SDL to use. Let SDL know that this window is the window that the OpenGL context should be tied to; everything that is drawn should be drawn to this window.
@@ -270,7 +267,7 @@ internal bool game_init()
         printf("Failed to create OpenGL Context with SDL.\n");
         return false;
     }
-    con_printf("OpenGL context created.\n");
+    console_printf("OpenGL context created.\n");
 
     // Initialize GLEW
     glewExperimental = GL_TRUE; // Enable us to access modern opengl extension features
@@ -279,7 +276,7 @@ internal bool game_init()
         printf("GLEW failed to initialize.\n");
         return false;
     }
-    con_printf("GLEW initialized.\n");
+    console_printf("GLEW initialized.\n");
 
     gl_update_viewport_size();
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // alpha blending func: a * (rgb) + (1 - a) * (rgb) = final color output
@@ -291,11 +288,11 @@ internal bool game_init()
     kctta_setflags(KCTTA_CREATE_INDEX_BUFFER);  // kc_truetypeassembler setting
 
     // LOAD FONTS
-    win64_load_font(&g_font_handle_c64, g_font_atlas_c64, "data/fonts/SourceCodePro.ttf", CON_TEXT_SIZE);
+    win64_load_font(&g_font_handle_c64, g_font_atlas_c64, "data/fonts/SourceCodePro.ttf", CONSOLE_TEXT_SIZE);
 
-    con_initialize(&g_font_handle_c64, g_font_atlas_c64);
+    console_initialize(&g_font_handle_c64, g_font_atlas_c64);
     profiler_initialize(&g_font_handle_c64, g_font_atlas_c64);
-    debugger_initialize();
+    debug_initialize();
 
     return true;
 }
@@ -350,15 +347,15 @@ internal void game_process_events()
 
             case SDL_MOUSEWHEEL:
             {
-                if(con_is_shown() && g_curr_mouse_pos_y < CON_HEIGHT)
+                if(console_is_shown() && g_curr_mouse_pos_y < CONSOLE_HEIGHT)
                 {
                     if(event.wheel.y > 0)
                     {
-                        con_scroll_up();
+                        console_scroll_up();
                     }
                     else if(event.wheel.y < 0)
                     {
-                        con_scroll_down();
+                        console_scroll_down();
                     }
                 }
             } break;
@@ -367,17 +364,17 @@ internal void game_process_events()
             {
                 if (event.key.keysym.sym == SDLK_BACKQUOTE)
                 {
-                    con_toggle();
+                    console_toggle();
                     break;
                 }
 
-                if (con_is_shown())
+                if (console_is_shown())
                 {
-                    con_keydown(event.key);
+                    console_keydown(event.key);
                     break;
                 }
 
-                if (event.key.keysym.sym == SDLK_ESCAPE && con_is_hidden())
+                if (event.key.keysym.sym == SDLK_ESCAPE && console_is_hidden())
                 {
                     b_is_game_running = false;
                     break;
@@ -385,20 +382,20 @@ internal void game_process_events()
 
                 if (event.key.keysym.sym == SDLK_F1)
                 {
-                    perf_profiler_level ? con_command("profiler 0") : con_command("profiler 1");
+                    perf_profiler_level ? console_command("profiler 0") : console_command("profiler 1");
                     break;
                 }
 
                 if (event.key.keysym.sym == SDLK_F2)
                 {
-                    debugger_level ? con_command("debug 0") : con_command("debug 1");
+                    debugger_level ? console_command("debug 0") : console_command("debug 1");
                     break;
                 }
 
                 if (event.key.keysym.sym == SDLK_z)
                 {
                     SDL_SetRelativeMouseMode((SDL_bool) !b_relative_mouse);
-                    con_printf("mouse grab = %s\n", !b_relative_mouse ? "true" : "false");
+                    console_printf("mouse grab = %s\n", !b_relative_mouse ? "true" : "false");
                     break;
                 }
             } break;
@@ -409,7 +406,7 @@ internal void game_process_events()
 /** Tick game logic. Delta time is in seconds. */
 internal void game_update(real32 dt)
 {
-    con_update(dt);
+    console_update(dt);
 
     if(b_is_update_running)
     {
@@ -461,20 +458,20 @@ internal void game_render()
         gl_bind_model_matrix(shader_common, matrix_model.ptr());
 
         gl_bind_material(shader_common, material_dull);
-        render_mesh_group(loaded_map->mainobject.model);
+    render_meshgroup(loaded_map->mainobject.model);
 
     glUseProgram(0);
 
 // ALPHA BLENDED
     glEnable(GL_BLEND);
-    debugger_render(shader_simple);
+    debug_render(shader_simple);
 
 // NOT DEPTH TESTED
     glDisable(GL_DEPTH_TEST); 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     profiler_render(shader_ui, shader_text);
-    con_render(shader_ui, shader_text);
+    console_render(shader_ui, shader_text);
 
     /* Swap our buffer to display the current contents of buffer on screen. 
     This is used with double-buffered OpenGL contexts, which are the default. */
@@ -618,7 +615,7 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     // point_lights[1].position = { 4.f, 0.0f, 0.0f };
     // point_lights[1].ambient_intensity = 0.f;
     // point_lights[1].diffuse_intensity = 1.f;
-    // debugger_set_pointlights(point_lights, array_count(point_lights));
+    // debug_set_pointlights(point_lights, array_count(point_lights));
     // spot_lights[0].position = { -4.f, 0.f, 0.f };
     // spot_lights[0].ambient_intensity = 0.f;
     // spot_lights[0].diffuse_intensity = 1.f;
@@ -629,7 +626,7 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     // spot_lights[1].diffuse_intensity = 1.f;
     // //spot_lights[1].set_cutoff_in_degrees(45.f);
     // spot_lights[1].orientation = direction_to_orientation(make_vec3(0.f, -1.f, 0.f));
-    // debugger_set_spotlights(spot_lights, array_count(spot_lights));
+    // debug_set_spotlights(spot_lights, array_count(spot_lights));
 
     // Game Loop
     int64 perf_counter_frequency = win64_counter_frequency();
@@ -647,7 +644,7 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
         game_render();
     }
 
-    con_printf("Game shutting down...\n");
+    console_printf("Game shutting down...\n");
 
     // Cleanup
     gl_delete_shader(shader_common);

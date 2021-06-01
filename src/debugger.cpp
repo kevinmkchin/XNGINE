@@ -166,13 +166,13 @@ internal void debug_render_spotlight(shader_perspective_t& shader, light_spot_t&
     }
 }
 
-internal void debugger_initialize()
+internal void debug_initialize()
 {
     debug_sphere_mesh = create_circle_mesh(0.f, 0.f, 0.f, 1.f);
     debug_cone_mesh = create_cone_mesh(0.f, 0.f, 0.f, 1.f, 1.f);
 }
 
-internal void debugger_render(shader_perspective_t& debug_shader)
+internal void debug_render(shader_perspective_t& debug_shader)
 {
     if(!debugger_level)
     {
@@ -206,29 +206,29 @@ internal void debugger_render(shader_perspective_t& debug_shader)
     glUseProgram(0);
 }
 
-internal void debugger_set_pointlights(light_point_t* point_lights_array, uint8 count)
+internal void debug_set_pointlights(light_point_t* point_lights_array, uint8 count)
 {
     debugger_point_lights = point_lights_array;
     debugger_point_lights_count = count;
 }
 
-internal void debugger_toggle_debug_pointlights()
+internal void debug_toggle_debug_pointlights()
 {
     debugger_b_debug_pointlights = !debugger_b_debug_pointlights;
 }
 
-internal void debugger_set_spotlights(light_spot_t* spot_lights_array, uint8 count)
+internal void debug_set_spotlights(light_spot_t* spot_lights_array, uint8 count)
 {
     debugger_spot_lights = spot_lights_array;
     debugger_spot_lights_count = count;
 }
 
-internal void debugger_toggle_debug_spotlights()
+internal void debug_toggle_debug_spotlights()
 {
     debugger_b_debug_spotlights = !debugger_b_debug_spotlights;
 }
 
-internal void debugger_set_debug_level(int level)
+internal void debug_set_debug_level(int level)
 {
     debugger_level = level;
 }

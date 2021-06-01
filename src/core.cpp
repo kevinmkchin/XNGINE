@@ -1,30 +1,30 @@
-internal void render_mesh_group(meshgroup_t& mesh_group)
+internal void render_meshgroup(meshgroup_t& meshgroup)
 {
-    for(size_t i = 0; i < mesh_group.meshes.size(); ++i)
+    for(size_t i = 0; i < meshgroup.meshes.size(); ++i)
     {
-        uint16 mat_index = mesh_group.mesh_to_texture[i];
-        if(mat_index < mesh_group.textures.size() && mesh_group.textures[mat_index].texture_id != 0)
+        uint16 mat_index = meshgroup.mesh_to_texture[i];
+        if(mat_index < meshgroup.textures.size() && meshgroup.textures[mat_index].texture_id != 0)
         {
-            gl_use_texture(mesh_group.textures[mat_index]);
+            gl_use_texture(meshgroup.textures[mat_index]);
         }
 
-        gl_render_mesh(mesh_group.meshes[i]);
+        gl_render_mesh(meshgroup.meshes[i]);
     }
 }
 
-internal void clear_mesh_group(meshgroup_t& mesh_group)
+internal void clear_meshgroup(meshgroup_t& meshgroup)
 {
-    for(size_t i = 0; i < mesh_group.meshes.size(); ++i)
+    for(size_t i = 0; i < meshgroup.meshes.size(); ++i)
     {
-        gl_delete_mesh(mesh_group.meshes[i]);
+        gl_delete_mesh(meshgroup.meshes[i]);
     }
-    for(size_t i = 0; i < mesh_group.textures.size(); ++i)
+    for(size_t i = 0; i < meshgroup.textures.size(); ++i)
     {
-        gl_delete_texture(mesh_group.textures[i]);
+        gl_delete_texture(meshgroup.textures[i]);
     }
 }
 
-internal void __assimp_load_mesh(meshgroup_t& mesh_group, size_t mesh_index, aiMesh* mesh_node)
+internal void __assimp_load_mesh_helper(meshgroup_t& meshgroup, size_t mesh_index, aiMesh* mesh_node)
 {
     const uint8 vb_entries_per_vertex = 8;
     std::vector<real32> vb(mesh_node->mNumVertices * vb_entries_per_vertex);
@@ -71,13 +71,13 @@ internal void __assimp_load_mesh(meshgroup_t& mesh_group, size_t mesh_index, aiM
     }
 
     mesh_t mesh = gl_create_mesh_array(&vb[0], &ib[0], (uint32)vb.size(), (uint32)ib.size());
-    mesh_group.meshes[mesh_index] = mesh;
-    mesh_group.mesh_to_texture[mesh_index] = mesh_node->mMaterialIndex;
+    meshgroup.meshes[mesh_index] = mesh;
+    meshgroup.mesh_to_texture[mesh_index] = mesh_node->mMaterialIndex;
 }
 
-internal void assimp_load_mesh_group(meshgroup_t& mesh_group, const char* file_name)
+internal void assimp_load_meshgroup(meshgroup_t& meshgroup, const char* file_name)
 {
-    //win64_global_timestamp();
+    win64_global_timestamp();
 
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(file_name,
@@ -87,24 +87,24 @@ internal void assimp_load_mesh_group(meshgroup_t& mesh_group, const char* file_n
         );
     if(!scene)
     {
-        con_printf("Model '%s' failed to load: %s\n", file_name, importer.GetErrorString());
+        console_printf("Model '%s' failed to load: %s\n", file_name, importer.GetErrorString());
         return;
     }
-    //con_printf("took %f seconds to Importer::ReadFile\n", win64_global_timestamp());
+    console_printf("took %f seconds to Importer::ReadFile\n", win64_global_timestamp());
 
-    mesh_group.meshes.resize(scene->mNumMeshes);
-    mesh_group.mesh_to_texture.resize(scene->mNumMeshes);
-    mesh_group.textures.resize(scene->mNumMaterials);
+    meshgroup.meshes.resize(scene->mNumMeshes);
+    meshgroup.mesh_to_texture.resize(scene->mNumMeshes);
+    meshgroup.textures.resize(scene->mNumMaterials);
 
-    //con_printf("took %f seconds to resize 3 vectors\n", win64_global_timestamp());
+    //console_printf("took %f seconds to resize 3 vectors\n", win64_global_timestamp());
 
     // Unpack meshes
     for(size_t i = 0; i < scene->mNumMeshes; ++i)
     {
-        __assimp_load_mesh(mesh_group, i, scene->mMeshes[i]);
+        __assimp_load_mesh_helper(meshgroup, i, scene->mMeshes[i]);
     }
 
-    //con_printf("took %f seconds to unpack all the meshes\n", win64_global_timestamp());
+    console_printf("took %f seconds to unpack all the meshes\n", win64_global_timestamp());
 
     // Load diffuse textures
     for(size_t i = 0; i < scene->mNumMaterials; ++i)
@@ -122,10 +122,10 @@ internal void assimp_load_mesh_group(meshgroup_t& mesh_group, const char* file_n
                 model_file_directory = model_file_directory.substr(0, idx + 1);
 
                 std::string tex_path = model_file_directory + texture_file_name;
-                gl_load_texture_from_file(mesh_group.textures[i], tex_path.c_str());
+                gl_load_texture_from_file(meshgroup.textures[i], tex_path.c_str());
             }
         }
     }
 
-    //con_printf("took %f seconds to load all the textures\n", win64_global_timestamp());
+    console_printf("took %f seconds to load all the textures\n", win64_global_timestamp());
 }

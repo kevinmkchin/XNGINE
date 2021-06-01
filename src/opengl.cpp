@@ -25,7 +25,7 @@ internal void gl_compile_shader(uint32 program_id, const char* shader_code, GLen
     if (!result)
     {
         glGetProgramInfoLog(id_shader, sizeof(eLog), nullptr, eLog);
-        con_printf("Error compiling the %d shader: '%s' \n", shader_type, eLog);
+        console_printf("Error compiling the %d shader: '%s' \n", shader_type, eLog);
         return;
     }
     // Attach to program
@@ -38,7 +38,7 @@ internal void gl_create_shader_program(shader_base_t& shader, const char* vertex
     shader.id_shader_program = glCreateProgram();
     if (!shader.id_shader_program)
     {
-        con_printf("Failed to create shader program! Aborting.\n");
+        console_printf("Failed to create shader program! Aborting.\n");
         return;
     }
     // Compile and attach the shaders
@@ -53,7 +53,7 @@ internal void gl_create_shader_program(shader_base_t& shader, const char* vertex
     if (!result)
     {
         glGetProgramInfoLog(shader.id_shader_program, sizeof(eLog), nullptr, eLog);
-        con_printf("Error linking program: '%s'! Aborting.\n", eLog);
+        console_printf("Error linking program: '%s'! Aborting.\n", eLog);
         return;
     }
     // Validate the program will work
@@ -62,7 +62,7 @@ internal void gl_create_shader_program(shader_base_t& shader, const char* vertex
     if (!result)
     {
         glGetProgramInfoLog(shader.id_shader_program, sizeof(eLog), nullptr, eLog);
-        con_printf("Error validating program: '%s'! Aborting.\n", eLog);
+        console_printf("Error validating program: '%s'! Aborting.\n", eLog);
         return;
     }
 
@@ -71,8 +71,8 @@ internal void gl_create_shader_program(shader_base_t& shader, const char* vertex
 
 internal void gl_load_shader_program_from_file(shader_base_t& shader, const char* vertex_path, const char* fragment_path)
 {
-    std::string v = FILE_read_file_string(vertex_path);
-    std::string f = FILE_read_file_string(fragment_path);
+    std::string v = read_file_string(vertex_path);
+    std::string f = read_file_string(fragment_path);
     gl_create_shader_program(shader, v.c_str(), f.c_str());
 }
 
@@ -81,7 +81,7 @@ internal void gl_use_shader(shader_base_t& shader)
 {
     if (shader.id_shader_program == 0)
     {
-        con_printf("WARNING: Passed an unloaded shader program to gl_use_shader! Aborting.\n");
+        console_printf("WARNING: Passed an unloaded shader program to gl_use_shader! Aborting.\n");
         return;
     }
     glUseProgram(shader.id_shader_program);
@@ -92,7 +92,7 @@ internal void gl_delete_shader(shader_base_t& shader)
 {
     if (shader.id_shader_program == 0)
     {
-        con_printf("WARNING: Passed an unloaded shader program to gl_delete_shader! Aboring.\n");
+        console_printf("WARNING: Passed an unloaded shader program to gl_delete_shader! Aboring.\n");
         return;
     }
     glDeleteProgram(shader.id_shader_program);
@@ -281,7 +281,7 @@ internal void gl_render_mesh(mesh_t& mesh, GLenum mode = GL_TRIANGLES)
 {
     if (mesh.index_count == 0) // Early out if index_count == 0, nothing to draw
     {
-        con_printf("WARNING: Attempting to render a mesh with 0 index count!\n");
+        console_printf("WARNING: Attempting to render a mesh with 0 index count!\n");
         return;
     }
 
@@ -327,7 +327,8 @@ internal void gl_delete_texture(texture_t& texture)
 {
     if(texture.texture_id == 0)
     {
-        con_printf("WARNING: Attempting to clear a texture with id: 0. This means this texture hasn't been loaded!\n");
+        console_printf(
+                "WARNING: Attempting to clear a texture with id: 0. This means this texture hasn't been loaded!\n");
         return;
     }
     glDeleteTextures(1, &texture.texture_id);
@@ -349,7 +350,8 @@ internal void gl_load_texture_from_bitmap(texture_t&          texture,
 {
     if(texture.texture_id != 0)
     {
-        con_printf("WARNING: Trying to load a texture_t when there is already a texture loaded! Clearing texture first...\n");
+        console_printf(
+                "WARNING: Trying to load a texture_t when there is already a texture loaded! Clearing texture first...\n");
         gl_delete_texture(texture);
     }
 
@@ -384,10 +386,10 @@ internal void gl_load_texture_from_file(texture_t&    texture,
                                         const char* texture_file_path)
 {
     bitmap_handle_t texture_handle;
-    FILE_read_image(texture_handle, texture_file_path);
+    read_image(texture_handle, texture_file_path);
         gl_load_texture_from_bitmap(texture, (unsigned char*)texture_handle.memory, texture_handle.width, 
             texture_handle.height, GL_RGBA, (texture_handle.bit_depth == 3 ? GL_RGB : GL_RGBA));
-    FILE_free_image(texture_handle); // texture data has been copied to GPU memory, so we can free image from memory
+    free_image(texture_handle); // texture data has been copied to GPU memory, so we can free image from memory
 }
 
 // Binds this texture to texture_t Unit 0

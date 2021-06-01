@@ -129,7 +129,7 @@ internal void cmd_invokestage4(console_command_meta_t cmd_meta, std::vector<std:
         }
         else
         {
-            con_print("Invalid arguments: argument 4 must be an integer.\n");
+            console_print("Invalid arguments: argument 4 must be an integer.\n");
         }
     }
     else if(argtype == TYPEHASH(float))
@@ -141,7 +141,7 @@ internal void cmd_invokestage4(console_command_meta_t cmd_meta, std::vector<std:
         }
         else
         {
-            con_print("Invalid arguments: argument 4 must be a float.\n");
+            console_print("Invalid arguments: argument 4 must be a float.\n");
         }
     }
     else if(argtype == TYPEHASH(std::string))
@@ -169,7 +169,7 @@ internal void cmd_invokestage3(console_command_meta_t cmd_meta, std::vector<std:
         }
         else
         {
-            con_print("Invalid arguments: argument 3 must be an integer.\n");
+            console_print("Invalid arguments: argument 3 must be an integer.\n");
         }
     }
     else if(argtype == TYPEHASH(float))
@@ -181,7 +181,7 @@ internal void cmd_invokestage3(console_command_meta_t cmd_meta, std::vector<std:
         }
         else
         {
-            con_print("Invalid arguments: argument 3 must be a float.\n");
+            console_print("Invalid arguments: argument 3 must be a float.\n");
         }
     }
     else if(argtype == TYPEHASH(std::string))
@@ -209,7 +209,7 @@ internal void cmd_invokestage2(console_command_meta_t cmd_meta, std::vector<std:
         }
         else
         {
-            con_print("Invalid arguments: argument 2 must be an integer.\n");
+            console_print("Invalid arguments: argument 2 must be an integer.\n");
         }
     }
     else if(argtype == TYPEHASH(float))
@@ -221,7 +221,7 @@ internal void cmd_invokestage2(console_command_meta_t cmd_meta, std::vector<std:
         }
         else
         {
-            con_print("Invalid arguments: argument 2 must be a float.\n");
+            console_print("Invalid arguments: argument 2 must be a float.\n");
         }
     }
     else if(argtype == TYPEHASH(std::string))
@@ -249,7 +249,7 @@ internal void COMMAND_INVOKE(console_command_meta_t cmd_meta, std::vector<std::s
         }
         else
         {
-            con_print("Invalid arguments: argument 1 must be an integer.\n");
+            console_print("Invalid arguments: argument 1 must be an integer.\n");
         }
     }
     else if(argtype == TYPEHASH(float))
@@ -261,7 +261,7 @@ internal void COMMAND_INVOKE(console_command_meta_t cmd_meta, std::vector<std::s
         }
         else
         {
-            con_print("Invalid arguments: argument 1 must be a float.\n");
+            console_print("Invalid arguments: argument 1 must be a float.\n");
         }
     }
     else if(argtype == TYPEHASH(std::string))
