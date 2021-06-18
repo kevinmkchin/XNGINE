@@ -129,7 +129,7 @@ internal void cmd_print_camera_properties()
 {
     console_printf("camera_t position x: %f, y: %f, z: %f \n", g_camera.position.x, g_camera.position.y,
                    g_camera.position.z);
-    console_printf("camera_t rotation pitch: %f, yaw: %f, roll: %f \n", g_camera.rotation.x, g_camera.rotation.y,
+    console_printf("camera_t rotation roll: %f, yaw: %f, pitch: %f \n", g_camera.rotation.x, g_camera.rotation.y,
                    g_camera.rotation.z);
     console_printf("camera_t speed: %f\n", g_camera.movespeed);
     console_printf("camera_t sensitivity: %f\n", g_camera.turnspeed);

@@ -43,6 +43,24 @@ INTRO & PURPOSE:
 
 /** - Vectors -
     just floats
+
+    todo use unions
+
+    union vec3
+    {
+        struct
+        {
+            float x;
+            float y;
+            float z;
+        }
+        struct
+        {
+            float roll;
+            float yaw;
+            float pitch;
+        }
+    };
 */
 struct vec3
 {
@@ -288,12 +306,12 @@ inline quaternion inverse(quaternion a);
 /** Gets the conjugate of the given quaternion with magnitude 1 */
 inline quaternion inverse_unit(quaternion a);
 
-/** Convert Quaternion to Euler angles
+/** Convert Quaternion to Euler angles IN RADIANS
     https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Quaternion_to_Euler_angles_conversion
 */
 inline vec3 quat_to_euler(quaternion q);
 
-/** Convert Euler angles to Quaternion
+/** Convert Euler angles IN RADIANS to Quaternion
     https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Euler_angles_to_quaternion_conversion
 */
 inline quaternion euler_to_quat(vec3 euler_angles);

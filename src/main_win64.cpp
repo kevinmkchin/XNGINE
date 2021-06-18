@@ -4,6 +4,7 @@ TODO:
     - BUG console command bug - commands get cut off when entered
     - Shadow mapping
     - Skyboxes
+    - rewrite camera to use quaternion for rotation
     - Map Editor:
         - console command 'editor' to enter
         - quits the game inside the gamemode, and simply loads the map into the editor (keep camera in same transformation)
@@ -134,6 +135,8 @@ shader_orthographic_t shader_ui;
 shader_perspective_t shader_simple;
 material_t material_shiny = {4.f, 128.f };
 material_t material_dull = {0.5f, 1.f };
+light_point_t point_lights[2];
+light_spot_t spot_lights[2];
 
 static const char* vertex_shader_path = "shaders/default_phong.vert";
 static const char* frag_shader_path = "shaders/default_phong.frag";
@@ -568,14 +571,14 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     g_matrix_projection_ortho = projection_matrix_orthographic_2d(0.0f, (real32)g_buffer_width, (real32)g_buffer_height, 0.0f);
 
     // TEMPORARY setting up maps/scenes (TODO replace once we are loading maps from disk)
-    loaded_maps[0].directionallight.orientation = direction_to_orientation(make_vec3(2.f, -1.f, -2.f));
+    loaded_maps[0].directionallight.orientation = euler_to_quat(make_vec3(0.f, -26.17f*KC_DEG2RAD, 42.67f*KC_DEG2RAD));
     loaded_maps[0].directionallight.ambient_intensity = 0.3f;
     loaded_maps[0].directionallight.diffuse_intensity = 1.0f;
-    loaded_maps[0].directionallight.colour = { 255.f/255.f, 231.f/255.f, 155.f/255.f };
+    loaded_maps[0].directionallight.colour = { 1.f, 1.f, 1.f };
     loaded_maps[0].temp_obj_path = "data/models/sponza/sponza.obj";
     loaded_maps[0].mainobject.scale = make_vec3(0.04f, 0.04f, 0.04f);
-    loaded_maps[0].cam_start_pos = make_vec3(14.f, 6.f, -1.5f);
-    loaded_maps[0].cam_start_rot = make_vec3(0.f, 180.f, 0.f);
+    loaded_maps[0].cam_start_pos = make_vec3(-47.44f, 66.29f, 9.65f);
+    loaded_maps[0].cam_start_rot = make_vec3(0.f, -26.17f, 42.67f);
 
     loaded_maps[1].directionallight.orientation = direction_to_orientation(make_vec3(2.f, -1.f, -2.f));
     loaded_maps[1].directionallight.ambient_intensity = 0.3f;
@@ -607,26 +610,26 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
 
     game_switch_map(0);
 
-    // point_lights[0].colour = { 0.0f, 1.0f, 0.0f };
-    // point_lights[0].position = { -4.f, 0.0f, 0.0f };
-    // point_lights[0].ambient_intensity = 0.f;
-    // point_lights[0].diffuse_intensity = 1.f;
-    // point_lights[1].colour = { 0.0f, 0.0f, 1.0f };
-    // point_lights[1].position = { 4.f, 0.0f, 0.0f };
-    // point_lights[1].ambient_intensity = 0.f;
-    // point_lights[1].diffuse_intensity = 1.f;
-    // debug_set_pointlights(point_lights, array_count(point_lights));
-    // spot_lights[0].position = { -4.f, 0.f, 0.f };
-    // spot_lights[0].ambient_intensity = 0.f;
-    // spot_lights[0].diffuse_intensity = 1.f;
-    // spot_lights[0].set_cutoff_in_degrees(45.f);
-    // spot_lights[0].orientation = direction_to_orientation(make_vec3(-1.f, -1.f, 0.f));
-    // spot_lights[1].position = { -2.f, 0.f, 0.f };
-    // spot_lights[1].ambient_intensity = 0.f;
-    // spot_lights[1].diffuse_intensity = 1.f;
-    // //spot_lights[1].set_cutoff_in_degrees(45.f);
-    // spot_lights[1].orientation = direction_to_orientation(make_vec3(0.f, -1.f, 0.f));
-    // debug_set_spotlights(spot_lights, array_count(spot_lights));
+    point_lights[0].colour = { 0.0f, 1.0f, 0.0f };
+    point_lights[0].position = { -4.f, 0.0f, 0.0f };
+    point_lights[0].ambient_intensity = 0.f;
+    point_lights[0].diffuse_intensity = 1.f;
+    point_lights[1].colour = { 0.0f, 0.0f, 1.0f };
+    point_lights[1].position = { 4.f, 0.0f, 0.0f };
+    point_lights[1].ambient_intensity = 0.f;
+    point_lights[1].diffuse_intensity = 1.f;
+    debug_set_pointlights(point_lights, array_count(point_lights));
+    spot_lights[0].position = loaded_maps[0].cam_start_pos;//{ -4.f, 0.f, 0.f };
+    spot_lights[0].ambient_intensity = 0.f;
+    spot_lights[0].diffuse_intensity = 1.f;
+    spot_lights[0].set_cutoff_in_degrees(45.f);
+    spot_lights[0].orientation = loaded_maps[0].directionallight.orientation;//direction_to_orientation(make_vec3(-1.f, -1.f, 0.f));
+    spot_lights[1].position = { -2.f, 0.f, 0.f };
+    spot_lights[1].ambient_intensity = 0.f;
+    spot_lights[1].diffuse_intensity = 1.f;
+    //spot_lights[1].set_cutoff_in_degrees(45.f);
+    spot_lights[1].orientation = direction_to_orientation(make_vec3(0.f, -1.f, 0.f));
+    debug_set_spotlights(spot_lights, array_count(spot_lights));
 
     // Game Loop
     int64 perf_counter_frequency = win64_counter_frequency();
