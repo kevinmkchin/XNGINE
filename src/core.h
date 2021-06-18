@@ -259,7 +259,7 @@ struct meshgroup_t
 struct camera_t
 {
     vec3   position             = { 0.f };            // camera x y z pos in world space 
-    vec3   rotation             = { 0.f };            // pitch, yaw, roll - in that order
+    vec3   rotation             = { 0.f };            // roll yaw pitch - in that order
     vec3   world_up             = { 0.f, 1.f, 0.f };
 
     vec3   calculated_direction = { 0.f };            // Intuitive direction - direction forward
