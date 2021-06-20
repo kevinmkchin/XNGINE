@@ -219,7 +219,7 @@ internal mesh_t gl_create_mesh_array(real32* vertices,
             /* Connect the vertices data to the actual gl array buffer for this VBO. We need to pass in the size of the data we are passing as well.
             GL_STATIC_DRAW (as opposed to GL_DYNAMIC_DRAW) means we won't be changing these data values in the array. 
             The vertices array does not need to exist anymore after this call because that data will now be stored in the VAO on the GPU. */
-            glBufferData(GL_ARRAY_BUFFER, 4 /*bytes cuz uint32*/ * vertices_array_count, vertices, draw_usage);
+            glBufferData(GL_ARRAY_BUFFER, 4 /*bytes cuz float*/ * vertices_array_count, vertices, draw_usage);
             /* Index is location in VAO of the attribute we are creating this pointer for.
             Size is number of values we are passing in (e.g. size is 3 if x y z).
             Normalized is normalizing the values.

@@ -80,6 +80,9 @@ internal void assimp_load_meshgroup(meshgroup_t& meshgroup, const char* file_nam
     win64_global_timestamp();
 
     Assimp::Importer importer;
+    /*  NOTE: To create smooth normals respecting edges sharper than a given angle,
+        use importer.SetPropertyFloat("PP_GSN_MAX_SMOOTHING_ANGLE", 90) along with
+        aiProcess_GenSmoothNormals flag. https://github.com/assimp/assimp/issues/1713 */  
     const aiScene* scene = importer.ReadFile(file_name,
         aiProcess_Triangulate
         |aiProcess_GenSmoothNormals
