@@ -306,14 +306,29 @@ inline quaternion inverse(quaternion a);
 /** Gets the conjugate of the given quaternion with magnitude 1 */
 inline quaternion inverse_unit(quaternion a);
 
-/** Convert Quaternion to Euler angles IN RADIANS
-    https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Quaternion_to_Euler_angles_conversion
+/** Convert Quaternion to Euler angles IN RADIANS. When you read the .eulerAngles property,
+    Unity converts the Quaternion's internal representation of the rotation to Euler angles.
+    Because, there is more than one way to represent any given rotation using Euler angles,
+    the values you read back out may be quite different from the values you assigned. This
+    can cause confusion if you are trying to gradually increment the values to produce animation.
+    To avoid these kinds of problems, the recommended way to work with rotations is to avoid
+    relying on consistent results when reading .eulerAngles particularly when attempting to
+    gradually increment a rotation to produce animation.
+    This will not work when the Z euler angle is within [90, 270] degrees. This is a
+    limitation with euler angles: euler angles (of any type) have a singularity. Unity's 
+    Quaternion.eulerAngle also experiences the same limitation, so I don't think there is
+    anything I can do about it. Just whenever possible, avoid using euler angles.
 */
 inline vec3 quat_to_euler(quaternion q);
 
-/** Convert Euler angles IN RADIANS to Quaternion
+/** Convert Euler angles IN RADIANS to a rotation Quaternion representing a rotation
+    x/roll degrees around the x-axis, z/pitch degrees around the z-axis, and y/yaw degrees 
+    around the y-axis; applied in that order.
+    See https://ntrs.nasa.gov/api/citations/19770024290/downloads/19770024290.pdf
+    The following wikipedia page uses a different order of rotation, but still helpful:
     https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Euler_angles_to_quaternion_conversion
 */
+inline quaternion euler_to_quat(float roll, float yaw, float pitch);
 inline quaternion euler_to_quat(vec3 euler_angles);
 
 /** Returns an orientation that faces the direction as given direction. The return value
@@ -793,7 +808,7 @@ inline float dot(quaternion a, quaternion b)
 inline quaternion mul(quaternion a, quaternion b)
 {
     quaternion R;
-    R.w = a.w * b.w - dot(a, b);
+    R.w = a.w * b.w - dot(make_vec3(a.x,a.y,a.z), make_vec3(b.x,b.y,b.z));
     vec3 va = make_vec3(a.x, a.y, a.z);
     vec3 vb = make_vec3(b.x, b.y, b.z);
     vec3 first = b.w * va;
@@ -833,7 +848,7 @@ inline float magnitude(quaternion a)
 
 inline quaternion normalize(quaternion a)
 {
-    return div(a, sqrtf(dot(a, a)));
+    return div(a, magnitude(a));
 }
 
 inline bool similar(quaternion a, quaternion b, float tolerance)
@@ -875,49 +890,73 @@ inline vec3 quat_to_euler(quaternion q)
 {
     vec3 euler_angles;
 
-    // roll (x-axis rotation)
-    float sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
-    float cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
-    euler_angles.x = atan2f(sinr_cosp, cosr_cosp);
+    float x2 = q.x * q.x;
+    float y2 = q.y * q.y;
+    float z2 = q.z * q.z;
+    float xy = q.x * q.y;
+    float zw = q.z * q.w;
+    float xz = q.x * q.z;
+    float yw = q.y * q.w;
+    float yz = q.y * q.z;
+    float xw = q.x * q.w;
 
-    // yaw (y-axis rotation)
-    float siny_cosp = 2 * (q.w * q.z + q.x * q.y);
-    float cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
-    euler_angles.y = atan2f(siny_cosp, cosy_cosp);
+    float r10 = 2.0f * (xy + zw);
+    float r20 = 2.0f * (xz - yw);
+    float r00 = 1.0f - 2.0f * (y2 + z2);
+    float r12 = 2.0f * (yz - xw);
+    float r11 = 1.0f - 2.0f * (x2 + z2);
+    float r21 = 2.0f * (yz + xw) ;
+    float r22 = 1.0f - 2.0f * (x2 + y2);
 
-    // pitch (z-axis rotation)
-    float sinp = 2 * (q.w * q.y - q.z * q.x);
-    if(abs(sinp) >= 1)
+    if(r10 < 1.f)
     {
-        float sinp_sign = sinp > 0.f ? 1.0f : -1.0f;
-        euler_angles.z = KC_PI * 0.5f * sinp_sign; // use 90 degrees if out of range
+        if(r10 > -1.f)
+        {
+            euler_angles.z = asinf(r10);
+            euler_angles.y = atan2f(-r20, r00);
+            euler_angles.x = atan2f(-r12, r11);
+        }
+        else // r10 = -1
+        {
+            euler_angles.z = -KC_PI/2.f;
+            euler_angles.y = -atan2f(r21, r22);
+            euler_angles.x = 0;
+        }
     }
     else
     {
-        euler_angles.z = asin(sinp);
+            euler_angles.z = KC_PI/2.f;
+            euler_angles.y = atan2f(r21, r22);
+            euler_angles.x = 0;
     }
 
     return euler_angles;
 }
 
+inline quaternion euler_to_quat(float roll, float pitch, float yaw)
+{
+    float cr = cosf(roll * 0.5f);
+    float sr = sinf(roll * 0.5f);
+
+    float cp = cosf(pitch * 0.5f);
+    float sp = sinf(pitch * 0.5f);
+
+    float cy = cosf(yaw * 0.5f);
+    float sy = sinf(yaw * 0.5f);
+
+    quaternion ret;
+
+    ret.w = cr * cp * cy - sr * sp * sy;
+    ret.x = sr * cp * cy + cr * sp * sy;
+    ret.y = cr * cp * sy + sr * sp * cy;
+    ret.z = cr * cy * sp - sr * sy * cp;
+
+    return ret;
+}
+
 inline quaternion euler_to_quat(vec3 euler_angles)
 {
-    quaternion ret;
-    
-    // Abbreviations for the various angular functions
-    float cr = cosf(euler_angles.x * 0.5f); // roll
-    float sr = sinf(euler_angles.x * 0.5f);
-    float cy = cosf(euler_angles.y * 0.5f); // yaw
-    float sy = sinf(euler_angles.y * 0.5f);
-    float cp = cosf(euler_angles.z * 0.5f); // pitch
-    float sp = sinf(euler_angles.z * 0.5f);
-    
-    ret.w = cy * cp * cr + sy * sp * sr;
-    ret.x = cy * cp * sr - sy * sp * cr;
-    ret.y = sy * cp * sr + cy * sp * cr;
-    ret.z = sy * cp * cr - cy * sp * sr;
-    
-    return ret;
+    return euler_to_quat(euler_angles.x, euler_angles.z, euler_angles.y);
 }
 
 inline quaternion direction_to_orientation(vec3 direction)
