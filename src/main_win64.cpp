@@ -4,6 +4,10 @@ TODO:
     - orientation_to_direction and direction_to_orientation introduce a TON of error/uncertainty.
     - BUG console command bug - commands get cut off when entered
     - Shadow mapping
+        - directional shadows DONE
+        - omnidirectional shadows for point lights and spot lights
+        - multiple onnidirectional shadow maps
+        - multiple directional shadow maps
     - Skyboxes
     - rewrite camera to use quaternion for rotation
     - Map Editor:
@@ -143,9 +147,10 @@ material_t material_shiny = {4.f, 128.f };
 material_t material_dull = {0.5f, 1.f };
 light_point_t point_lights[2];
 light_spot_t spot_lights[2];
+
 unsigned int depthMap;
 unsigned int depthMapFBO;
-texture_t tex_brick;
+mat4 lightSpaceMatrix;
 
 static const char* vertex_shader_path = "shaders/default_phong.vert";
 static const char* frag_shader_path = "shaders/default_phong.frag";
@@ -456,7 +461,16 @@ internal void game_render()
         gl_bind_camera_position(shader_common, g_camera);
 
         temp_map_t* loaded_map = &loaded_maps[active_map_index];
+
         gl_bind_directional_light(shader_common, loaded_map->directionallight);
+        // set texture unit 1 to depthMap
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+
+        glUniformMatrix4fv(shader_common.uid_directional_light_transform, 1, GL_FALSE, lightSpaceMatrix.ptr());
+        glUniform1i(shader_common.uid_texture, 0);
+        glUniform1i(shader_common.uid_directional_shadow_map, 1); // set directional shadow map to reference texture unit 1
+
         gl_bind_point_lights(shader_common, loaded_map->pointlights.data(), (uint8)loaded_map->pointlights.size());
         gl_bind_spot_lights(shader_common, loaded_map->spotlights.data(), (uint8)loaded_map->spotlights.size());
 
@@ -493,15 +507,15 @@ internal void game_render()
             meshmade = true;
 
             uint32 quadindices[6] = { 
-                0, 3, 1,
-                0, 2, 3
+                0, 1, 3,
+                0, 3, 2
             };
             GLfloat quadvertices[16] = {
             //  x     y        u    v   
-                -1.f, -1.f,   0.f, 0.f,
-                1.f, -1.f,    1.f, 0.f,
-                -1.f, 1.f,    0.f, 1.f,
-                1.f, 1.f,     1.f, 1.f
+                -1.f, -1.f,   -0.1f, -0.1f,
+                1.f, -1.f,    1.1f, -0.1f,
+                -1.f, 1.f,    -0.1f, 1.1f,
+                1.f, 1.f,     1.1f, 1.1f
             };
             quad = gl_create_mesh_array(quadvertices, quadindices, 16, 6, 2, 2, 0);
         }
@@ -612,8 +626,6 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     gl_load_shader_program_from_file(shader_ui, ui_vs_path, ui_fs_path);
     gl_load_shader_program_from_file(shader_simple, simple_vs_path, simple_fs_path);
 
-    gl_load_texture_from_file(tex_brick, "data/textures/brick.png");
-
     g_camera.position = { 0.f, 0.f, 0.f };
     g_camera.rotation = { 0.f, 270.f, 0.f };
     calculate_perspectivematrix(g_camera, 90.f);
@@ -622,7 +634,7 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     // TEMPORARY setting up maps/scenes (TODO replace once we are loading maps from disk)
     loaded_maps[0].directionallight.orientation = euler_to_quat(make_vec3(0.f, 30.f, -47.f) * KC_DEG2RAD);
     loaded_maps[0].directionallight.ambient_intensity = 0.3f;
-    loaded_maps[0].directionallight.diffuse_intensity = 1.0f;
+    loaded_maps[0].directionallight.diffuse_intensity = 0.8f;
     loaded_maps[0].directionallight.colour = { 1.f, 1.f, 1.f };
     loaded_maps[0].temp_obj_path = "data/models/sponza/sponza.obj";
     loaded_maps[0].mainobject.pos = make_vec3(0.f, -6.f, 0.f);
@@ -685,7 +697,7 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
 //////////// shadow implementation ////////////
     glGenFramebuffers(1, &depthMapFBO);
 
-    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+    const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
 
     glGenTextures(1, &depthMap);
     glBindTexture(GL_TEXTURE_2D, depthMap);
@@ -693,8 +705,10 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
                  SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); 
+    float smap_bordercolor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, smap_bordercolor);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
@@ -702,14 +716,16 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    mat4 lightProjection = projection_matrix_orthographic(-30.0f, 30.0f, -30.0f, 30.0f, 0.1f, 100.f);
-    mat4 lightSpaceMatrix = lightProjection 
+    mat4 lightProjection = projection_matrix_orthographic(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 150.f);
+    lightSpaceMatrix = lightProjection 
     //* view_matrix_look_at(-orientation_to_direction(loaded_maps[0].directionallight.orientation) + make_vec3(-47.f, 66.f, 0.f), make_vec3(-47.f, 66.f, 0.f), make_vec3(0.f,1.f,0.f)); // TODO make up 0,0,1 if light is straight up or down
     //* view_matrix_look_at(make_vec3(-2.0f, 4.0f, -1.0f), make_vec3(0.f, 0.f, 0.f), make_vec3(0.f,1.f,0.f)); // TODO make up 0,0,1 if light is straight up or down
     * view_matrix_look_at(make_vec3(-47.44f, 66.29f, 9.65f), make_vec3(-47.44f, 66.29f, 9.65f) + orientation_to_direction(loaded_maps[0].directionallight.orientation), make_vec3(0.f,1.f,0.f)); // TODO make up 0,0,1 if light is straight up or down
 
     temp_map_t* loaded_map = &loaded_maps[active_map_index];
 ////////////////////////////////////////////////////
+
+    glEnable(GL_CULL_FACE);
 
     // Game Loop
     int64 perf_counter_frequency = win64_counter_frequency();
@@ -731,6 +747,7 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
             glClear(GL_DEPTH_BUFFER_BIT);
+            //glCullFace(GL_FRONT);
 
             mat4 matrix_model = identity_mat4();
             matrix_model = identity_mat4();
@@ -739,6 +756,8 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
             matrix_model *= scale_matrix(loaded_map->mainobject.scale);
             gl_bind_model_matrix(shader_directional_shadow_map, matrix_model.ptr());
             render_meshgroup(loaded_map->mainobject.model);
+
+            //glCullFace(GL_BACK);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

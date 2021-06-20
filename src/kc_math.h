@@ -26,6 +26,13 @@ INTRO & PURPOSE:
         - Method to create view matrix
         - Spherical linear interpolation & vector linear interpolation
 
+STANDARDS:
+    Positive X axis is forward vector. Positive Y axis is up vector. Positive Z
+    axis is right vector. Therefore, roll is rotation around X axis, pitch is
+    rotation around Z axis, and yaw is rotation around Y axis.
+    Quaternions: Quaternions are used to represent rotations. They are compact, 
+    don't suffer from gimbal lock and can easily be interpolated. kc_math uses
+    Quaternions to represent all rotations.
 */
 #ifndef _INCLUDE_KC_MATH_H_
 #define _INCLUDE_KC_MATH_H_

@@ -137,6 +137,10 @@ struct shader_lighting_t : shader_perspective_t
     GLint   id_uniform_specular_intensity = 0;
     GLint   id_uniform_shininess = 0;
 
+    GLint   uid_texture = 0;
+    GLint   uid_directional_shadow_map = 0;
+    GLint   uid_directional_light_transform = 0;
+
     virtual void load_uniforms() override
     {
         shader_perspective_t::load_uniforms();
@@ -189,6 +193,10 @@ struct shader_lighting_t : shader_perspective_t
         }
         id_uniform_specular_intensity = uniform_location("material.specular_intensity");
         id_uniform_shininess = uniform_location("material.shininess");
+
+        uid_texture = uniform_location("texture_sampler_0");
+        uid_directional_shadow_map = uniform_location("directionalShadowMap");
+        uid_directional_light_transform = uniform_location("directionalLightTransform");
     }
 };
 
