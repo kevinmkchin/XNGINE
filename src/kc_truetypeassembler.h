@@ -252,6 +252,7 @@ EXAMPLE (C code using OpenGL):
 TODO:
     - Kerning
     - Top-to-bottom text (vertical text)
+    - Add flag to choose winding order (currently counter-clockwise winding order)
 Maybe:
     - Support creating font atlas for a select few characters (e.g. only the characters in 'D''O''O''M')
         this will allow larger font sizes for the few select characters and also smaller font texture atlas sizes.
@@ -627,11 +628,11 @@ kctta_append_glyph(const char in_glyph, tta_font_t* font, int font_size)
         _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 15] = glyph.min_v;
 
         _kctta_index_buffer[_kctta_index_count + 0] = _kctta_vertex_count + 0;
-        _kctta_index_buffer[_kctta_index_count + 1] = _kctta_vertex_count + 1;
-        _kctta_index_buffer[_kctta_index_count + 2] = _kctta_vertex_count + 2;
+        _kctta_index_buffer[_kctta_index_count + 1] = _kctta_vertex_count + 2;
+        _kctta_index_buffer[_kctta_index_count + 2] = _kctta_vertex_count + 1;
         _kctta_index_buffer[_kctta_index_count + 3] = _kctta_vertex_count + 0;
-        _kctta_index_buffer[_kctta_index_count + 4] = _kctta_vertex_count + 2;
-        _kctta_index_buffer[_kctta_index_count + 5] = _kctta_vertex_count + 3;
+        _kctta_index_buffer[_kctta_index_count + 4] = _kctta_vertex_count + 3;
+        _kctta_index_buffer[_kctta_index_count + 5] = _kctta_vertex_count + 2;
 
         _kctta_vertex_count += 4;
         _kctta_index_count += 6;
@@ -643,14 +644,14 @@ kctta_append_glyph(const char in_glyph, tta_font_t* font, int font_size)
         _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 2] = glyph.min_u;
         _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 3] = glyph.min_v;
 
-        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 4] = left;
+        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 4] = right;
         _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 5] = top;
-        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 6] = glyph.min_u;
+        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 6] = glyph.max_u;
         _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 7] = glyph.max_v;
 
-        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 8] = right;
+        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 8] = left;
         _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 9] = top;
-        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 10] = glyph.max_u;
+        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 10] = glyph.min_u;
         _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 11] = glyph.max_v;
 
         _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 12] = right;
@@ -658,15 +659,15 @@ kctta_append_glyph(const char in_glyph, tta_font_t* font, int font_size)
         _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 14] = glyph.max_u;
         _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 15] = glyph.min_v;
 
-        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 16] = left;
-        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 17] = bot;
-        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 18] = glyph.min_u;
-        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 19] = glyph.min_v;
+        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 16] = right;
+        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 17] = top;
+        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 18] = glyph.max_u;
+        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 19] = glyph.max_v;
 
-        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 20] = right;
-        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 21] = top;
-        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 22] = glyph.max_u;
-        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 23] = glyph.max_v;
+        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 20] = left;
+        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 21] = bot;
+        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 22] = glyph.min_u;
+        _kctta_vertex_buffer[_kctta_vertex_count * STRIDE + 23] = glyph.min_v;
 
         _kctta_vertex_count += 6;
     }
