@@ -57,6 +57,17 @@ struct shader_base_t
     }
 };
 
+struct shader_directional_shadow_map_t : shader_base_t
+{
+    GLint uniformDirectionalLightTransform;
+
+    virtual void load_uniforms()
+    {
+        shader_base_t::load_uniforms();
+        uniformDirectionalLightTransform = uniform_location("lightSpaceMatrix");
+    }
+};
+
 struct shader_perspective_t : shader_base_t
 {
     GLint id_uniform_proj_perspective = 0; // location id for the perspective projection matrix
