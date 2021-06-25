@@ -64,7 +64,47 @@ struct shader_directional_shadow_map_t : shader_base_t
     virtual void load_uniforms()
     {
         shader_base_t::load_uniforms();
+
         uniformDirectionalLightTransform = uniform_location("lightSpaceMatrix");
+    }
+};
+
+struct shader_omni_shadow_map_t : shader_base_t
+{
+    GLint uid_omni_light_pos;
+    GLint uid_far_plane;
+    GLint uid_light_matrices[6];
+
+    virtual void load_uniforms()
+    {
+        shader_base_t::load_uniforms();
+
+        uid_omni_light_pos = uniform_location("lightPos");
+        uid_far_plane = uniform_location("farPlane");
+        for(size_t i = 0; i < 6; ++i)
+        {
+            char loc_buffer[128] = {'\0'};
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "lightMatrices[%d]", i);
+            uid_light_matrices[i] = uniform_location(loc_buffer);
+        }
+    }
+
+    void SetLightMatrices(mat4* lightMatrices)
+    {
+        for(size_t i = 0; i < 6; ++i)
+        {
+            glUniformMatrix4fv(uid_light_matrices[i], 1, GL_FALSE, lightMatrices[i].ptr());
+        }
+    }
+
+    void SetLightPos(vec3 lightposition)
+    {
+        glUniform3f(uid_omni_light_pos, lightposition.x, lightposition.y, lightposition.z);
+    }
+
+    void SetFarPlane(float farPlane)
+    {
+        glUniform1f(uid_far_plane, farPlane);
     }
 };
 
@@ -141,6 +181,9 @@ struct shader_lighting_t : shader_perspective_t
     GLint   uid_directional_shadow_map = 0;
     GLint   uid_directional_light_transform = 0;
 
+    GLint   uid_omni_shadow_map = 0;
+    GLint   uid_omni_far_plane = 0;
+
     virtual void load_uniforms() override
     {
         shader_perspective_t::load_uniforms();
@@ -197,6 +240,9 @@ struct shader_lighting_t : shader_perspective_t
         uid_texture = uniform_location("texture_sampler_0");
         uid_directional_shadow_map = uniform_location("directionalShadowMap");
         uid_directional_light_transform = uniform_location("directionalLightTransform");
+
+        uid_omni_shadow_map = uniform_location("omniShadowMap");
+        uid_omni_far_plane = uniform_location("omniFarPlane");
     }
 };
 
