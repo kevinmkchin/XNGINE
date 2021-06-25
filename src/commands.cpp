@@ -110,7 +110,7 @@ internal void game_switch_map(int map_index) //TODO move this to gamemode.cpp an
         update_camera(g_camera, 0.f);
         debug_set_pointlights(loaded_maps[active_map_index].pointlights.data(),
                               (uint8) loaded_maps[active_map_index].pointlights.size());
-        debug_set_pointlights(loaded_maps[active_map_index].spotlights.data(),
+        debug_set_spotlights(loaded_maps[active_map_index].spotlights.data(),
                               (uint8) loaded_maps[active_map_index].spotlights.size());
         if(loaded_maps[active_map_index].mainobject.model.meshes.size() <= 0)
         {

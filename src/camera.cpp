@@ -55,7 +55,7 @@ internal mat4 calculate_perspectivematrix(camera_t& camera, real32 fov)
 {
     real32 aspect_ratio = (real32)g_buffer_width / (real32)g_buffer_height;
     //camera.matrix_perspective = projection_matrix_orthographic(-30.0f, 30.0f, -30.0f, 30.0f, 0.1f, 100.f);
-    camera.matrix_perspective = projection_matrix_perspective(fov/2.f, aspect_ratio, 0.1f, 1000.f);
+    camera.matrix_perspective = projection_matrix_perspective((fov/2.f)*KC_DEG2RAD, aspect_ratio, 0.1f, 1000.f);
     return camera.matrix_perspective;
 }
 
