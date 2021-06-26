@@ -57,6 +57,57 @@ struct shader_base_t
     }
 };
 
+struct shader_directional_shadow_map_t : shader_base_t
+{
+    GLint uniformDirectionalLightTransform;
+
+    virtual void load_uniforms()
+    {
+        shader_base_t::load_uniforms();
+
+        uniformDirectionalLightTransform = uniform_location("lightSpaceMatrix");
+    }
+};
+
+struct shader_omni_shadow_map_t : shader_base_t
+{
+    GLint uid_omni_light_pos;
+    GLint uid_far_plane;
+    GLint uid_light_matrices[6];
+
+    virtual void load_uniforms()
+    {
+        shader_base_t::load_uniforms();
+
+        uid_omni_light_pos = uniform_location("lightPos");
+        uid_far_plane = uniform_location("farPlane");
+        for(size_t i = 0; i < 6; ++i)
+        {
+            char loc_buffer[128] = {'\0'};
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "lightMatrices[%d]", i);
+            uid_light_matrices[i] = uniform_location(loc_buffer);
+        }
+    }
+
+    void SetLightMatrices(mat4* lightMatrices)
+    {
+        for(size_t i = 0; i < 6; ++i)
+        {
+            glUniformMatrix4fv(uid_light_matrices[i], 1, GL_FALSE, lightMatrices[i].ptr());
+        }
+    }
+
+    void SetLightPos(vec3 lightposition)
+    {
+        glUniform3f(uid_omni_light_pos, lightposition.x, lightposition.y, lightposition.z);
+    }
+
+    void SetFarPlane(float farPlane)
+    {
+        glUniform1f(uid_far_plane, farPlane);
+    }
+};
+
 struct shader_perspective_t : shader_base_t
 {
     GLint id_uniform_proj_perspective = 0; // location id for the perspective projection matrix
@@ -126,6 +177,18 @@ struct shader_lighting_t : shader_perspective_t
     GLint   id_uniform_specular_intensity = 0;
     GLint   id_uniform_shininess = 0;
 
+    GLint   uid_texture = 0;
+    GLint   uid_directional_shadow_map = 0;
+    GLint   uid_directional_light_transform = 0;
+
+    struct {
+        GLint shadowMap;
+        GLint farPlane;
+    } uid_omni_shadow_maps[MAX_POINT_LIGHTS + MAX_SPOT_LIGHTS];
+
+    GLint   uid_omni_shadow_map = 0;
+    GLint   uid_omni_far_plane = 0;
+
     virtual void load_uniforms() override
     {
         shader_perspective_t::load_uniforms();
@@ -178,6 +241,19 @@ struct shader_lighting_t : shader_perspective_t
         }
         id_uniform_specular_intensity = uniform_location("material.specular_intensity");
         id_uniform_shininess = uniform_location("material.shininess");
+
+        uid_texture = uniform_location("texture_sampler_0");
+        uid_directional_shadow_map = uniform_location("directionalShadowMap");
+        uid_directional_light_transform = uniform_location("directionalLightTransform");
+
+        for(size_t i = 0; i < MAX_POINT_LIGHTS + MAX_SPOT_LIGHTS; ++i)
+        {
+            char loc_buffer[128] = {0};
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "omniShadowMaps[%d].shadowMap", i);
+            uid_omni_shadow_maps[i].shadowMap = uniform_location(loc_buffer);
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "omniShadowMaps[%d].farPlane", i);
+            uid_omni_shadow_maps[i].farPlane = uniform_location(loc_buffer);
+        }
     }
 };
 
@@ -259,7 +335,7 @@ struct meshgroup_t
 struct camera_t
 {
     vec3   position             = { 0.f };            // camera x y z pos in world space 
-    vec3   rotation             = { 0.f };            // pitch, yaw, roll - in that order
+    vec3   rotation             = { 0.f };            // roll yaw pitch - in that order
     vec3   world_up             = { 0.f, 1.f, 0.f };
 
     vec3   calculated_direction = { 0.f };            // Intuitive direction - direction forward

@@ -57,6 +57,44 @@ internal void gl_create_shader_program(shader_base_t& shader, const char* vertex
         return;
     }
     // Validate the program will work
+    // glValidateProgram(shader.id_shader_program);
+    // glGetProgramiv(shader.id_shader_program, GL_VALIDATE_STATUS, &result);
+    // if (!result)
+    // {
+    //     glGetProgramInfoLog(shader.id_shader_program, sizeof(eLog), nullptr, eLog);
+    //     console_printf("Error validating program: '%s'! Aborting.\n", eLog);
+    //     return;
+    // }
+
+    shader.load_uniforms();
+}
+
+internal void gl_create_shader_program(shader_base_t& shader, const char* vertex_shader_str, const char* geometry_shader_str, const char* fragment_shader_str)
+{
+    // Create an empty shader program and get the id
+    shader.id_shader_program = glCreateProgram();
+    if (!shader.id_shader_program)
+    {
+        console_printf("Failed to create shader program! Aborting.\n");
+        return;
+    }
+    // Compile and attach the shaders
+    gl_compile_shader(shader.id_shader_program, vertex_shader_str, GL_VERTEX_SHADER);
+    gl_compile_shader(shader.id_shader_program, geometry_shader_str, GL_GEOMETRY_SHADER);
+    gl_compile_shader(shader.id_shader_program, fragment_shader_str, GL_FRAGMENT_SHADER);
+    // Actually create the exectuable shader program on the graphics card
+    glLinkProgram(shader.id_shader_program);
+    // Error checking in shader code
+    GLint result = 0;
+    GLchar eLog[1024] = {};
+    glGetProgramiv(shader.id_shader_program, GL_LINK_STATUS, &result); // Make sure the program was created
+    if (!result)
+    {
+        glGetProgramInfoLog(shader.id_shader_program, sizeof(eLog), nullptr, eLog);
+        console_printf("Error linking program: '%s'! Aborting.\n", eLog);
+        return;
+    }
+    // Validate the program will work
     glValidateProgram(shader.id_shader_program);
     glGetProgramiv(shader.id_shader_program, GL_VALIDATE_STATUS, &result);
     if (!result)
@@ -74,6 +112,14 @@ internal void gl_load_shader_program_from_file(shader_base_t& shader, const char
     std::string v = read_file_string(vertex_path);
     std::string f = read_file_string(fragment_path);
     gl_create_shader_program(shader, v.c_str(), f.c_str());
+}
+
+internal void gl_load_shader_program_from_file(shader_base_t& shader, const char* vertex_path, const char* geometry_path, const char* fragment_path)
+{
+    std::string v = read_file_string(vertex_path);
+    std::string g = read_file_string(geometry_path);
+    std::string f = read_file_string(fragment_path);
+    gl_create_shader_program(shader, v.c_str(), g.c_str(), f.c_str());
 }
 
 /** Telling opengl to start using this shader program */
@@ -219,7 +265,7 @@ internal mesh_t gl_create_mesh_array(real32* vertices,
             /* Connect the vertices data to the actual gl array buffer for this VBO. We need to pass in the size of the data we are passing as well.
             GL_STATIC_DRAW (as opposed to GL_DYNAMIC_DRAW) means we won't be changing these data values in the array. 
             The vertices array does not need to exist anymore after this call because that data will now be stored in the VAO on the GPU. */
-            glBufferData(GL_ARRAY_BUFFER, 4 /*bytes cuz uint32*/ * vertices_array_count, vertices, draw_usage);
+            glBufferData(GL_ARRAY_BUFFER, 4 /*bytes cuz float*/ * vertices_array_count, vertices, draw_usage);
             /* Index is location in VAO of the attribute we are creating this pointer for.
             Size is number of values we are passing in (e.g. size is 3 if x y z).
             Normalized is normalizing the values.
@@ -363,7 +409,7 @@ internal void gl_load_texture_from_bitmap(texture_t&          texture,
     glBindTexture(GL_TEXTURE_2D, texture.texture_id);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);       // wrapping
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);   // filtering
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);   // filtering (e.g. GL_NEAREST)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexImage2D(
             GL_TEXTURE_2D,                                                  // texture target type
@@ -400,6 +446,6 @@ internal void gl_load_texture_from_file(texture_t&    texture,
         glUnifrom1i(<texture_sampler_uniform_id>, <texture_unit_number>); */
 internal void gl_use_texture(texture_t& texture)
 {
-    glActiveTexture(GL_TEXTURE0);
+    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture.texture_id); 
 }
