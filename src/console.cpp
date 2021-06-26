@@ -369,6 +369,7 @@ internal void console_render(shader_orthographic_t ui_shader, shader_orthographi
         // RENDER CONSOLE TEXT
         gl_bind_projection_matrix(text_shader, g_matrix_projection_ortho.ptr());
         gl_use_texture(console_font_atlas);
+        glUniform1i(text_shader.uniform_location("font_atlas_sampler"), 1);
 
         // Input text visual
         glUniform3f(text_shader.uniform_location("text_colour"), 1.f, 1.f, 1.f);

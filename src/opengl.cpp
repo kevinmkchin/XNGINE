@@ -446,6 +446,6 @@ internal void gl_load_texture_from_file(texture_t&    texture,
         glUnifrom1i(<texture_sampler_uniform_id>, <texture_unit_number>); */
 internal void gl_use_texture(texture_t& texture)
 {
-    glActiveTexture(GL_TEXTURE0);
+    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture.texture_id); 
 }

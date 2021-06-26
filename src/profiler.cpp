@@ -52,6 +52,7 @@ internal void profiler_render(shader_orthographic_t ui_shader, shader_orthograph
         gl_use_shader(text_shader);
             gl_bind_projection_matrix(text_shader, g_matrix_projection_ortho.ptr());
             gl_use_texture(perf_font_atlas);
+            glUniform1i(text_shader.uniform_location("font_atlas_sampler"), 1);
             // TODO(Kevin): get uniform location for arbitrary uniform names? or create function to bind this colour
             glUniform3f(text_shader.uniform_location("text_colour"), 1.f, 1.f, 1.f);
             gl_bind_model_matrix(text_shader, perf_frametime_transform.ptr());

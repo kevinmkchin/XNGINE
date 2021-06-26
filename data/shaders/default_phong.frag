@@ -45,11 +45,15 @@ struct Material
     float shininess;
 };
 
+struct OmniShadowMap
+{
+    samplerCube shadowMap;
+    float farPlane;
+};
+
 uniform sampler2D texture_sampler_0;
 uniform sampler2D directionalShadowMap;
-
-uniform samplerCube omniShadowMap; // should be an array for multiple light sources
-uniform float omniFarPlane;        // should be in struct
+uniform OmniShadowMap omniShadowMaps[MAX_POINT_LIGHTS + MAX_SPOT_LIGHTS];
 
 uniform DirectionalLight directional_light;
 uniform int point_light_count;
@@ -69,7 +73,7 @@ vec3(1, 0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1, 0, -1),
 vec3(0, 1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0, 1, -1)
 );
 
-float CalcOmniShadowFactor(PointLight light)
+float CalcOmniShadowFactor(PointLight light, int shadowMapIndex)
 {
     vec3 fragToLight = frag_pos - light.position;
     float currentDepth = length(fragToLight);
@@ -77,26 +81,17 @@ float CalcOmniShadowFactor(PointLight light)
     float bias = 0.15;
     int samples = 20;
     float viewDistance = length(observer_pos - frag_pos);
-    float diskRadius = (1.0 + (viewDistance / omniFarPlane)) / 25.0;
+    float diskRadius = (1.0 + (viewDistance / omniShadowMaps[shadowMapIndex].farPlane)) / 25.0;
     for(int i = 0; i < samples; ++i)
     {
-        float closestDepth = texture(omniShadowMap, fragToLight + gridSamplingDisk[i] * diskRadius).r;
-        closestDepth *= omniFarPlane;
+        float closestDepth = texture(omniShadowMaps[shadowMapIndex].shadowMap, fragToLight + gridSamplingDisk[i] * diskRadius).r;
+        closestDepth *= omniShadowMaps[shadowMapIndex].farPlane;
         if(currentDepth - bias > closestDepth)
         shadow += 1.0;
     }
     shadow /= float(samples);
 
     return shadow;
-
-//    vec3 fragToLight = frag_pos - light.position;
-//    float closestDepth = texture(omniShadowMap, fragToLight).r;
-//    closestDepth *= omniFarPlane; // convert [0,1] to [0,omniFarPlane]
-//    float currentDepth = length(fragToLight);
-//    float bias = 0.05f;
-//    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
-//
-//    return shadow;
 }
 
 float CalcDirectionalShadowFactor(DirectionalLight light)
@@ -154,10 +149,10 @@ vec4 calc_directional_light()
         directional_light.diffuse_intensity, directional_light.direction, shadowFactor);
 }
 
-vec4 calc_point_light(PointLight plight)
+vec4 calc_point_light(PointLight plight, int shadowMapIndex)
 {
     vec3 direction = frag_pos - plight.position;
-    float shadowFactor = CalcOmniShadowFactor(plight);
+    float shadowFactor = CalcOmniShadowFactor(plight, shadowMapIndex);
     vec4 plight_colour = calc_light_by_direction(plight.colour, 
         plight.ambient_intensity, plight.diffuse_intensity, direction, shadowFactor);
     float distance = length(direction);
@@ -173,7 +168,7 @@ vec4 calc_point_lights()
     vec4 total_colour = vec4(0.f,0.f,0.f,0.f);
     for(int i = 0; i < point_light_count; ++i)
     {
-        total_colour += calc_point_light(point_light[i]);
+        total_colour += calc_point_light(point_light[i], i);
     }
     return total_colour;
 }
@@ -188,7 +183,7 @@ vec4 calc_spot_lights()
         if(cos_angle_to_frag > spot_light[i].cutoff)
         {
             float f = 1 - ((1 - cos_angle_to_frag) / (1 - spot_light[i].cutoff));
-            vec4 colour = calc_point_light(spot_light[i].plight);
+            vec4 colour = calc_point_light(spot_light[i].plight, point_light_count + i);
             total_colour += colour * f;
         }
     }
@@ -197,10 +192,6 @@ vec4 calc_spot_lights()
 
 void main()
 {
-    // vec3 fragToLight = frag_pos - point_light[0].position; 
-    // float closestDepth = texture(omniShadowMap, fragToLight).r;
-    // colour = vec4(vec3(closestDepth), 1.0);
-
     vec4 final_colour_visibility = calc_directional_light() + calc_point_lights() + calc_spot_lights();
 
     colour = texture(texture_sampler_0, tex_coord) * final_colour_visibility;
