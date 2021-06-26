@@ -1,0 +1,272 @@
+/**
+
+    CONSOLE COMMANDS REGISTRATION AND INVOCATION MACRO AND FUNCTION DEFINITIONS
+
+    Only the following functions are important:
+
+    ADD_COMMAND_NOARG           := Register command function with no arguments
+    ADD_COMMAND_ONEARG          := Register command function with 1 argument
+    ADD_COMMAND_TWOARG          := Register command function with 2 arguments       
+    ADD_COMMAND_THREEARG        := Register command function with 3 arguments
+    ADD_COMMAND_FOURARG         := Register command function with 4 arguments
+
+    COMMAND_INVOKE              := invokes a console command (identified by the console_command_meta_t) using the args list
+*/
+
+typedef void(*command_func_ptr)();
+
+struct console_command_meta_t
+{
+    command_func_ptr    command_func;
+    std::vector<size_t> arg_types;      // type_info::hash_code of arguments
+};
+
+global_var std::map<std::string, console_command_meta_t> con_commands; // association of console command strings to their actual commands
+
+
+/** 
+    CONSOLE COMMAND REGISTRATION MACROS
+*/
+#define ADD_COMMAND_NOARG(cmd_str, cmd_func) \
+            { \
+                console_command_meta_t cmd_meta; \
+                cmd_meta.command_func = (command_func_ptr) cmd_func; \
+                con_commands.emplace(cmd_str, cmd_meta); \
+            }
+#define ADD_COMMAND_ONEARG(cmd_str, cmd_func, argtype1) \
+            { \
+                console_command_meta_t cmd_meta; \
+                cmd_meta.command_func = (command_func_ptr) cmd_func; \
+                cmd_meta.arg_types.push_back(typeid(argtype1).hash_code()); \
+                con_commands.emplace(cmd_str, cmd_meta); \
+            }
+#define ADD_COMMAND_TWOARG(cmd_str, cmd_func, argtype1, argtype2); \
+            { \
+                console_command_meta_t cmd_meta; \
+                cmd_meta.command_func = (command_func_ptr) cmd_func; \
+                cmd_meta.arg_types.push_back(typeid(argtype1).hash_code()); \
+                cmd_meta.arg_types.push_back(typeid(argtype2).hash_code()); \
+                con_commands.emplace(cmd_str, cmd_meta); \
+            }
+#define ADD_COMMAND_THREEARG(cmd_str, cmd_func, argtype1, argtype2, argtype3); \
+            { \
+                console_command_meta_t cmd_meta; \
+                cmd_meta.command_func = (command_func_ptr) cmd_func; \
+                cmd_meta.arg_types.push_back(typeid(argtype1).hash_code()); \
+                cmd_meta.arg_types.push_back(typeid(argtype2).hash_code()); \
+                cmd_meta.arg_types.push_back(typeid(argtype3).hash_code()); \
+                con_commands.emplace(cmd_str, cmd_meta); \
+            }
+#define ADD_COMMAND_FOURARG(cmd_str, cmd_func, argtype1, argtype2, argtype3, argtype4); \
+            { \
+                console_command_meta_t cmd_meta; \
+                cmd_meta.command_func = (command_func_ptr) cmd_func; \
+                cmd_meta.arg_types.push_back(typeid(argtype1).hash_code()); \
+                cmd_meta.arg_types.push_back(typeid(argtype2).hash_code()); \
+                cmd_meta.arg_types.push_back(typeid(argtype3).hash_code()); \
+                cmd_meta.arg_types.push_back(typeid(argtype4).hash_code()); \
+                con_commands.emplace(cmd_str, cmd_meta); \
+            }
+
+/** 
+    CONSOLE COMMAND INVOCATION HELPERS
+
+    TODO(maybe): idk I cannot think of a better way to go about this
+*/
+internal inline bool is_number(std::string str)
+{
+    size_t len = str.length();
+    for (int i = 0; i < len; ++i)
+    {
+        if (false == (isdigit(str[i]) || (str[i] == '.' && len != 1) || (str[i] == '-' && i == 0)))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+template<typename T1>
+internal void cmd_finallyinvoke1args(command_func_ptr funcptr, T1 first)
+{
+    void(*func)(T1) = (void(*)(T1)) funcptr;
+    func(first);
+}
+template<typename T1, typename T2>
+internal void cmd_finallyinvoke2args(command_func_ptr funcptr, T1 first, T2 second)
+{
+    void(*func)(T1, T2) = (void(*)(T1, T2)) funcptr;
+    func(first, second);
+}
+template<typename T1, typename T2, typename T3>
+internal void cmd_finallyinvoke3args(command_func_ptr funcptr, T1 first, T2 second, T3 third)
+{
+    void(*func)(T1, T2, T3) = (void(*)(T1, T2, T3)) funcptr;
+    func(first, second, third);
+}
+template<typename T1, typename T2, typename T3, typename T4>
+internal void cmd_finallyinvoke4args(command_func_ptr funcptr, T1 first, T2 second, T3 third, T4 fourth)
+{
+    void(*func)(T1, T2, T3, T4) = (void(*)(T1, T2, T3, T4)) funcptr;
+    func(first, second, third, fourth);
+}
+template<typename T1, typename T2, typename T3>
+internal void cmd_invokestage4(console_command_meta_t cmd_meta, std::vector<std::string> argslist, T1 first, T2 second, T3 third)
+{
+    if(argslist.size() == 3)
+    {
+        cmd_finallyinvoke3args(cmd_meta.command_func, first, second, third);
+        return;
+    }
+
+    size_t argtype = cmd_meta.arg_types[3];
+    if(argtype == TYPEHASH(int))
+    {   
+        if(is_number(argslist[3]))
+        {
+            int i = atoi(argslist[3].c_str());
+            cmd_finallyinvoke4args(cmd_meta.command_func, first, second, third, i);
+        }
+        else
+        {
+            console_print("Invalid arguments: argument 4 must be an integer.\n");
+        }
+    }
+    else if(argtype == TYPEHASH(float))
+    {
+        if(is_number(argslist[3]))
+        {
+            float f = (float) atof(argslist[3].c_str());
+            cmd_finallyinvoke4args(cmd_meta.command_func, first, second, third, f);
+        }
+        else
+        {
+            console_print("Invalid arguments: argument 4 must be a float.\n");
+        }
+    }
+    else if(argtype == TYPEHASH(std::string))
+    {
+        std::string str = argslist[3];
+        cmd_finallyinvoke4args(cmd_meta.command_func, first, second, third, str);
+    }
+}
+template<typename T1, typename T2>
+internal void cmd_invokestage3(console_command_meta_t cmd_meta, std::vector<std::string> argslist, T1 first, T2 second)
+{
+    if(argslist.size() == 2)
+    {
+        cmd_finallyinvoke2args(cmd_meta.command_func, first, second);
+        return;
+    }
+
+    size_t argtype = cmd_meta.arg_types[2];
+    if(argtype == TYPEHASH(int))
+    {
+        if(is_number(argslist[2]))
+        {
+            int i = atoi(argslist[2].c_str());
+            cmd_invokestage4(cmd_meta, argslist, first, second, i);
+        }
+        else
+        {
+            console_print("Invalid arguments: argument 3 must be an integer.\n");
+        }
+    }
+    else if(argtype == TYPEHASH(float))
+    {
+        if(is_number(argslist[2]))
+        {
+            float f = (float) atof(argslist[2].c_str());
+            cmd_invokestage4(cmd_meta, argslist, first, second, f);
+        }
+        else
+        {
+            console_print("Invalid arguments: argument 3 must be a float.\n");
+        }
+    }
+    else if(argtype == TYPEHASH(std::string))
+    {
+        std::string str = argslist[2];
+        cmd_invokestage4(cmd_meta, argslist, first, second, str);
+    }
+}
+template<typename T1>
+internal void cmd_invokestage2(console_command_meta_t cmd_meta, std::vector<std::string> argslist, T1 first)
+{
+    if(argslist.size() == 1)
+    {
+        cmd_finallyinvoke1args(cmd_meta.command_func, first);
+        return;
+    }
+
+    size_t argtype = cmd_meta.arg_types[1];
+    if(argtype == TYPEHASH(int))
+    {
+        if(is_number(argslist[1]))
+        {
+            int i = atoi(argslist[1].c_str());
+            cmd_invokestage3(cmd_meta, argslist, first, i);
+        }
+        else
+        {
+            console_print("Invalid arguments: argument 2 must be an integer.\n");
+        }
+    }
+    else if(argtype == TYPEHASH(float))
+    {
+        if(is_number(argslist[1]))
+        {
+            float f = (float) atof(argslist[1].c_str());
+            cmd_invokestage3(cmd_meta, argslist, first, f);
+        }
+        else
+        {
+            console_print("Invalid arguments: argument 2 must be a float.\n");
+        }
+    }
+    else if(argtype == TYPEHASH(std::string))
+    {
+        std::string str = argslist[1];
+        cmd_invokestage3(cmd_meta, argslist, first, str);
+    }
+}
+
+internal void COMMAND_INVOKE(console_command_meta_t cmd_meta, std::vector<std::string> argslist)
+{
+    if(argslist.size() == 0)
+    {
+        cmd_meta.command_func();
+        return;
+    }
+
+    size_t argtype = cmd_meta.arg_types[0];
+    if(argtype == TYPEHASH(int))
+    {
+        if(is_number(argslist[0]))
+        {
+            int i = atoi(argslist[0].c_str());
+            cmd_invokestage2(cmd_meta, argslist, i);
+        }
+        else
+        {
+            console_print("Invalid arguments: argument 1 must be an integer.\n");
+        }
+    }
+    else if(argtype == TYPEHASH(float))
+    {
+        if(is_number(argslist[0]))
+        {
+            float f = (float) atof(argslist[0].c_str());
+            cmd_invokestage2(cmd_meta, argslist, f);
+        }
+        else
+        {
+            console_print("Invalid arguments: argument 1 must be a float.\n");
+        }
+    }
+    else if(argtype == TYPEHASH(std::string))
+    {
+        std::string str = argslist[0];
+        cmd_invokestage2(cmd_meta, argslist, str);
+    }
+}

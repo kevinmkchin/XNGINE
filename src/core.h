@@ -186,9 +186,6 @@ struct shader_lighting_t : shader_perspective_t
         GLint farPlane;
     } uid_omni_shadow_maps[MAX_POINT_LIGHTS + MAX_SPOT_LIGHTS];
 
-    GLint   uid_omni_shadow_map = 0;
-    GLint   uid_omni_far_plane = 0;
-
     virtual void load_uniforms() override
     {
         shader_perspective_t::load_uniforms();
