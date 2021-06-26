@@ -1,10 +1,10 @@
 ## Development Log
 
 ### 2021-06-25
-- 
+- Shadows for multiple point lights and spot lights
+- Omni-directional shadows for point lights and spot lights
 
 ### 2021-06-24
-- Omni-directional shadows for point lights and spot lights
 - Fix error in camera.cpp where FOV needed to be in radians not degrees.
 
 ### 2021-06-20

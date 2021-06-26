@@ -181,6 +181,11 @@ struct shader_lighting_t : shader_perspective_t
     GLint   uid_directional_shadow_map = 0;
     GLint   uid_directional_light_transform = 0;
 
+    struct {
+        GLint shadowMap;
+        GLint farPlane;
+    } uid_omni_shadow_maps[MAX_POINT_LIGHTS + MAX_SPOT_LIGHTS];
+
     GLint   uid_omni_shadow_map = 0;
     GLint   uid_omni_far_plane = 0;
 
@@ -241,8 +246,14 @@ struct shader_lighting_t : shader_perspective_t
         uid_directional_shadow_map = uniform_location("directionalShadowMap");
         uid_directional_light_transform = uniform_location("directionalLightTransform");
 
-        uid_omni_shadow_map = uniform_location("omniShadowMap");
-        uid_omni_far_plane = uniform_location("omniFarPlane");
+        for(size_t i = 0; i < MAX_POINT_LIGHTS + MAX_SPOT_LIGHTS; ++i)
+        {
+            char loc_buffer[128] = {0};
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "omniShadowMaps[%d].shadowMap", i);
+            uid_omni_shadow_maps[i].shadowMap = uniform_location(loc_buffer);
+            stbsp_snprintf(loc_buffer, sizeof(loc_buffer), "omniShadowMaps[%d].farPlane", i);
+            uid_omni_shadow_maps[i].farPlane = uniform_location(loc_buffer);
+        }
     }
 };
 
