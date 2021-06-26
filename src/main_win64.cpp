@@ -1,8 +1,14 @@
 /** OpenGL 3D Renderer
 
 TODO:
-    - BUG console command bug - commands get cut off when entered
     - Shadow mapping
+        - directional shadows DONE
+        - omnidirectional shadows for point lights and spot lights DONE
+        - multiple onnidirectional shadow maps DONE
+        - CASCADED SHADOW MAPS https://developer.download.nvidia.com/SDK/10.5/opengl/src/cascaded_shadow_maps/doc/cascaded_shadow_maps.pdf
+            - make a test map for CSM. (e.g. field of trees or cubes all with shadows)
+        - option to completely disable shadows (test if we return to pre-shadows performance)
+    - BUG console command bug - commands get cut off when entered - could be a memory bug?
     - Skyboxes
     - Map Editor:
         - console command 'editor' to enter
@@ -20,6 +26,8 @@ TODO:
       vertices in order to transform them on the screen (e.g. animate the text).
 
 Backlog:
+    - Implement GJK EPA collisions in a clone of this repo
+    - option for some console messages to be displayed to game screen.
     - Memory management / custom memory allocator / replace all mallocs and callocs
     - Arrow rendering for debugging
         - in the future arrow can also be used for translation gizmo
@@ -129,11 +137,28 @@ texture_t g_font_atlas_c64;
 #include "console.cpp"
 
 shader_lighting_t shader_common;
+
+shader_directional_shadow_map_t shader_directional_shadow_map;
+shader_omni_shadow_map_t        shader_omni_shadow_map;
+shader_base_t                   shader_debug_dir_shadow_map;
+
 shader_orthographic_t shader_text;
 shader_orthographic_t shader_ui;
 shader_perspective_t shader_simple;
 material_t material_shiny = {4.f, 128.f };
 material_t material_dull = {0.5f, 1.f };
+
+unsigned int directionalShadowMapTexture;
+unsigned int directionalShadowMapFBO;
+mat4 directionalLightSpaceMatrix;
+
+struct {
+    unsigned int depthCubeMapTexture = 0;
+    unsigned int depthCubeMapFBO = 0;
+    float depthCubeMapFarPlane = 25.f;
+    std::vector<mat4> shadowTransforms;
+} omni_shadow_maps[10];
+
 
 static const char* vertex_shader_path = "shaders/default_phong.vert";
 static const char* frag_shader_path = "shaders/default_phong.frag";
@@ -417,6 +442,7 @@ internal void game_update(real32 dt)
 /** Process graphics and render them to the screen. */
 internal void game_render()
 {
+    glViewport(0, 0, g_buffer_width, g_buffer_height);
     //glClearColor(0.39f, 0.582f, 0.926f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear opengl context's buffer
 
@@ -443,22 +469,40 @@ internal void game_render()
         gl_bind_camera_position(shader_common, g_camera);
 
         temp_map_t* loaded_map = &loaded_maps[active_map_index];
+
         gl_bind_directional_light(shader_common, loaded_map->directionallight);
+        // set texture unit 1 to directionalShadowMapTexture
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, directionalShadowMapTexture);
+
+        glUniformMatrix4fv(shader_common.uid_directional_light_transform, 1, GL_FALSE, directionalLightSpaceMatrix.ptr());
+        glUniform1i(shader_common.uid_texture, 1);
+        glUniform1i(shader_common.uid_directional_shadow_map, 2); // set directional shadow map to reference texture unit 1
+
+        for(int omniLightCount = 0; omniLightCount < loaded_map->pointlights.size() + loaded_map->spotlights.size(); ++omniLightCount)
+        {
+            glActiveTexture(GL_TEXTURE3 + omniLightCount);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, omni_shadow_maps[omniLightCount].depthCubeMapTexture);
+
+            glUniform1i(shader_common.uid_omni_shadow_maps[omniLightCount].shadowMap, 3 + omniLightCount);
+            glUniform1f(shader_common.uid_omni_shadow_maps[omniLightCount].farPlane, omni_shadow_maps[omniLightCount].depthCubeMapFarPlane);
+        }
+
         gl_bind_point_lights(shader_common, loaded_map->pointlights.data(), (uint8)loaded_map->pointlights.size());
         gl_bind_spot_lights(shader_common, loaded_map->spotlights.data(), (uint8)loaded_map->spotlights.size());
 
         /** We could simply update the game object's position, rotation, scale fields,
             then construct the model matrix in game_render based on those fields.
         */
+
         mat4 matrix_model = identity_mat4();
         matrix_model = identity_mat4();
         matrix_model *= translation_matrix(loaded_map->mainobject.pos);
         matrix_model *= rotation_matrix(loaded_map->mainobject.orient);
         matrix_model *= scale_matrix(loaded_map->mainobject.scale);
         gl_bind_model_matrix(shader_common, matrix_model.ptr());
-
         gl_bind_material(shader_common, material_dull);
-    render_meshgroup(loaded_map->mainobject.model);
+        render_meshgroup(loaded_map->mainobject.model);
 
     glUseProgram(0);
 
@@ -470,9 +514,44 @@ internal void game_render()
     glDisable(GL_DEPTH_TEST); 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+/////////////////////
+    if(g_keystate[SDL_SCANCODE_F3])
+    {
+        local_persist mesh_t quad;
+        local_persist bool meshmade = false;
+        if(!meshmade)
+        {
+            meshmade = true;
+
+            uint32 quadindices[6] = { 
+                0, 1, 3,
+                0, 3, 2
+            };
+            GLfloat quadvertices[16] = {
+            //  x     y        u    v   
+                -1.f, -1.f,   -0.1f, -0.1f,
+                1.f, -1.f,    1.1f, -0.1f,
+                -1.f, 1.f,    -0.1f, 1.1f,
+                1.f, 1.f,     1.1f, 1.1f
+            };
+            quad = gl_create_mesh_array(quadvertices, quadindices, 16, 6, 2, 2, 0);
+        }
+        gl_use_shader(shader_debug_dir_shadow_map);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, directionalShadowMapTexture);
+
+            gl_render_mesh(quad);
+        glUseProgram(0);
+    }
+/////////////////////
+
     profiler_render(shader_ui, shader_text);
     console_render(shader_ui, shader_text);
 
+
+    // Enable depth test before swapping buffers
+    // (NOTE: if we don't enable depth test before swap, the shadow map shows up as blank white texture on the quad.)
+    glEnable(GL_DEPTH_TEST);
     /* Swap our buffer to display the current contents of buffer on screen. 
     This is used with double-buffered OpenGL contexts, which are the default. */
     SDL_GL_SwapWindow(window);
@@ -558,6 +637,9 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     calc_average_normals(indices, 12, vertices, 32, 8, 5);
 
     gl_load_shader_program_from_file(shader_common, vertex_shader_path, frag_shader_path);
+    gl_load_shader_program_from_file(shader_directional_shadow_map, "shaders/directional_shadow_map.vert", "shaders/directional_shadow_map.frag");
+    gl_load_shader_program_from_file(shader_omni_shadow_map, "shaders/omni_shadow_map.vert", "shaders/omni_shadow_map.geom", "shaders/omni_shadow_map.frag");
+    gl_load_shader_program_from_file(shader_debug_dir_shadow_map, "shaders/debug_directional_shadow_map.vert", "shaders/debug_directional_shadow_map.frag");
     gl_load_shader_program_from_file(shader_text, text_vs_path, text_fs_path);
     gl_load_shader_program_from_file(shader_ui, ui_vs_path, ui_fs_path);
     gl_load_shader_program_from_file(shader_simple, simple_vs_path, simple_fs_path);
@@ -568,14 +650,28 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     g_matrix_projection_ortho = projection_matrix_orthographic_2d(0.0f, (real32)g_buffer_width, (real32)g_buffer_height, 0.0f);
 
     // TEMPORARY setting up maps/scenes (TODO replace once we are loading maps from disk)
-    loaded_maps[0].directionallight.orientation = direction_to_orientation(make_vec3(2.f, -1.f, -2.f));
+    loaded_maps[0].directionallight.orientation = euler_to_quat(make_vec3(0.f, 30.f, -47.f) * KC_DEG2RAD);
     loaded_maps[0].directionallight.ambient_intensity = 0.3f;
-    loaded_maps[0].directionallight.diffuse_intensity = 1.0f;
-    loaded_maps[0].directionallight.colour = { 255.f/255.f, 231.f/255.f, 155.f/255.f };
+    loaded_maps[0].directionallight.diffuse_intensity = 0.8f;
+    loaded_maps[0].directionallight.colour = { 1.f, 1.f, 1.f };
     loaded_maps[0].temp_obj_path = "data/models/sponza/sponza.obj";
+    loaded_maps[0].mainobject.pos = make_vec3(0.f, -6.f, 0.f);
+    //loaded_maps[0].mainobject.orient = euler_to_quat(make_vec3(0.f, 30.f, -47.f)*KC_DEG2RAD);
     loaded_maps[0].mainobject.scale = make_vec3(0.04f, 0.04f, 0.04f);
-    loaded_maps[0].cam_start_pos = make_vec3(14.f, 6.f, -1.5f);
-    loaded_maps[0].cam_start_rot = make_vec3(0.f, 180.f, 0.f);
+    loaded_maps[0].cam_start_pos = make_vec3(0.f, 0.f, 0.f);
+    loaded_maps[0].cam_start_rot = make_vec3(0.f, 211.f, -28.f);
+    light_point_t lm0pl;
+    lm0pl.colour = { 0.0f, 1.0f, 0.0f };
+    lm0pl.position = { -6.f, -2.0f, 4.0f };
+    lm0pl.ambient_intensity = 0.f;
+    lm0pl.diffuse_intensity = 1.f;
+    loaded_maps[0].pointlights.push_back(lm0pl);
+    light_point_t lm1pl;
+    lm1pl.colour = { 0.0f, 0.0f, 1.0f };
+    lm1pl.position = { 10.f, -2.0f, 4.0f };
+    lm1pl.ambient_intensity = 0.f;
+    lm1pl.diffuse_intensity = 1.f;
+    loaded_maps[0].pointlights.push_back(lm1pl);
 
     loaded_maps[1].directionallight.orientation = direction_to_orientation(make_vec3(2.f, -1.f, -2.f));
     loaded_maps[1].directionallight.ambient_intensity = 0.3f;
@@ -607,26 +703,85 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
 
     game_switch_map(0);
 
-    // point_lights[0].colour = { 0.0f, 1.0f, 0.0f };
-    // point_lights[0].position = { -4.f, 0.0f, 0.0f };
-    // point_lights[0].ambient_intensity = 0.f;
-    // point_lights[0].diffuse_intensity = 1.f;
-    // point_lights[1].colour = { 0.0f, 0.0f, 1.0f };
-    // point_lights[1].position = { 4.f, 0.0f, 0.0f };
-    // point_lights[1].ambient_intensity = 0.f;
-    // point_lights[1].diffuse_intensity = 1.f;
-    // debug_set_pointlights(point_lights, array_count(point_lights));
-    // spot_lights[0].position = { -4.f, 0.f, 0.f };
-    // spot_lights[0].ambient_intensity = 0.f;
-    // spot_lights[0].diffuse_intensity = 1.f;
-    // spot_lights[0].set_cutoff_in_degrees(45.f);
-    // spot_lights[0].orientation = direction_to_orientation(make_vec3(-1.f, -1.f, 0.f));
-    // spot_lights[1].position = { -2.f, 0.f, 0.f };
-    // spot_lights[1].ambient_intensity = 0.f;
-    // spot_lights[1].diffuse_intensity = 1.f;
-    // //spot_lights[1].set_cutoff_in_degrees(45.f);
-    // spot_lights[1].orientation = direction_to_orientation(make_vec3(0.f, -1.f, 0.f));
-    // debug_set_spotlights(spot_lights, array_count(spot_lights));
+//////////// shadow implementation ////////////
+    glGenFramebuffers(1, &directionalShadowMapFBO);
+
+    const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
+
+    glGenTextures(1, &directionalShadowMapTexture);
+    glBindTexture(GL_TEXTURE_2D, directionalShadowMapTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 
+                 SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    float smap_bordercolor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, smap_bordercolor);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, directionalShadowMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, directionalShadowMapTexture, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    mat4 lightProjection = projection_matrix_orthographic(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 150.f);
+    directionalLightSpaceMatrix = lightProjection
+    //* view_matrix_look_at(-orientation_to_direction(loaded_maps[0].directionallight.orientation) + make_vec3(-47.f, 66.f, 0.f), make_vec3(-47.f, 66.f, 0.f), make_vec3(0.f,1.f,0.f)); // TODO make up 0,0,1 if light is straight up or down
+    //* view_matrix_look_at(make_vec3(-2.0f, 4.0f, -1.0f), make_vec3(0.f, 0.f, 0.f), make_vec3(0.f,1.f,0.f)); // TODO make up 0,0,1 if light is straight up or down
+    * view_matrix_look_at(make_vec3(-47.44f, 66.29f, 9.65f), make_vec3(-47.44f, 66.29f, 9.65f) + orientation_to_direction(loaded_maps[0].directionallight.orientation), make_vec3(0.f,1.f,0.f)); // TODO make up 0,0,1 if light is straight up or down
+
+    temp_map_t* loaded_map = &loaded_maps[active_map_index];
+
+
+    const unsigned int CUBE_SHADOW_WIDTH = 1024, CUBE_SHADOW_HEIGHT = 1024;
+    for(int omniLightCount = 0; omniLightCount < loaded_map->pointlights.size() + loaded_map->spotlights.size(); ++omniLightCount)
+    {
+        glGenFramebuffers(1, &omni_shadow_maps[omniLightCount].depthCubeMapFBO);
+
+        glGenTextures(1, &omni_shadow_maps[omniLightCount].depthCubeMapTexture);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, omni_shadow_maps[omniLightCount].depthCubeMapTexture);
+        for (unsigned int i = 0; i < 6; ++i)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, 
+                         CUBE_SHADOW_WIDTH, CUBE_SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+        }
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, omni_shadow_maps[omniLightCount].depthCubeMapFBO);
+        glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, omni_shadow_maps[omniLightCount].depthCubeMapTexture, 0);
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        float aspect = (float)CUBE_SHADOW_WIDTH/(float)CUBE_SHADOW_HEIGHT;
+        float nearPlane = 1.0f;
+        mat4 shadowProj = projection_matrix_perspective(90.f * KC_DEG2RAD, aspect, nearPlane, omni_shadow_maps[omniLightCount].depthCubeMapFarPlane);
+
+        vec3 lightPos = loaded_map->pointlights[omniLightCount].position;
+        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(shadowProj * 
+                         view_matrix_look_at(lightPos, lightPos + WORLD_FORWARD_VECTOR, WORLD_DOWN_VECTOR));
+        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(shadowProj * 
+                         view_matrix_look_at(lightPos, lightPos + WORLD_BACKWARD_VECTOR, WORLD_DOWN_VECTOR));
+        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(shadowProj * 
+                         view_matrix_look_at(lightPos, lightPos + WORLD_UP_VECTOR, WORLD_RIGHT_VECTOR));
+        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(shadowProj * 
+                         view_matrix_look_at(lightPos, lightPos + WORLD_DOWN_VECTOR, WORLD_LEFT_VECTOR));
+        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(shadowProj * 
+                         view_matrix_look_at(lightPos, lightPos + WORLD_RIGHT_VECTOR, WORLD_DOWN_VECTOR));
+        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(shadowProj * 
+                         view_matrix_look_at(lightPos, lightPos + WORLD_LEFT_VECTOR, WORLD_DOWN_VECTOR));
+    }
+
+
+
+////////////////////////////////////////////////////
+
+    glEnable(GL_CULL_FACE);
 
     // Game Loop
     int64 perf_counter_frequency = win64_counter_frequency();
@@ -641,6 +796,51 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
         last_tick = this_tick;
         perf_frametime_secs = deltatime_secs;
         game_update(deltatime_secs);
+
+
+        gl_use_shader(shader_directional_shadow_map);
+        glUniformMatrix4fv(shader_directional_shadow_map.uniformDirectionalLightTransform, 1, GL_FALSE, directionalLightSpaceMatrix.ptr());
+        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+        glBindFramebuffer(GL_FRAMEBUFFER, directionalShadowMapFBO);
+            glClear(GL_DEPTH_BUFFER_BIT);
+            //glCullFace(GL_FRONT);
+
+            mat4 matrix_model = identity_mat4();
+            matrix_model = identity_mat4();
+            matrix_model *= translation_matrix(loaded_map->mainobject.pos);
+            matrix_model *= rotation_matrix(loaded_map->mainobject.orient);
+            matrix_model *= scale_matrix(loaded_map->mainobject.scale);
+            gl_bind_model_matrix(shader_directional_shadow_map, matrix_model.ptr());
+            render_meshgroup(loaded_map->mainobject.model);
+
+            //glCullFace(GL_BACK);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+        gl_use_shader(shader_omni_shadow_map);
+        for(int omniLightCount = 0; omniLightCount < loaded_map->pointlights.size() + loaded_map->spotlights.size(); ++omniLightCount)
+        {
+            glViewport(0, 0, CUBE_SHADOW_WIDTH, CUBE_SHADOW_HEIGHT);
+            glBindFramebuffer(GL_FRAMEBUFFER, omni_shadow_maps[omniLightCount].depthCubeMapFBO);
+                glClear(GL_DEPTH_BUFFER_BIT);
+                shader_omni_shadow_map.SetLightMatrices(omni_shadow_maps[omniLightCount].shadowTransforms.data());
+                vec3 lightPos = loaded_map->pointlights[omniLightCount].position;
+                shader_omni_shadow_map.SetLightPos(lightPos);
+                shader_omni_shadow_map.SetFarPlane(omni_shadow_maps[omniLightCount].depthCubeMapFarPlane);
+
+                matrix_model = identity_mat4();
+                matrix_model = identity_mat4();
+                matrix_model *= translation_matrix(loaded_map->mainobject.pos);
+                matrix_model *= rotation_matrix(loaded_map->mainobject.orient);
+                matrix_model *= scale_matrix(loaded_map->mainobject.scale);
+                gl_bind_model_matrix(shader_omni_shadow_map, matrix_model.ptr());
+                render_meshgroup(loaded_map->mainobject.model);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+
+
         game_render();
     }
 
