@@ -114,23 +114,29 @@ USAGE:
         - "next line" is the line below the line we are on (unless specified with flag KCTTA_NEWLINE_ABOVE)
 
     > The following "#define"s are unnecessary but optional:
-    You can do #define KCTTA_MAX_CHAR_IN_BUFFER X (before including this library) where X is the 
-    maximum number of characters you want to allow in the vertex buffer at once. By default this value
-    is 800 characters. Consider your memory use when setting this value because the memory for the
-    vertex buffer and index buffers are located in the .data segment of the program's alloted memory.
-    Every character increases the combined size of the two buffers by 120 bytes (e.g. 800 characters
-    allocates 800 * 120 = 96000 bytes in the .data segment of memory)
-        e.g. #define KCTTA_MAX_CHAR_IN_BUFFER 500
-             #define KC_TRUETYPEASSEMBLER_IMPLEMENTATION
-             #include "kc_truetypeassembler.h"
-    You can also #define KCTTA_ASCII_FROM X and #define KCTTA_ASCII_TO Y where X and Y are the start and
-    end ASCII codepoints to collect the font data for. In other words, if X is the character 'a' and Y is
-    the character 'z', then the library will only collect the font data for the ASCII characters from 'a'
-    to 'z'. By default, the start and end codepoints are set to ' ' and '~'.
-        e.g. #define KCTTA_ASCII_FROM 'a'
-             #define KCTTA_ASCII_TO 'z'
-             #define KC_TRUETYPEASSEMBLER_IMPLEMENTATION
-             #include "kc_truetypeassembler.h"
+        #define KCTTA_MAX_CHAR_IN_BUFFER X (before including this library) where X is the
+        maximum number of characters you want to allow in the vertex buffer at once. By default this value
+        is 800 characters. Consider your memory use when setting this value because the memory for the
+        vertex buffer and index buffers are located in the .data segment of the program's alloted memory.
+        Every character increases the combined size of the two buffers by 120 bytes (e.g. 800 characters
+        allocates 800 * 120 = 96000 bytes in the .data segment of memory)
+            e.g. #define KCTTA_MAX_CHAR_IN_BUFFER 500
+                 #define KC_TRUETYPEASSEMBLER_IMPLEMENTATION
+                 #include "kc_truetypeassembler.h"
+
+        #define KCTTA_ASCII_FROM X and #define KCTTA_ASCII_TO Y where X and Y are the start and
+        end ASCII codepoints to collect the font data for. In other words, if X is the character 'a' and Y is
+        the character 'z', then the library will only collect the font data for the ASCII characters from 'a'
+        to 'z'. By default, the start and end codepoints are set to ' ' and '~'.
+            e.g. #define KCTTA_ASCII_FROM 'a'
+                 #define KCTTA_ASCII_TO 'z'
+                 #define KC_TRUETYPEASSEMBLER_IMPLEMENTATION
+                 #include "kc_truetypeassembler.h"
+
+        #define KCTTA_STATIC to make function declarations and function definitions static. This makes
+        the implementation private to the source file that creates it. This allows you to have multiple
+        instances of this library in your project without collision. You could use multiple vertex
+        buffers at the same time without clearing the buffers.
 
     > Things to be aware of:
         - tta_font_t is around ~4KB, so don't copy it around. Just declare it once and then pass around
@@ -267,12 +273,17 @@ Maybe:
 #define KCTTA_ASCII_TO '~'      // ending ASCII codepoint to collect font data for
 #endif
 #define KCTTA_GLYPH_COUNT KCTTA_ASCII_TO - KCTTA_ASCII_FROM + 1
-#define kctta_internal static   // kctta internal function
+
+#ifdef KCTTA_STATIC
+#define KCTTA_DEF static
+#else
+#define KCTTA_DEF extern
+#endif
 
 /** Stores a pointer to the vertex buffer assembly array and the count of vertices in the 
     array (total length of array would be count of vertices * 4).
 */
-typedef struct
+typedef struct tta_vertex_buffer_t
 {
     int             vertex_count;           // count of vertices in vertex buffer array (4 elements per vertex, so vertices_array_count / 4 = vertex_count)
     int             vertices_array_count;   // count of elements in vertex buffer array
@@ -284,7 +295,7 @@ typedef struct
 /** tta_bitmap_t is a handle to hold a pointer to an unsigned byte bitmap in memory. Length/count
     of bitmap elements = width * height.
 */
-typedef struct 
+typedef struct tta_bitmap_t
 {
     int             width;      // bitmap width
     int             height;     // bitmap height
@@ -295,7 +306,7 @@ typedef struct
     Check out https://learnopengl.com/img/in-practice/glyph.png 
     Learn more about glyph metrics if you want.
 */
-typedef struct 
+typedef struct tta_glyph_t
 {
     int             width,height;
     float           advance,offset_x,offset_y,min_u,min_v,max_u,max_v;
@@ -304,7 +315,7 @@ typedef struct
 
 /** tta_font_t is a handle to hold font information. It's around ~4KB, so don't copy it around all the time.
 */
-typedef struct 
+typedef struct tta_font_t
 {
     float           ascender;                   // https://en.wikipedia.org/wiki/Ascender_(typography)
     float           descender;                  // https://en.wikipedia.org/wiki/Descender
@@ -323,54 +334,54 @@ enum _kctta_config_flags_t
 /** Configures this library to use the settings defined by _kctta_config_flags_t.
     e.g. kctta_setflags(KCTTA_CREATE_INDEX_BUFFER | KCTTA_USE_CLIPSPACE_COORDS);
 */
-kctta_internal void kctta_setflags(int newconfig);
+KCTTA_DEF void kctta_setflags(int newconfig);
 
 /** ONLY IF YOU WANT CLIPSPACE COORDINATES INSTEAD OF SCREENSPACE COORDINATES
     Tells kc_truetypeassembler the size of your application's window size. If
     the window size changes, then you should call this again to update the size.
 */
-kctta_internal void kctta_windowsize(int width, int height);
+KCTTA_DEF void kctta_windowsize(int width, int height);
 
 /** Initializes a tta_font_t font handle to store glyphs information, font information, and the font texture atlas.
     Collects the glyphs and font information from the font file (given as a binary buffer in memory)
     and generates the font texture atlas (https://en.wikipedia.org/wiki/Texture_atlas#/media/File:Texture_Atlas.png)
     Expensive, so you should only do this ONCE per font (and font size) and just keep the tta_font_t around somewhere.
 */
-kctta_internal void kctta_init_font(tta_font_t*      font_handle,
-                                    unsigned char*   font_buffer,
-                                    int              font_height_in_pixels);
+KCTTA_DEF void kctta_init_font(tta_font_t*      font_handle,
+                               unsigned char*   font_buffer,
+                               int              font_height_in_pixels);
 
 /** Move cursor location (cursor represents the position on the screen where text is placed)
 */
-kctta_internal void kctta_move_cursor(int x, 
-                                      int y);
+KCTTA_DEF void kctta_move_cursor(int x,
+                                 int y);
 
 /** Go to new line and set X location of cursor
 */
-kctta_internal void kctta_new_line(int          x,
-                                   tta_font_t*  font);
+KCTTA_DEF void kctta_new_line(int          x,
+                              tta_font_t*  font);
 
 /** Assemble quads for a line of text and append to vertex buffer.
     line_of_text is the text you want to draw e.g. "some text I want to draw".
     font is the tta_font_t font handle that contains the font you want to use.
     font_size is the font height in pixels.
 */
-kctta_internal void kctta_append_line(const char*   line_of_text,
-                                      tta_font_t*   font,
-                                      int           font_size);
+KCTTA_DEF void kctta_append_line(const char*   line_of_text,
+                                 tta_font_t*   font,
+                                 int           font_size);
 
 /** Assemble quad for a glyph and append to vertex buffer.
     font is the tta_font_t font handle that contains the font you want to use.
     font_size is the font height in pixels
 */
-kctta_internal void kctta_append_glyph(const char   in_glyph,
-                                       tta_font_t*  font,
-                                       int          font_size);
+KCTTA_DEF void kctta_append_glyph(const char   in_glyph,
+                                  tta_font_t*  font,
+                                  int          font_size);
 
 /** Get tta_vertex_buffer_t with a pointer to the vertex buffer array
     and vertex buffer information.
 */
-kctta_internal tta_vertex_buffer_t kctta_grab_buffer();
+KCTTA_DEF tta_vertex_buffer_t kctta_grab_buffer();
 
 /** Call before starting to append new text.
     Clears the vertex buffer that text is being appended to. 
@@ -378,17 +389,15 @@ kctta_internal tta_vertex_buffer_t kctta_grab_buffer();
     make sure you pass the buffer to OpenGL (glBufferData) or make a copy of
     the buffer before calling kctta_clear_buffer.
 */
-kctta_internal void kctta_clear_buffer();
+KCTTA_DEF void kctta_clear_buffer();
 
-#undef kctta_internal
 #endif // _INCLUDE_KC_TRUETYPEASSEMBLER_H_
 
 
 ///////////////////// IMPLEMENTATION //////////////////////////
 #ifdef KC_TRUETYPEASSEMBLER_IMPLEMENTATION
 
-#define kctta_internal static           // kctta internal function
-#define kctta_local_persist static      // kctta local static variable
+#define kctta_internal static      // kctta local static variable
 #ifndef KCTTA_MAX_CHAR_IN_BUFFER
 #define KCTTA_MAX_CHAR_IN_BUFFER 800    // maximum characters allowed in vertex buffer ("canvas")
 #endif
@@ -402,17 +411,17 @@ kctta_internal void kctta_clear_buffer();
 // Buffers for vertices and texture_coords before they are written to GPU memory.
 // If you have a pointer to these buffers, DO NOT let these buffers be overwritten
 // before you bind the data to GPU memory.
-kctta_local_persist float _kctta_vertex_buffer[KCTTA_MAX_CHAR_IN_BUFFER * 6 * 4]; // 800 characters * 6 vertices * (2 xy + 2 uv)
-kctta_local_persist int _kctta_vertex_count = 0; // Each vertex takes up 4 places in the assembly_buffer
-kctta_local_persist unsigned int _kctta_index_buffer[KCTTA_MAX_CHAR_IN_BUFFER * 6];
-kctta_local_persist int _kctta_index_count = 0;
-kctta_local_persist int _kctta_config = 0b0;
-kctta_local_persist int _kctta_cursor_x = 0;   // top left of the screen is pixel (0, 0), bot right of the screen is pixel (screen buffer width, screen buffer height)
-kctta_local_persist int _kctta_cursor_y = 100; // cursor points to the base line at which to start drawing the glyph
-kctta_local_persist int _kctta_screen_w_for_clipspace = 800;
-kctta_local_persist int _kctta_screen_h_for_clipspace = 600;
+kctta_internal float _kctta_vertex_buffer[KCTTA_MAX_CHAR_IN_BUFFER * 6 * 4]; // 800 characters * 6 vertices * (2 xy + 2 uv)
+kctta_internal int _kctta_vertex_count = 0; // Each vertex takes up 4 places in the assembly_buffer
+kctta_internal unsigned int _kctta_index_buffer[KCTTA_MAX_CHAR_IN_BUFFER * 6];
+kctta_internal int _kctta_index_count = 0;
+kctta_internal int _kctta_config = 0b0;
+kctta_internal int _kctta_cursor_x = 0;   // top left of the screen is pixel (0, 0), bot right of the screen is pixel (screen buffer width, screen buffer height)
+kctta_internal int _kctta_cursor_y = 100; // cursor points to the base line at which to start drawing the glyph
+kctta_internal int _kctta_screen_w_for_clipspace = 800;
+kctta_internal int _kctta_screen_h_for_clipspace = 600;
 
-kctta_internal void
+KCTTA_DEF void
 kctta_setflags(int newconfig)
 {
     int oldconfig = _kctta_config;
@@ -424,14 +433,14 @@ kctta_setflags(int newconfig)
     }
 }
 
-kctta_internal void
+KCTTA_DEF void
 kctta_windowsize(int width, int height)
 {
     _kctta_screen_w_for_clipspace = width;
     _kctta_screen_h_for_clipspace = height;
 }
 
-kctta_internal void
+KCTTA_DEF void
 kctta_init_font(tta_font_t* font_handle, unsigned char* font_buffer, int font_height_in_pixels)
 {
     int desired_atlas_width = KCTTA_DESIRED_ATLAS_WIDTH;
@@ -512,7 +521,7 @@ kctta_init_font(tta_font_t* font_handle, unsigned char* font_buffer, int font_he
         * _kctta_ceil((float)aggregate_glyph_width / (float)desired_atlas_width);
     // Build font atlas bitmap based on these parameters
     tta_bitmap_t atlas;
-    atlas.pixels = (unsigned char*) calloc(desired_atlas_width * desired_atlas_height, 1);
+    atlas.pixels = (unsigned char*) calloc(desired_atlas_width * desired_atlas_height, 1); // TODO avoid calloc here
     atlas.width = desired_atlas_width;
     atlas.height = desired_atlas_height;
     // COMBINE ALL GLYPH BITMAPS INTO FONT ATLAS
@@ -548,14 +557,14 @@ kctta_init_font(tta_font_t* font_handle, unsigned char* font_buffer, int font_he
     font_handle->font_atlas = atlas;
 }
 
-kctta_internal void
+KCTTA_DEF void
 kctta_move_cursor(int x, int y)
 {
     _kctta_cursor_x = x;
     _kctta_cursor_y = y;
 }
 
-kctta_internal void
+KCTTA_DEF void
 kctta_new_line(int x, tta_font_t* font)
 {
     _kctta_cursor_x = x;
@@ -569,7 +578,7 @@ kctta_new_line(int x, tta_font_t* font)
     }
 }
 
-kctta_internal void
+KCTTA_DEF void
 kctta_append_glyph(const char in_glyph, tta_font_t* font, int font_size)
 {
     if(in_glyph < KCTTA_ASCII_FROM || in_glyph > KCTTA_ASCII_TO) // Make sure we have the data for this glyph
@@ -676,7 +685,7 @@ kctta_append_glyph(const char in_glyph, tta_font_t* font, int font_size)
     _kctta_cursor_x += (int) glyph.advance;
 }
 
-kctta_internal void
+KCTTA_DEF void
 kctta_append_line(const char* line_of_text, tta_font_t* font, int font_size)
 {
     int line_start_x = _kctta_cursor_x;
@@ -698,7 +707,7 @@ kctta_append_line(const char* line_of_text, tta_font_t* font, int font_size)
     }
 }
 
-kctta_internal tta_vertex_buffer_t
+KCTTA_DEF tta_vertex_buffer_t
 kctta_grab_buffer()
 {
     tta_vertex_buffer_t retval;
@@ -719,7 +728,7 @@ kctta_grab_buffer()
     return retval;
 }
 
-kctta_internal void
+KCTTA_DEF void
 kctta_clear_buffer()
 {
     // No need to actually clear the vertex and index buffers back to 0
@@ -729,8 +738,8 @@ kctta_clear_buffer()
 }
 
 // clean up
+#undef KCTTA_DEF
 #undef kctta_internal
-#undef kctta_local_persist
 #undef KCTTA_ASCII_FROM
 #undef KCTTA_ASCII_TO
 #undef KCTTA_MAX_CHAR_IN_BUFFER
