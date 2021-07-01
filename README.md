@@ -12,7 +12,3 @@
 - Run build-win64-msvc.bat or build-win64-cmake.bat (msvc build requires 64 bit msvc compiler)
 - Run run.bat (with argument "vs" if you want to launch Visual Studio to debug)
 - Profit
-
-## License
-
-<img src="https://i.imgur.com/V9VYXiR.png" alt="license" width="480" height="270">
