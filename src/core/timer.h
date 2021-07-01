@@ -14,13 +14,13 @@ struct timer
     /** Retrieves the frequency of the performance counter. The frequency of
         the performance counter is fixed at system boot and is consistent
         across all processors.  */
-    static int64 counter_frequency();
+    static i64 counter_frequency();
 
     /** Retrieves the current value of the performance counter, which is a
         high resolution (<1us) time stamp that can be used for time-interval
         measurements.*/
-    static int64 get_ticks();
+    static i64 get_ticks();
 
     /** Returns the time elapsed in seconds since the last timestamp call. */
-    static real32 timestamp();
+    static float timestamp();
 };

@@ -3,10 +3,10 @@
 // TODO THIS IS ALL FUCKING TEMPORARY
 
 #include <vector>
-#include "../kc_math.h"
+#include "../core/kc_math.h"
 #include "../renderer/light.h"
 #include "../renderer/mesh_group.h"
-#include "camera.h"
+#include "../renderer/camera.h"
 
 struct gameobject_t
 {

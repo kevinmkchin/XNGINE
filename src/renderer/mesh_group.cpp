@@ -1,8 +1,8 @@
 #include "mesh_group.h"
 #include "texture.h"
-#include "../kc_math.h"
-#include "../runtime/timer.h"
-#include "../modules/console.h"
+#include "../core/kc_math.h"
+#include "../core/timer.h"
+#include "../debugging/console.h"
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -11,7 +11,7 @@ void mesh_group_t::render()
 {
     for(size_t i = 0; i < meshes.size(); ++i)
     {
-        uint16 mat_index = mesh_to_texture[i];
+        u16 mat_index = mesh_to_texture[i];
         if(mat_index < textures.size() && textures[mat_index].texture_id != 0)
         {
             textures[mat_index].gl_use_texture();
@@ -93,9 +93,9 @@ void mesh_group_t::assimp_load(const char* file_name)
 
 void mesh_group_t::assimp_load_mesh_helper(size_t mesh_index, aiMesh* mesh_node)
 {
-    const uint8 vb_entries_per_vertex = 8;
-    std::vector<real32> vb(mesh_node->mNumVertices * vb_entries_per_vertex);
-    std::vector<uint32> ib(mesh_node->mNumFaces * mesh_node->mFaces[0].mNumIndices);
+    const u8 vb_entries_per_vertex = 8;
+    std::vector<float> vb(mesh_node->mNumVertices * vb_entries_per_vertex);
+    std::vector<u32> ib(mesh_node->mNumFaces * mesh_node->mFaces[0].mNumIndices);
     if(mesh_node->mTextureCoords[0])
     {
         for(size_t i = 0; i < mesh_node->mNumVertices; ++i)
@@ -138,7 +138,7 @@ void mesh_group_t::assimp_load_mesh_helper(size_t mesh_index, aiMesh* mesh_node)
     }
 
     mesh_t mesh;
-    mesh_t::gl_create_mesh(mesh, &vb[0], &ib[0], (uint32)vb.size(), (uint32)ib.size());
+    mesh_t::gl_create_mesh(mesh, &vb[0], &ib[0], (u32)vb.size(), (u32)ib.size());
     meshes[mesh_index] = mesh;
     mesh_to_texture[mesh_index] = mesh_node->mMaterialIndex;
 }

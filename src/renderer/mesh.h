@@ -8,10 +8,10 @@
 */
 struct mesh_t
 {
-    uint32  id_vao          = 0;
-    uint32  id_vbo          = 0;
-    uint32  id_ibo          = 0;
-    uint32  indices_count   = 0;
+    u32  id_vao          = 0;
+    u32  id_vbo          = 0;
+    u32  id_ibo          = 0;
+    u32  indices_count   = 0;
 
     /** Create a mesh_t with the given vertices and indices.
     vertex_attrib_size: vertex coords size (e.g. 3 if x y z)
@@ -19,13 +19,13 @@ struct mesh_t
     draw_usage: affects optimization; GL_STATIC_DRAW buffer data
     only set once, GL_DYNAMIC_DRAW if buffer modified repeatedly */
     static void gl_create_mesh(mesh_t& mesh,
-                               real32* vertices,
-                               uint32* indices,
-                               uint32 vertices_array_count,
-                               uint32 indices_array_count,
-                               uint8 vertex_attrib_size = 3,
-                               uint8 texture_attrib_size = 2,
-                               uint8 normal_attrib_size = 3,
+                               float* vertices,
+                               u32* indices,
+                               u32 vertices_array_count,
+                               u32 indices_array_count,
+                               u8 vertex_attrib_size = 3,
+                               u8 texture_attrib_size = 2,
+                               u8 normal_attrib_size = 3,
                                GLenum draw_usage = GL_STATIC_DRAW);
 
     /** Clearing GPU memory: glDeleteBuffers and glDeleteVertexArrays deletes the buffer
@@ -37,9 +37,9 @@ struct mesh_t
     void gl_render_mesh(GLenum render_mode = GL_TRIANGLES) const;
 
     /** Overwrite existing buffer data */
-    void gl_rebind_buffer_objects(real32* vertices,
-                                  uint32* indices,
-                                  uint32 vertices_array_count,
-                                  uint32 indices_array_count,
+    void gl_rebind_buffer_objects(float* vertices,
+                                  u32* indices,
+                                  u32 vertices_array_count,
+                                  u32 indices_array_count,
                                   GLenum draw_usage = GL_DYNAMIC_DRAW);
 };

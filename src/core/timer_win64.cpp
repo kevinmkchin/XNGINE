@@ -12,12 +12,12 @@ float timer::delta_time = -1.f;
 
 */
 
-#include <windows.h> // required by profileapi.h
+#include <Windows.h> // required by profileapi.h
 #include <profileapi.h>
 
-int64 timer::counter_frequency()
+i64 timer::counter_frequency()
 {
-    local_persist int64 frequency = 0;
+    local_persist i64 frequency = 0;
     if(!frequency)
     {
         LARGE_INTEGER perf_counter_frequency_result;
@@ -27,7 +27,7 @@ int64 timer::counter_frequency()
     return frequency;
 }
 
-int64 timer::get_ticks()
+i64 timer::get_ticks()
 {
     LARGE_INTEGER ticks;
     if (!QueryPerformanceCounter(&ticks))
@@ -37,12 +37,12 @@ int64 timer::get_ticks()
     return ticks.QuadPart;
 }
 
-real32 timer::timestamp()
+float timer::timestamp()
 {
-    local_persist int64 last_tick = timer::get_ticks();
-    int64 this_tick = timer::get_ticks();
-    int64 delta_tick = this_tick - last_tick;
-    real32 deltatime_secs = (real32) delta_tick / (real32) timer::counter_frequency();
+    local_persist i64 last_tick = timer::get_ticks();
+    i64 this_tick = timer::get_ticks();
+    i64 delta_tick = this_tick - last_tick;
+    float deltatime_secs = (float) delta_tick / (float) timer::counter_frequency();
     last_tick = this_tick;
     return deltatime_secs;
 }

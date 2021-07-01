@@ -3,7 +3,7 @@
 
 #include "file_system.h"
 #include "../stb/stb_image.h"
-#include "../modules/console.h"
+#include "../debugging/console.h"
 
 /**
     FILE operations to disk

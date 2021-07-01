@@ -9,22 +9,22 @@ add_executable(${PROJECT_NAME}
         src/main_win64.cpp
         src/renderer/light.cpp
         src/renderer/mesh.cpp
-        src/runtime/camera.cpp
+        src/renderer/camera.cpp
         src/renderer/texture.cpp
         src/renderer/mesh_group.cpp
         src/renderer/material.cpp
-        src/runtime/timer_win64.cpp
-        src/runtime/file_system.cpp
-        src/modules/console.cpp
-        src/modules/profiler.cpp
-        src/modules/debug_drawer.cpp
-        src/singletons/input_manager.cpp
-        src/singletons/window_manager.cpp
-        src/singletons/render_manager.cpp
+        src/core/timer_win64.cpp
+        src/core/file_system_win64.cpp
+        src/debugging/profiling/profiler.cpp
+        src/debugging/console.cpp
+        src/debugging/debug_drawer.cpp
+        src/debugging/commands.cpp
+        src/core/input.cpp
+        src/core/display_SDL.cpp
+        src/renderer/render_manager.cpp
         src/runtime/game_state.cpp
         src/renderer/shader.cpp
-        src/renderer/shader.h
-        src/commands.cpp)
+        src/renderer/shader.h)
 # add WIN32 after ${PROJECT_NAME} if compile for SUBSYSTEM:WINDOWS
 
 # Compile time preprocessor definitions

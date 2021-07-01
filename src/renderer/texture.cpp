@@ -1,12 +1,12 @@
 #include "texture.h"
 #include "../runtime/memory_handle.h"
-#include "../runtime/file_system.h"
-#include "../modules/console.h"
+#include "../core/file_system.h"
+#include "../debugging/console.h"
 
 void texture_t::gl_create_from_bitmap(texture_t&        texture,
                                       unsigned char*    bitmap,
-                                      uint32            bitmap_width,
-                                      uint32            bitmap_height,
+                                      u32            bitmap_width,
+                                      u32            bitmap_height,
                                       GLenum            target_format,
                                       GLenum            source_format)
 {

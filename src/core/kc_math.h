@@ -78,6 +78,23 @@ STANDARDS:
     };
 */
 
+struct vec2
+{
+    float x = 0.f;
+    float y = 0.f;
+
+    float& operator[] (int row)
+    {
+        float* address = (float*)this;
+        return address[row];
+    }
+    const float& operator[] (int row) const
+    {
+        float* address = (float*)this;
+        return address[row];
+    }
+};
+
 struct vec2i
 {
     int x = 0;
@@ -100,6 +117,13 @@ struct vec3
         float* address = (float*)this;
         return address[row];
     }
+};
+
+struct vec3i
+{
+    int x = 0;
+    int y = 0;
+    int z = 0;
 };
 
 struct vec4

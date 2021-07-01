@@ -7,8 +7,8 @@
 struct texture_t
 {
     GLuint  texture_id  = 0;        // ID for the texture in GPU memory
-    int32   width       = 0;        // Width of the texture
-    int32   height      = 0;        // Height of the texture
+    i32   width       = 0;        // Width of the texture
+    i32   height      = 0;        // Height of the texture
     GLenum  format      = GL_NONE;  // format / bitdepth of texture (GL_RGB would be 3 byte bit depth)
 
     /** Loads texture from bitmap; generates a new texture object in GPU mem; store the id
@@ -16,8 +16,8 @@ struct texture_t
     into the texture object in GPU mem; and generates mip maps automatically. */
     static void gl_create_from_bitmap(texture_t&        texture,
                                       unsigned char*    bitmap,
-                                      uint32            bitmap_width,
-                                      uint32            bitmap_height,
+                                      u32            bitmap_width,
+                                      u32            bitmap_height,
                                       GLenum            target_format,
                                       GLenum            source_format);
 

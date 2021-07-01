@@ -1,12 +1,12 @@
 #include "render_manager.h"
 #include <GL/glew.h>
-#include "../renderer/material.h"
+#include "material.h"
 #include "../runtime/game_state.h"
 #include "../stb/stb_sprintf.h"
-#include "../modules/console.h"
-#include "../modules/profiler.h"
-#include "../modules/debug_drawer.h"
-#include "input_manager.h"
+#include "../debugging/console.h"
+#include "../debugging/profiling/profiler.h"
+#include "../debugging/debug_drawer.h"
+#include "../core/input.h"
 
 SINGLETON_INIT(render_manager)
 
@@ -42,7 +42,7 @@ void render_manager::initialize()
     glEnable(GL_CULL_FACE);
 
     update_buffer_size(g_buffer_width, g_buffer_height);
-    matrix_projection_ortho = projection_matrix_orthographic_2d(0.0f, (real32)g_buffer_width, (real32)g_buffer_height, 0.0f);
+    matrix_projection_ortho = projection_matrix_orthographic_2d(0.0f, (float)g_buffer_width, (float)g_buffer_height, 0.0f);
 }
 
 void render_manager::render()
@@ -81,7 +81,7 @@ void render_manager::render_pass_omnidirectional_shadow_map()
         glBindFramebuffer(GL_FRAMEBUFFER, omni_shadow_maps[omniLightCount].depthCubeMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
 
-        shader_omni_shadow_map.gl_bind_matrix4fv("lightMatrices[0]", 6, (real32*) omni_shadow_maps[omniLightCount].shadowTransforms.data());
+        shader_omni_shadow_map.gl_bind_matrix4fv("lightMatrices[0]", 6, (float*) omni_shadow_maps[omniLightCount].shadowTransforms.data());
         vec3 lightPos = loaded_map.pointlights[omniLightCount].position;
         shader_omni_shadow_map.gl_bind_3f("lightPos", lightPos.x, lightPos.y, lightPos.z);
         shader_omni_shadow_map.gl_bind_1f("farPlane", omni_shadow_maps[omniLightCount].depthCubeMapFarPlane);
@@ -215,7 +215,7 @@ void render_manager::render_pass_main()
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 #if INTERNAL_BUILD
-    if(input_manager::get_instance()->g_keystate[SDL_SCANCODE_F3])
+    if(input::get_instance()->g_keystate[SDL_SCANCODE_F3])
     {
         local_persist mesh_t quad;
         local_persist bool meshmade = false;
@@ -223,7 +223,7 @@ void render_manager::render_pass_main()
         {
             meshmade = true;
 
-            uint32 quadindices[6] = {
+            u32 quadindices[6] = {
                     0, 1, 3,
                     0, 3, 2
             };
@@ -298,7 +298,7 @@ vec2i render_manager::get_buffer_size()
     return retval;
 }
 
-void render_manager::update_buffer_size(int32 new_width, int32 new_height)
+void render_manager::update_buffer_size(i32 new_width, i32 new_height)
 {
     g_buffer_width = new_width;
     g_buffer_height = new_height;

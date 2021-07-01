@@ -30,11 +30,11 @@ struct shader_t
     void gl_bind_matrix3fv(const char* uniform_name, GLsizei count, const GLfloat* value);
     void gl_bind_matrix4fv(const char* uniform_name, GLsizei count, const GLfloat* value);
 
-    int32 get_cached_uniform_location(const char* uniform_name);
+    i32 get_cached_uniform_location(const char* uniform_name);
 private:
     GLuint id_shader_program = 0; // id of this shader program in GPU memory
 
-    std::unordered_map<std::string, int32> uniform_locations;
+    std::unordered_map<std::string, i32> uniform_locations;
 
     static void cache_uniform_locations(shader_t& shader);
 
@@ -43,5 +43,5 @@ private:
     void warning_uniform_not_found(const char* uniform_name) const;
 
     // Create shader on GPU and compile shader
-    static void gl_compile_shader(uint32 program_id, const char* shader_code, GLenum shader_type);
+    static void gl_compile_shader(u32 program_id, const char* shader_code, GLenum shader_type);
 };

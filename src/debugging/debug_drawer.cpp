@@ -3,7 +3,7 @@
 #include "../renderer/mesh.h"
 #include "../renderer/light.h"
 #include "../renderer/shader.h"
-#include "../runtime/camera.h"
+#include "../renderer/camera.h"
 
 internal int debugger_level = 1;
 int debug_drawer_get_level()
@@ -13,11 +13,11 @@ int debug_drawer_get_level()
 
 internal bool debugger_b_debug_pointlights = true;
 internal point_light_t* debugger_point_lights = nullptr;
-internal uint8 debugger_point_lights_count = 0;
+internal u8 debugger_point_lights_count = 0;
 internal bool debugger_b_debug_spotlights = true;
 internal spot_light_t* debugger_spot_lights = nullptr;
-internal uint8 debugger_spot_lights_count = 0;
-internal real32 ATTENUATION_FACTOR_TO_CALC_RANGE_FOR = 0.1f;
+internal u8 debugger_spot_lights_count = 0;
+internal float ATTENUATION_FACTOR_TO_CALC_RANGE_FOR = 0.1f;
 
 internal mesh_t debug_sphere_mesh;
 internal mesh_t debug_cone_mesh;
@@ -25,20 +25,20 @@ internal mesh_t debug_cone_mesh;
 // TODO debug show vertex normals
 // TODO debug forward vector (i.e. show direction of object)
 
-void create_circle_vertex_buffer(real32* vertices, uint32* indices,
-                                          uint32* vertex_count, uint32* indices_count,
-                                          real32 x, real32 y, real32 z,
-                                          real32 radius, uint8 axis)
+void create_circle_vertex_buffer(float* vertices, u32* indices,
+                                 u32* vertex_count, u32* indices_count,
+                                 float x, float y, float z,
+                                 float radius, u8 axis)
 {
-    const real32 rad_upper_bound = 1.5f;
-    const real32 rad_lower_bound = 0.5f;
-    real32 rad_bound_percent = clamp((radius - rad_lower_bound) / (rad_upper_bound - rad_lower_bound), 0.f, 1.f);
-    const real32 vertices_upper_bound = 128.f;
-    const real32 vertices_lower_bound = 32.f;
-    real32 angle_increment = (2.f*KC_PI)
+    const float rad_upper_bound = 1.5f;
+    const float rad_lower_bound = 0.5f;
+    float rad_bound_percent = clamp((radius - rad_lower_bound) / (rad_upper_bound - rad_lower_bound), 0.f, 1.f);
+    const float vertices_upper_bound = 128.f;
+    const float vertices_lower_bound = 32.f;
+    float angle_increment = (2.f*KC_PI)
         / (((vertices_upper_bound - vertices_lower_bound) * rad_bound_percent) + vertices_lower_bound);
 
-    for(real32 angle = 0.f; angle < 2.f*KC_PI + angle_increment; angle += angle_increment)
+    for(float angle = 0.f; angle < 2.f*KC_PI + angle_increment; angle += angle_increment)
     {
         float x_add = radius * sinf(angle);
         float z_add = radius * cosf(angle);
@@ -56,25 +56,25 @@ void create_circle_vertex_buffer(real32* vertices, uint32* indices,
     }
 }
 
-mesh_t create_circle_mesh(real32 pos_x, real32 pos_y, real32 pos_z, real32 radius, uint8 axis)
+mesh_t create_circle_mesh(float pos_x, float pos_y, float pos_z, float radius, u8 axis)
 {
-    real32 vertices[387]; // 129 vertices * 3 floats
-    uint32 vertex_count = 0;
-    uint32 indices[256]; // (129 - 1) * 2 indices
-    uint32 indices_count = 0;
+    float vertices[387]; // 129 vertices * 3 floats
+    u32 vertex_count = 0;
+    u32 indices[256]; // (129 - 1) * 2 indices
+    u32 indices_count = 0;
     create_circle_vertex_buffer(vertices, indices, &vertex_count, &indices_count, pos_x, pos_y, pos_z, radius, axis);
     mesh_t created_mesh;
     mesh_t::gl_create_mesh(created_mesh, vertices, indices, vertex_count * 3, indices_count, 3, 0, 0);
     return created_mesh;
 }
 
-mesh_t create_cone_mesh(real32 apex_x, real32 apex_y, real32 apex_z,
-                                 real32 height, real32 base_radius)
+mesh_t create_cone_mesh(float apex_x, float apex_y, float apex_z,
+                                 float height, float base_radius)
 {
-    real32 vertices[411]; // 129 vertices * 3 floats + 8 vertices * 3 floats
-    uint32 vertex_count = 0;
-    uint32 indices[264]; // (129 - 1) * 2 indices + 8 indices
-    uint32 indices_count = 0;
+    float vertices[411]; // 129 vertices * 3 floats + 8 vertices * 3 floats
+    u32 vertex_count = 0;
+    u32 indices[264]; // (129 - 1) * 2 indices + 8 indices
+    u32 indices_count = 0;
     create_circle_vertex_buffer(vertices, indices, &vertex_count, &indices_count,
         apex_x, apex_y - height, apex_z, base_radius);
     for(int i = 0; i < 4; ++i)
@@ -95,7 +95,7 @@ mesh_t create_cone_mesh(real32 apex_x, real32 apex_y, real32 apex_z,
     return created_mesh;
 }
 
-void debug_render_sphere(shader_t& shader, real32 x, real32 y, real32 z, real32 radius)
+void debug_render_sphere(shader_t& shader, float x, float y, float z, float radius)
 {
     mat4 sphere_transform = identity_mat4();
     sphere_transform *= translation_matrix(x, y, z);
@@ -111,8 +111,8 @@ void debug_render_sphere(shader_t& shader, real32 x, real32 y, real32 z, real32 
 }
 
 void debug_render_cone(shader_t& shader,
-                                real32 x, real32 y, real32 z,
-                                real32 height, real32 base_radius,
+                                float x, float y, float z,
+                                float height, float base_radius,
                                 quaternion orientation)
 {
     mat4 cone_transform = identity_mat4();
@@ -130,15 +130,15 @@ void debug_render_line()
     // TODO
 }
 
-real32 debug_calculate_attenuation_range(real32 c, real32 l, real32 q)
+float debug_calculate_attenuation_range(float c, float l, float q)
 {
     c -= 1.f / ATTENUATION_FACTOR_TO_CALC_RANGE_FOR;
-    real32 discriminant = l * l - 4 * q * c;
+    float discriminant = l * l - 4 * q * c;
     if (discriminant >= 0) 
     {
-        real32 root1 = (-l + sqrt(discriminant)) / (2 * q);
-        real32 root2 = (-l - sqrt(discriminant)) / (2 * q);
-        real32 att_range = max(root1, root2);
+        float root1 = (-l + sqrt(discriminant)) / (2 * q);
+        float root2 = (-l - sqrt(discriminant)) / (2 * q);
+        float att_range = max(root1, root2);
         return att_range;
     }
     else
@@ -149,7 +149,7 @@ real32 debug_calculate_attenuation_range(real32 c, real32 l, real32 q)
 
 void debug_render_pointlight(shader_t& shader, point_light_t& plight)
 {
-    real32 att_radius = debug_calculate_attenuation_range(plight.att_constant, plight.att_linear, plight.att_quadratic);
+    float att_radius = debug_calculate_attenuation_range(plight.att_constant, plight.att_linear, plight.att_quadratic);
     shader.gl_bind_4f("frag_colour", 1.f, 1.f, 1.f, 1.f);
     debug_render_sphere(shader, plight.position.x, plight.position.y, plight.position.z, att_radius);
     shader.gl_bind_4f("frag_colour", 1.f, 1.f, 0.f, 1.f);
@@ -158,10 +158,10 @@ void debug_render_pointlight(shader_t& shader, point_light_t& plight)
 
 void debug_render_spotlight(shader_t& shader, spot_light_t& slight)
 {
-    real32 att_radius = debug_calculate_attenuation_range(slight.att_constant, slight.att_linear, slight.att_quadratic);
+    float att_radius = debug_calculate_attenuation_range(slight.att_constant, slight.att_linear, slight.att_quadratic);
     shader.gl_bind_4f("frag_colour", 1.f, 1.f, 1.f, 1.f);
-    real32 base_radius = att_radius * tanf(acosf(slight.cosine_cutoff()));
-    real32 height = att_radius / slight.cosine_cutoff();
+    float base_radius = att_radius * tanf(acosf(slight.cosine_cutoff()));
+    float height = att_radius / slight.cosine_cutoff();
     debug_render_cone(shader, slight.position.x, slight.position.y, slight.position.z,
                       height, base_radius, slight.orientation);
     shader.gl_bind_4f("frag_colour", 1.f, 1.f, 0.f, 1.f);
@@ -208,7 +208,7 @@ void debug_render(shader_t& debug_shader, camera_t camera)
     glUseProgram(0);
 }
 
-void debug_set_pointlights(point_light_t* point_lights_array, uint8 count)
+void debug_set_pointlights(point_light_t* point_lights_array, u8 count)
 {
     debugger_point_lights = point_lights_array;
     debugger_point_lights_count = count;
@@ -219,7 +219,7 @@ void debug_toggle_debug_pointlights()
     debugger_b_debug_pointlights = !debugger_b_debug_pointlights;
 }
 
-void debug_set_spotlights(spot_light_t* spot_lights_array, uint8 count)
+void debug_set_spotlights(spot_light_t* spot_lights_array, u8 count)
 {
     debugger_spot_lights = spot_lights_array;
     debugger_spot_lights_count = count;

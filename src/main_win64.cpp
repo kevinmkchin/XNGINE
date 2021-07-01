@@ -65,17 +65,17 @@ BUILD MODES
         1 - Slow code fine
 
 */
-
 #include "gamedefine.h"
-#include "runtime/timer.h"
-#include "modules/console.h"
-#include "modules/profiler.h"
-#include "singletons/window_manager.h"
-#include "singletons/input_manager.h"
-#include "singletons/render_manager.h"
+#include "core/timer.h"
+#include "debugging/console.h"
+#include "debugging/profiling/profiler.h"
+#include "debugging/debug_drawer.h"
+#include "core/display.h"
+#include "core/input.h"
+#include "renderer/render_manager.h"
 #include "runtime/game_state.h"
 #include "renderer/texture.h"
-#include "runtime/file_system.h"
+#include "core/file_system.h"
 
 #define STB_SPRINTF_IMPLEMENTATION
 #include "stb/stb_sprintf.h"
@@ -86,8 +86,7 @@ BUILD MODES
 #define KC_TRUETYPEASSEMBLER_IMPLEMENTATION
 #include "kc_truetypeassembler.h"
 #define KC_MATH_IMPLEMENTATION
-#include "kc_math.h"
-#include "modules/debug_drawer.h"
+#include "core/kc_math.h"
 
 // Fonts
 tta_font_t g_font_handle_c64;
@@ -96,13 +95,13 @@ texture_t g_font_atlas_c64;
 inline void win64_load_font(tta_font_t* font_handle,
                             texture_t& font_atlas,
                             const char* font_path,
-                            uint8 font_size)
+                            u8 font_size)
 {
     binary_file_handle_t fontfile;
     read_file_binary(fontfile, font_path);
         if(fontfile.memory)
         {
-            kctta_init_font(font_handle, (uint8*) fontfile.memory, font_size);
+            kctta_init_font(font_handle, (u8*) fontfile.memory, font_size);
         }
     free_file_binary(fontfile);
     texture_t::gl_create_from_bitmap(font_atlas,
@@ -117,9 +116,9 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
 {
     game_state i_game_state;
 
-    window_manager* i_window_manager = window_manager::get_instance();
+    display* i_window_manager = display::get_instance();
     render_manager* i_render_manager = render_manager::get_instance();
-    input_manager* i_input_manager = input_manager::get_instance();
+    input* i_input_manager = input::get_instance();
     i_render_manager->gs = &i_game_state;
     i_input_manager->gs = &i_game_state;
 
@@ -141,16 +140,16 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
 
 
     // Game Loop
-    int64 perf_counter_frequency = timer::counter_frequency();
-    int64 last_tick = timer::get_ticks(); // cpu cycles count of last tick
+    i64 perf_counter_frequency = timer::counter_frequency();
+    i64 last_tick = timer::get_ticks(); // cpu cycles count of last tick
     while (i_game_state.b_is_game_running)
     {
         i_input_manager->process_events();
 
         if (i_game_state.b_is_game_running == false) { break; }
-        int64 this_tick = timer::get_ticks();
-        int64 delta_tick = this_tick - last_tick;
-        real32 deltatime_secs = (real32) delta_tick / (real32) perf_counter_frequency;
+        i64 this_tick = timer::get_ticks();
+        i64 delta_tick = this_tick - last_tick;
+        float deltatime_secs = (float) delta_tick / (float) perf_counter_frequency;
         last_tick = this_tick;
         timer::delta_time = deltatime_secs;
 
