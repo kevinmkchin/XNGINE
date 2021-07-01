@@ -32,9 +32,7 @@ Backlog:
     - Arrow rendering for debugging
         - in the future arrow can also be used for translation gizmo
     - add SIMD for kc_math library
-    - Entity - pos, orientation, scale, mesh, few boolean flags, collider, tags
     - Fixed timestep? for physics only?
-    - Face culling
     - texture_t GL_NEAREST option
     - texture_t do something like source engine
         - Build simple polygons and shapes, and the textures get wrapped
@@ -85,8 +83,6 @@ BUILD MODES
 #include "stb/stb_image.h"
 #define KC_TRUETYPEASSEMBLER_IMPLEMENTATION
 #include "kc_truetypeassembler.h"
-#define KC_MATH_IMPLEMENTATION
-#include "core/kc_math.h"
 
 // Fonts
 tta_font_t g_font_handle_c64;
