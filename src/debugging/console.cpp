@@ -4,15 +4,15 @@
 #include <GL/glew.h>
 
 #include "console.h"
-#include "../commands.h"
-#include "../kc_math.h"
+#include "commands.h"
+#include "../core/kc_math.h"
 #include "../kc_truetypeassembler.h"
 #include "../renderer/texture.h"
 #include "../renderer/mesh.h"
 #include "../stb/stb_sprintf.h"
 #include "../renderer/shader.h"
-#include "../singletons/render_manager.h"
-#include "../runtime/timer.h"
+#include "../renderer/render_manager.h"
+#include "../core/timer.h"
 #include "../runtime/game_state.h"
 
 /**
@@ -60,24 +60,24 @@ internal GLfloat console_line_vertex_buffer[] = {
 
 internal bool        console_b_initialized = false;
 internal console_state_t    console_state = CONSOLE_HIDDEN;
-internal real32      console_y;
+internal float      console_y;
 
 internal float       CONSOLE_HEIGHT = 400.f;
-internal uint8       CONSOLE_TEXT_SIZE = 20;
-internal uint8       CONSOLE_TEXT_PADDING_BOTTOM = 4;
-internal uint16      CONSOLE_INPUT_DRAW_X = 4;
-internal uint16      CONSOLE_INPUT_DRAW_Y = (uint16) (CONSOLE_HEIGHT - (float) CONSOLE_TEXT_PADDING_BOTTOM);
+internal u8       CONSOLE_TEXT_SIZE = 20;
+internal u8       CONSOLE_TEXT_PADDING_BOTTOM = 4;
+internal u16      CONSOLE_INPUT_DRAW_X = 4;
+internal u16      CONSOLE_INPUT_DRAW_Y = (u16) (CONSOLE_HEIGHT - (float) CONSOLE_TEXT_PADDING_BOTTOM);
 
 // Input character buffer
 internal char        console_input_buffer[CONSOLE_COLS_MAX];
 internal bool        console_b_input_buffer_dirty = false;
-internal uint8       console_input_cursor = 0;
-internal uint8       console_input_buffer_count = 0;
+internal u8       console_input_cursor = 0;
+internal u8       console_input_buffer_count = 0;
 
 // Hidden character buffer
 internal char        console_messages[CONSOLE_MAX_PRINT_MSGS] = {};
-internal uint16      console_messages_read_cursor = 0;
-internal uint16      console_messages_write_cursor = 0;
+internal u16      console_messages_read_cursor = 0;
+internal u16      console_messages_write_cursor = 0;
 internal bool        console_b_messages_dirty = false;
 
 // Text visuals
@@ -128,9 +128,9 @@ void console_initialize(tta_font_t* in_console_font_handle, texture_t in_console
         glGenBuffers(1, &console_background_vbo_id);
         glBindBuffer(GL_ARRAY_BUFFER, console_background_vbo_id);
             glBufferData(GL_ARRAY_BUFFER, sizeof(console_background_vertex_buffer), console_background_vertex_buffer, GL_STATIC_DRAW);
-            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(real32) * 4, 0);
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, 0);
             glEnableVertexAttribArray(0);
-            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(real32) * 4, (void*)(sizeof(real32) * 2));
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
             glEnableVertexAttribArray(1);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     console_line_vertex_buffer[1] = CONSOLE_HEIGHT - (float) CONSOLE_TEXT_SIZE - CONSOLE_TEXT_PADDING_BOTTOM;

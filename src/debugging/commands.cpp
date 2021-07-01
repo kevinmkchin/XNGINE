@@ -14,8 +14,8 @@
 
 */
 #include "commands.h"
-#include "modules/profiler.h"
-#include "modules/debug_drawer.h"
+#include "../debugging/profiling/profiler.h"
+#include "debug_drawer.h"
 
 internal std::map<std::string, console_command_meta_t> con_commands; // association of console command strings to their actual commands
 

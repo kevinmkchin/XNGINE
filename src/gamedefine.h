@@ -15,20 +15,23 @@ This causes the compiler to treat them as intra-unit linkage and it doesn't ever
 #define internal        static  // functions or global variables marked static are internal to the translation unit
 #define local_persist   static  // local static variables are only accessible within the scope of its declaration
 
-//TODO define fast types
-
-typedef uint8_t     uint8;
-typedef uint16_t    uint16;
-typedef uint32_t    uint32;
-typedef uint64_t    uint64;
-
-typedef int8_t      int8;
-typedef int16_t     int16;
-typedef int32_t     int32;
-typedef int64_t     int64;
-
-typedef float       real32;
-typedef double      real64;
+typedef uint8_t       u8;
+typedef uint16_t      u16;
+typedef uint32_t      u32;
+typedef uint64_t      u64;
+typedef int8_t        i8;
+typedef int16_t       i16;
+typedef int32_t       i32;
+typedef int64_t       i64;
+typedef uint_fast8_t  u8f;
+typedef uint_fast16_t u16f;
+typedef uint_fast32_t u32f;
+typedef uint_fast64_t u64f;
+typedef int_fast8_t   i8f;
+typedef int_fast16_t  i16f;
+typedef int_fast32_t  i32f;
+typedef int_fast64_t  i64f;
+typedef i32           bool32;
 
 #define INDEX_NONE -1
 #define ASCII_SPACE 32

@@ -1,5 +1,5 @@
 #include "game_state.h"
-#include "../modules/debug_drawer.h"
+#include "../debugging/debug_drawer.h"
 
 
 void game_state::temp_initialize()
@@ -30,8 +30,8 @@ void game_state::temp_initialize()
     lm1pl.diffuse_intensity = 1.f;
     loaded_map.pointlights.push_back(lm1pl);
 
-    debug_set_pointlights(loaded_map.pointlights.data(),(uint8) loaded_map.pointlights.size());
-    debug_set_spotlights(loaded_map.spotlights.data(),(uint8) loaded_map.spotlights.size());
+    debug_set_pointlights(loaded_map.pointlights.data(),(u8) loaded_map.pointlights.size());
+    debug_set_spotlights(loaded_map.spotlights.data(),(u8) loaded_map.spotlights.size());
 }
 
 void game_state::update()

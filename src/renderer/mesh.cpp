@@ -1,17 +1,17 @@
 #include "mesh.h"
-#include "../modules/console.h"
+#include "../debugging/console.h"
 
 void mesh_t::gl_create_mesh(mesh_t& mesh,
-                            real32* vertices,
-                            uint32* indices,
-                            uint32 vertices_array_count,
-                            uint32 indices_array_count,
-                            uint8 vertex_attrib_size,
-                            uint8 texture_attrib_size,
-                            uint8 normal_attrib_size,
+                            float* vertices,
+                            u32* indices,
+                            u32 vertices_array_count,
+                            u32 indices_array_count,
+                            u8 vertex_attrib_size,
+                            u8 texture_attrib_size,
+                            u8 normal_attrib_size,
                             GLenum draw_usage)
 {
-    uint8 stride = 0;
+    u8 stride = 0;
     if(texture_attrib_size)
     {
         stride += vertex_attrib_size + texture_attrib_size;
@@ -42,15 +42,15 @@ void mesh_t::gl_create_mesh(mesh_t& mesh,
             use          stride        use          stride
         In this case, the stride would be 3 because we need to skip 3 values (the color values) to reach the next vertex data.
     Apparently the last parameter is the offset? */
-    glVertexAttribPointer(0, vertex_attrib_size, GL_FLOAT, GL_FALSE, sizeof(real32) * stride, 0); // vertex pointer
+    glVertexAttribPointer(0, vertex_attrib_size, GL_FLOAT, GL_FALSE, sizeof(float) * stride, 0); // vertex pointer
     glEnableVertexAttribArray(0); // Enabling location in VAO for the attribute
     if(texture_attrib_size > 0)
     {
-        glVertexAttribPointer(1, texture_attrib_size, GL_FLOAT, GL_FALSE, sizeof(real32) * stride, (void*)(sizeof(real32) * vertex_attrib_size)); // uv coord pointer
+        glVertexAttribPointer(1, texture_attrib_size, GL_FLOAT, GL_FALSE, sizeof(float) * stride, (void*)(sizeof(float) * vertex_attrib_size)); // uv coord pointer
         glEnableVertexAttribArray(1);
         if(normal_attrib_size > 0)
         {
-            glVertexAttribPointer(2, normal_attrib_size, GL_FLOAT, GL_FALSE, sizeof(real32) * stride, (void*)(sizeof(real32) * (vertex_attrib_size + texture_attrib_size))); // normal pointer
+            glVertexAttribPointer(2, normal_attrib_size, GL_FLOAT, GL_FALSE, sizeof(float) * stride, (void*)(sizeof(float) * (vertex_attrib_size + texture_attrib_size))); // normal pointer
             glEnableVertexAttribArray(2);
         }
     }
@@ -101,11 +101,11 @@ void mesh_t::gl_render_mesh(GLenum render_mode) const
     glBindVertexArray(0);
 }
 
-void mesh_t::gl_rebind_buffer_objects(real32* vertices,
-                                       uint32* indices,
-                                       uint32 vertices_array_count,
-                                       uint32 indices_array_count,
-                                       GLenum draw_usage)
+void mesh_t::gl_rebind_buffer_objects(float* vertices,
+                                      u32* indices,
+                                      u32 vertices_array_count,
+                                      u32 indices_array_count,
+                                      GLenum draw_usage)
 {
     if(id_vbo == 0 || id_ibo == 0)
     {

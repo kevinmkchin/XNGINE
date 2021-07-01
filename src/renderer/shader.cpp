@@ -1,6 +1,6 @@
 #include "shader.h"
-#include "../modules/console.h"
-#include "../runtime/file_system.h"
+#include "../debugging/console.h"
+#include "../core/file_system.h"
 
 /** Telling opengl to start using this shader program */
 void shader_t::gl_use_shader(shader_t& shader)
@@ -145,7 +145,7 @@ void shader_t::cache_uniform_locations(shader_t &shader)
 
 void shader_t::cache_uniform_location(shader_t& shader, const char *uniform_name)
 {
-    int32 location = glGetUniformLocation(shader.id_shader_program, uniform_name);
+    i32 location = glGetUniformLocation(shader.id_shader_program, uniform_name);
     if (location != 0xffffffff)
     {
         shader.uniform_locations[std::string(uniform_name)] = location;
@@ -156,7 +156,7 @@ void shader_t::cache_uniform_location(shader_t& shader, const char *uniform_name
     }
 }
 
-void shader_t::gl_compile_shader(uint32 program_id, const char* shader_code, GLenum shader_type)
+void shader_t::gl_compile_shader(u32 program_id, const char* shader_code, GLenum shader_type)
 {
     GLuint id_shader = glCreateShader(shader_type);             // Create an empty shader of given type and get id
     GLint code_length = (GLint) strlen(shader_code);
@@ -178,7 +178,7 @@ void shader_t::gl_compile_shader(uint32 program_id, const char* shader_code, GLe
 
 void shader_t::gl_bind_1i(const char* uniform_name, GLint v0)
 {
-    int32 location = get_cached_uniform_location(uniform_name);
+    i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
     {
         glUniform1i(location, v0);
@@ -191,7 +191,7 @@ void shader_t::gl_bind_1i(const char* uniform_name, GLint v0)
 
 void shader_t::gl_bind_2i(const char* uniform_name, GLint v0, GLint v1)
 {
-    int32 location = get_cached_uniform_location(uniform_name);
+    i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
     {
         glUniform2i(location, v0, v1);
@@ -204,7 +204,7 @@ void shader_t::gl_bind_2i(const char* uniform_name, GLint v0, GLint v1)
 
 void shader_t::gl_bind_3i(const char* uniform_name, GLint v0, GLint v1, GLint v2)
 {
-    int32 location = get_cached_uniform_location(uniform_name);
+    i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
     {
         glUniform3i(location, v0, v1, v2);
@@ -217,7 +217,7 @@ void shader_t::gl_bind_3i(const char* uniform_name, GLint v0, GLint v1, GLint v2
 
 void shader_t::gl_bind_4i(const char* uniform_name, GLint v0, GLint v1, GLint v2, GLint v3)
 {
-    int32 location = get_cached_uniform_location(uniform_name);
+    i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
     {
         glUniform4i(location, v0, v1, v2, v3);
@@ -230,7 +230,7 @@ void shader_t::gl_bind_4i(const char* uniform_name, GLint v0, GLint v1, GLint v2
 
 void shader_t::gl_bind_1f(const char* uniform_name, GLfloat v0)
 {
-    int32 location = get_cached_uniform_location(uniform_name);
+    i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
     {
         glUniform1f(location, v0);
@@ -243,7 +243,7 @@ void shader_t::gl_bind_1f(const char* uniform_name, GLfloat v0)
 
 void shader_t::gl_bind_2f(const char* uniform_name, GLfloat v0, GLfloat v1)
 {
-    int32 location = get_cached_uniform_location(uniform_name);
+    i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
     {
         glUniform2f(location, v0, v1);
@@ -256,7 +256,7 @@ void shader_t::gl_bind_2f(const char* uniform_name, GLfloat v0, GLfloat v1)
 
 void shader_t::gl_bind_3f(const char* uniform_name, GLfloat v0, GLfloat v1, GLfloat v2)
 {
-    int32 location = get_cached_uniform_location(uniform_name);
+    i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
     {
         glUniform3f(location, v0, v1, v2);
@@ -269,7 +269,7 @@ void shader_t::gl_bind_3f(const char* uniform_name, GLfloat v0, GLfloat v1, GLfl
 
 void shader_t::gl_bind_4f(const char* uniform_name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3)
 {
-    int32 location = get_cached_uniform_location(uniform_name);
+    i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
     {
         glUniform4f(location, v0, v1, v2, v3);
@@ -282,7 +282,7 @@ void shader_t::gl_bind_4f(const char* uniform_name, GLfloat v0, GLfloat v1, GLfl
 
 void shader_t::gl_bind_matrix3fv(const char* uniform_name, const GLsizei count, const GLfloat* value)
 {
-    int32 location = get_cached_uniform_location(uniform_name);
+    i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
     {
         glUniformMatrix3fv(location, count, GL_FALSE, value);
@@ -295,7 +295,7 @@ void shader_t::gl_bind_matrix3fv(const char* uniform_name, const GLsizei count, 
 
 void shader_t::gl_bind_matrix4fv(const char* uniform_name, const GLsizei count, const GLfloat* value)
 {
-    int32 location = get_cached_uniform_location(uniform_name);
+    i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
     {
         glUniformMatrix4fv(location, count, GL_FALSE, value);
@@ -306,7 +306,7 @@ void shader_t::gl_bind_matrix4fv(const char* uniform_name, const GLsizei count, 
     }
 }
 
-int32 shader_t::get_cached_uniform_location(const char* uniform_name)
+i32 shader_t::get_cached_uniform_location(const char* uniform_name)
 {
     auto location_iter = uniform_locations.find(uniform_name);
     if(location_iter != uniform_locations.end())

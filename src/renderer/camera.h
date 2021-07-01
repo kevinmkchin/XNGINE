@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../gamedefine.h"
-#include "../kc_math.h"
+#include "../core/kc_math.h"
 
 /** camera_t properties */
 struct camera_t
@@ -17,8 +17,8 @@ struct camera_t
     mat4   matrix_perspective   = { 0.f }; // Perspective projection matrix
     mat4   matrix_view          = { 0.f }; // Last calculated view matrix
 
-    real32 movespeed            = 2.f;
-    real32 turnspeed            = 0.17f;
+    float movespeed             = 2.f;
+    float turnspeed             = 0.17f;
 
     void update_camera();
 

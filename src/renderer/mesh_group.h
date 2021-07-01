@@ -12,7 +12,7 @@ struct mesh_group_t
 {
     std::vector<mesh_t>     meshes;
     std::vector<texture_t>  textures;
-    std::vector<uint16>     mesh_to_texture;
+    std::vector<u16>     mesh_to_texture;
 
     void render();
 

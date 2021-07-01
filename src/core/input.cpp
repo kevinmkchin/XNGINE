@@ -1,21 +1,21 @@
-#include "input_manager.h"
+#include "input.h"
 #include <SDL.h>
 #include "../runtime/game_state.h"
-#include "../modules/console.h"
-#include "../modules/profiler.h"
-#include "window_manager.h"
-#include "../modules/debug_drawer.h"
+#include "../debugging/console.h"
+#include "../debugging/profiling/profiler.h"
+#include "display.h"
+#include "../debugging/debug_drawer.h"
 
-SINGLETON_INIT(input_manager)
+SINGLETON_INIT(input)
 
-void input_manager::initialize()
+void input::initialize()
 {
     SDL_SetRelativeMouseMode(SDL_TRUE);         // Lock mouse to window
     g_keystate = SDL_GetKeyboardState(nullptr); // Grab keystate array
 
 }
 
-void input_manager::process_events()
+void input::process_events()
 {
     // Store Mouse state
     SDL_bool b_relative_mouse = SDL_GetRelativeMouseMode();
@@ -50,7 +50,7 @@ void input_manager::process_events()
                     case SDL_WINDOWEVENT_RESIZED:
                     case SDL_WINDOWEVENT_SIZE_CHANGED:
                     {
-                        window_manager::get_instance()->on_window_size_changed();
+                        display::get_instance()->display_size_changed();
                     } break;
                 }
             } break;

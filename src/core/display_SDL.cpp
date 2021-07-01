@@ -1,13 +1,17 @@
-#include "window_manager.h"
+#include <SDL.h>
 #include <SDL_syswm.h>
 #include <cstdio>
-#include "../modules/console.h"
+#include "display.h"
+#include "../debugging/console.h"
 #include "../runtime/game_state.h"
-#include "render_manager.h"
+#include "../renderer/render_manager.h"
 
-SINGLETON_INIT(window_manager)
+SINGLETON_INIT(display)
 
-void window_manager::initialize()
+internal SDL_Window* window = nullptr;
+internal SDL_GLContext opengl_context = nullptr;
+
+void display::initialize()
 {
     // Initialize SDL
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
@@ -52,20 +56,20 @@ void window_manager::initialize()
             case SDL_SYSWM_WINDOWS:   subsystem = "Microsoft Windows(TM)";  break;
             case SDL_SYSWM_X11:       subsystem = "X Window System";        break;
 #if SDL_VERSION_ATLEAST(2, 0, 3)
-                case SDL_SYSWM_WINRT:     subsystem = "WinRT";                  break;
+            case SDL_SYSWM_WINRT:     subsystem = "WinRT";                  break;
 #endif
             case SDL_SYSWM_DIRECTFB:  subsystem = "DirectFB";               break;
             case SDL_SYSWM_COCOA:     subsystem = "Apple OS X";             break;
             case SDL_SYSWM_UIKIT:     subsystem = "UIKit";                  break;
 #if SDL_VERSION_ATLEAST(2, 0, 2)
-                case SDL_SYSWM_WAYLAND:   subsystem = "Wayland";                break;
+            case SDL_SYSWM_WAYLAND:   subsystem = "Wayland";                break;
             case SDL_SYSWM_MIR:       subsystem = "Mir";                    break;
 #endif
 #if SDL_VERSION_ATLEAST(2, 0, 4)
-                case SDL_SYSWM_ANDROID:   subsystem = "Android";                break;
+            case SDL_SYSWM_ANDROID:   subsystem = "Android";                break;
 #endif
 #if SDL_VERSION_ATLEAST(2, 0, 5)
-                case SDL_SYSWM_VIVANTE:   subsystem = "Vivante";                break;
+            case SDL_SYSWM_VIVANTE:   subsystem = "Vivante";                break;
 #endif
         }
 
@@ -88,22 +92,22 @@ void window_manager::initialize()
 
     vsync(0);
 
-    on_window_size_changed();
+    display_size_changed();
 }
 
-void window_manager::swap_buffers()
+void display::swap_buffers()
 {
     SDL_GL_SwapWindow(window);
 }
 
-void window_manager::clean_up()
+void display::clean_up()
 {
     SDL_DestroyWindow(window);
     SDL_GL_DeleteContext(opengl_context);
     SDL_Quit();
 }
 
-void window_manager::vsync(int vsync)
+void display::vsync(int vsync)
 {
     /** This makes our Buffer Swap (SDL_GL_SwapWindow) synchronized with the monitor's
     vertical refresh - basically vsync; 0 = immediate, 1 = vsync, -1 = adaptive vsync.
@@ -121,18 +125,18 @@ void window_manager::vsync(int vsync)
 
 }
 
-void window_manager::on_window_size_changed()
+void display::display_size_changed()
 {
     /** Get the size of window's underlying drawable in pixels (for use with glViewport).
     Remark: This may differ from SDL_GetWindowSize() if we're rendering to a high-DPI drawable, i.e. the window was created
     with SDL_WINDOW_ALLOW_HIGHDPI on a platform with high-DPI support (Apple calls this "Retina"), and not disabled by the
     SDL_HINT_VIDEO_HIGHDPI_DISABLED hint. */
-    int32 buffer_width;
-    int32 buffer_height;
+    i32 buffer_width;
+    i32 buffer_height;
     SDL_GL_GetDrawableSize(window, &buffer_width, &buffer_height);
     render_manager::get_instance()->update_buffer_size(buffer_width, buffer_height);
 
     render_manager::get_instance()->matrix_projection_ortho =
-            projection_matrix_orthographic_2d(0.0f, (real32)buffer_width, (real32)buffer_height, 0.0f);
+            projection_matrix_orthographic_2d(0.0f, (float)buffer_width, (float)buffer_height, 0.0f);
     render_manager::get_instance()->gs->m_camera.calculate_perspective_matrix();
 }

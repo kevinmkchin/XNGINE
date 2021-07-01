@@ -1,15 +1,15 @@
 #include "camera.h"
-#include "timer.h"
-#include "../singletons/input_manager.h"
-#include "../singletons/render_manager.h"
-#include "../modules/console.h"
+#include "../core/timer.h"
+#include "../core/input.h"
+#include "render_manager.h"
+#include "../debugging/console.h"
 
 void camera_t::update_camera()
 {
-    real32 dt = timer::delta_time;
+    float dt = timer::delta_time;
 
-    int32 g_mouse_delta_x = input_manager::get_instance()->g_mouse_delta_x;
-    int32 g_mouse_delta_y = input_manager::get_instance()->g_mouse_delta_y;
+    i32 g_mouse_delta_x = input::get_instance()->g_mouse_delta_x;
+    i32 g_mouse_delta_y = input::get_instance()->g_mouse_delta_y;
     if(abs(g_mouse_delta_x) < 50.f && abs(g_mouse_delta_y) < 50.f) // don't move if mouse delta is too big to be normal
     {
         rotation.y /*yaw*/ -= g_mouse_delta_x * turnspeed;
@@ -31,7 +31,7 @@ void camera_t::update_camera()
     calculated_right = normalize(cross(calculated_direction, world_up)); // right vector is cross product of direction and up direction of world
     calculated_up = normalize(cross(calculated_right, calculated_direction)); // up vector is cross product of right vector and direction
 
-    const uint8* keystate = input_manager::get_instance()->g_keystate;
+    const u8* keystate = input::get_instance()->g_keystate;
     if(console_is_hidden())
     {
         // Check Inputs
@@ -64,9 +64,9 @@ void camera_t::update_camera()
 
 void camera_t::calculate_perspective_matrix()
 {
-    real32 fov = 90.f;
+    float fov = 90.f;
     vec2i display_buffer_size = render_manager::get_instance()->get_buffer_size();
-    real32 aspect_ratio = (real32)display_buffer_size.x / (real32)display_buffer_size.y;
+    float aspect_ratio = (float)display_buffer_size.x / (float)display_buffer_size.y;
 
 #if 0
     matrix_perspective = projection_matrix_orthographic(-30.0f, 30.0f, -30.0f, 30.0f, 0.1f, 100.f);

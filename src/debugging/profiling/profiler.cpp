@@ -1,18 +1,18 @@
 #include <string>
 #include "profiler.h"
-#include "../gamedefine.h"
-#include "../kc_truetypeassembler.h"
-#include "../renderer/texture.h"
-#include "../renderer/mesh.h"
-#include "../renderer/shader.h"
-#include "../runtime/timer.h"
-#include "../kc_math.h"
-#include "../singletons/render_manager.h"
+#include "../../gamedefine.h"
+#include "../../kc_truetypeassembler.h"
+#include "../../renderer/texture.h"
+#include "../../renderer/mesh.h"
+#include "../../renderer/shader.h"
+#include "../../core/timer.h"
+#include "../../core/kc_math.h"
+#include "../../renderer/render_manager.h"
 
 internal int    perf_profiler_level = 1;
-internal uint8  PERF_TEXT_SIZE = 17;
-internal uint16 PERF_DRAW_X = 4;
-internal uint16 PERF_DRAW_Y = PERF_TEXT_SIZE + 3;
+internal u8  PERF_TEXT_SIZE = 17;
+internal u16 PERF_DRAW_X = 4;
+internal u16 PERF_DRAW_Y = PERF_TEXT_SIZE + 3;
 
 // Font
 internal tta_font_t*   perf_font_handle;
@@ -53,7 +53,7 @@ void profiler_render(shader_t* ui_shader, shader_t* text_shader)
         std::string perf_frametime_string = "LAST FRAME TIME: " 
             + frametime_temp.substr(0, frametime_temp.find(".")+3)
             + "ms   FPS: "
-            + std::to_string((int16)(1.f/timer::delta_time))
+            + std::to_string((i16)(1.f / timer::delta_time))
             + "hz";
         kctta_clear_buffer();
         kctta_move_cursor(PERF_DRAW_X, PERF_DRAW_Y);
