@@ -7,8 +7,6 @@
 [SDL](https://www.libsdl.org/) for window creation and input.
 [Open Asset Importer](https://www.assimp.org/) for importing 3D models.
 
-I create a backup of the project at every new feature/implementation to keep a record of the code and executable as the project progresses. They would also be useful references when starting a new OpenGL project.
-
 ## How to Build and Run
 ### Windows
 - Run build-win64-msvc.bat or build-win64-cmake.bat (msvc build requires 64 bit msvc compiler)
