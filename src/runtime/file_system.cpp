@@ -1,20 +1,25 @@
+#include <fstream>
+#include <SDL.h>
+
+#include "file_system.h"
+#include "../stb/stb_image.h"
+#include "../modules/console.h"
+
 /**
-
     FILE operations to disk
-
 */
 
-internal void free_file_binary(binary_file_handle_t& binary_file_to_free)
+void free_file_binary(binary_file_handle_t& binary_file_to_free)
 {
     free(binary_file_to_free.memory);
-    binary_file_to_free.memory = NULL;
+    binary_file_to_free.memory = nullptr;
     binary_file_to_free.size = 0;
 }
 
 /** Allocates memory, stores the binary file data in memory, makes binary_file_handle_t.memory
     point to it. Pass along a binary_file_handle_t to receive the pointer to the file data in
     memory and the size in bytes. */
-internal void read_file_binary(binary_file_handle_t& mem_to_read_to, const char* file_path)
+void read_file_binary(binary_file_handle_t& mem_to_read_to, const char* file_path)
 {
     if(mem_to_read_to.memory)
     {
@@ -38,7 +43,7 @@ internal void read_file_binary(binary_file_handle_t& mem_to_read_to, const char*
 }
 
 /** Returns the string content of a file as an std::string */
-internal std::string read_file_string(const char* file_path)
+std::string read_file_string(const char* file_path)
 {
     std::string string_content;
 
@@ -60,7 +65,7 @@ internal std::string read_file_string(const char* file_path)
     return string_content;
 }
 
-internal void free_image(bitmap_handle_t& image_handle)
+void free_image(bitmap_handle_t& image_handle)
 {
     free_file_binary(image_handle);
     image_handle.width = 0;
@@ -71,7 +76,7 @@ internal void free_image(bitmap_handle_t& image_handle)
 /** Allocates memory, loads an image file as an UNSIGNED BYTE bitmap, makes bitmap_handle_t.memory
     point to it. Pass along a bitmap_handle_t to receive the pointer to the bitmap in memory and
     bitmap information. */
-internal void read_image(bitmap_handle_t& image_handle, const char* image_file_path)
+void read_image(bitmap_handle_t& image_handle, const char* image_file_path)
 {
     if(image_handle.memory)
     {

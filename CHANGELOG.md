@@ -1,5 +1,8 @@
 ## Development Log
 
+### 2021-06-26 - 2021-07-01
+- Mass rewrite from single transation unit build to separate source files
+
 ### 2021-06-25
 - Shadows for multiple point lights and spot lights
 - Omni-directional shadows for point lights and spot lights

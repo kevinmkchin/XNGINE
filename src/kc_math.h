@@ -37,6 +37,8 @@ STANDARDS:
 #ifndef _INCLUDE_KC_MATH_H_
 #define _INCLUDE_KC_MATH_H_
 
+#include <cstdlib>
+
 #define WORLD_FORWARD_VECTOR make_vec3(1.f,0.f,0.f)
 #define WORLD_BACKWARD_VECTOR (-WORLD_FORWARD_VECTOR)
 #define WORLD_UP_VECTOR make_vec3(0.f,1.f,0.f)
@@ -51,6 +53,7 @@ STANDARDS:
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
+#define abs(a) ((a) < 0.f ? (-(a)) : (a))
 #define clamp(x, lower, upper) max((lower), min((upper), (x)))
 
 /** - Vectors -
@@ -74,6 +77,13 @@ STANDARDS:
         }
     };
 */
+
+struct vec2i
+{
+    int x = 0;
+    int y = 0;
+};
+
 struct vec3
 {
     float x = 0.f;
@@ -165,7 +175,7 @@ struct quaternion
     float z = 0.f; 
 };
 
-/** 
+/**
 
     Constructors and identity consturctors
 
@@ -264,7 +274,7 @@ inline mat4 scale_matrix(vec3 scale);
     aspect: Specifies the aspect ratio that determines the field of view in the x direction. The aspect ratio is the ratio of x (width) to y (height).
     nearclip: Specifies the distance from the viewer to the near clipping plane (always positive).
     farclip: Specifies the distance from the viewer to the far clipping plane (always positive).
-    
+
     https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluPerspective.xml
 */
 inline mat4 projection_matrix_perspective(float fovy, float aspect, float nearclip, float farclip);
@@ -285,7 +295,7 @@ inline mat4 projection_matrix_orthographic_2d(float left, float right, float bot
 */
 inline mat4 projection_matrix_orthographic(float left, float right, float bottom, float top, float z_near, float z_far);
 
-/** 
+/**
 */
 inline mat4 view_matrix_look_at(vec3 const& eye, vec3 const& target, vec3 const& in_up);
 
@@ -327,14 +337,14 @@ inline quaternion inverse_unit(quaternion a);
     relying on consistent results when reading .eulerAngles particularly when attempting to
     gradually increment a rotation to produce animation.
     This will not work when the Z euler angle is within [90, 270] degrees. This is a
-    limitation with euler angles: euler angles (of any type) have a singularity. Unity's 
+    limitation with euler angles: euler angles (of any type) have a singularity. Unity's
     Quaternion.eulerAngle also experiences the same limitation, so I don't think there is
     anything I can do about it. Just whenever possible, avoid using euler angles.
 */
 inline vec3 quat_to_euler(quaternion q);
 
 /** Convert Euler angles IN RADIANS to a rotation Quaternion representing a rotation
-    x/roll degrees around the x-axis, z/pitch degrees around the z-axis, and y/yaw degrees 
+    x/roll degrees around the x-axis, z/pitch degrees around the z-axis, and y/yaw degrees
     around the y-axis; applied in that order.
     See https://ntrs.nasa.gov/api/citations/19770024290/downloads/19770024290.pdf
     The following wikipedia page uses a different order of rotation, but still helpful:
@@ -378,7 +388,7 @@ inline mat3 make_mat3(quaternion q);
 inline mat4 make_mat4(quaternion q);
 
 /** Spherically interpolates between quaternions from and to by ratio. The parameter ratio is clamped to the range [0, 1].
-    Use this to create a rotation which smoothly interpolates between the first quaternion a to the second quaternion b, 
+    Use this to create a rotation which smoothly interpolates between the first quaternion a to the second quaternion b,
     based on the value of the interpolation ratrio.
     from : Start value, returned when t = 0.
     to : End value, returned when t = 1.
@@ -389,16 +399,19 @@ inline quaternion slerp(const quaternion from, const quaternion to, const float 
 
 
 /**
-    
+
     Other Operations
 
 */
-float lerp(float from, float to, float ratio);
-
-#endif // _INCLUDE_KC_MATH_H_
+inline float lerp(float from, float to, float ratio);
 
 
-#ifdef KC_MATH_IMPLEMENTATION
+
+/**
+
+    IMPLEMENTATION
+
+*/
 
 inline vec3 make_vec3(float inx, float iny, float inz)
 {
@@ -1094,10 +1107,9 @@ inline quaternion slerp(const quaternion from, const quaternion to, const float 
     Other Operations
 
 */
-float lerp(float from, float to, float ratio)
+inline float lerp(float from, float to, float ratio)
 {
     return from + ratio * (to - from);
 }
 
-#undef KC_MATH_IMPLEMENTATION
-#endif // KC_MATH_IMPLEMENTATION
+#endif // _INCLUDE_KC_MATH_H_

@@ -1,7 +1,24 @@
+#include <string>
+#include <vector>
+#include <SDL.h>
+#include <GL/glew.h>
+
+#include "console.h"
+#include "../commands.h"
+#include "../kc_math.h"
+#include "../kc_truetypeassembler.h"
+#include "../renderer/texture.h"
+#include "../renderer/mesh.h"
+#include "../stb/stb_sprintf.h"
+#include "../renderer/shader.h"
+#include "../singletons/render_manager.h"
+#include "../runtime/timer.h"
+#include "../runtime/game_state.h"
+
 /**
 
     QUAKE-STYLE IN-GAME CONSOLE IMPLEMENTATION
-    
+
     There are two parts to the in-game console:
 
     1.  console.h/cpp:
@@ -24,9 +41,9 @@ enum console_state_t
     CONSOLE_SHOWING,
     CONSOLE_SHOWN
 };
-GLuint console_background_vao_id = 0;
-GLuint console_background_vbo_id = 0;
-GLfloat console_background_vertex_buffer[] = {
+internal GLuint console_background_vao_id = 0;
+internal GLuint console_background_vbo_id = 0;
+internal GLfloat console_background_vertex_buffer[] = {
     0.f, 0.f, 0.f, 0.f,
     0.f, 400.f, 0.f, 1.f,
     1280.f, 400.f, 1.f, 1.f,
@@ -34,45 +51,45 @@ GLfloat console_background_vertex_buffer[] = {
     0.f, 0.f, 0.f, 0.f,
     1280.f, 400.f, 1.f, 1.f
 };
-GLuint console_line_vao_id = 0;
-GLuint console_line_vbo_id = 0;
-GLfloat console_line_vertex_buffer[] = {
+internal GLuint console_line_vao_id = 0;
+internal GLuint console_line_vbo_id = 0;
+internal GLfloat console_line_vertex_buffer[] = {
     0.f, 400.f,
     1280.f, 400.f
 };
 
-bool        console_b_initialized = false;
-console_state_t    console_state = CONSOLE_HIDDEN;
-real32      console_y;
+internal bool        console_b_initialized = false;
+internal console_state_t    console_state = CONSOLE_HIDDEN;
+internal real32      console_y;
 
-float       CONSOLE_HEIGHT = 400.f;
-uint8       CONSOLE_TEXT_SIZE = 20;
-uint8       CONSOLE_TEXT_PADDING_BOTTOM = 4;
-uint16      CONSOLE_INPUT_DRAW_X = 4;
-uint16      CONSOLE_INPUT_DRAW_Y = (uint16) (CONSOLE_HEIGHT - (float) CONSOLE_TEXT_PADDING_BOTTOM);
+internal float       CONSOLE_HEIGHT = 400.f;
+internal uint8       CONSOLE_TEXT_SIZE = 20;
+internal uint8       CONSOLE_TEXT_PADDING_BOTTOM = 4;
+internal uint16      CONSOLE_INPUT_DRAW_X = 4;
+internal uint16      CONSOLE_INPUT_DRAW_Y = (uint16) (CONSOLE_HEIGHT - (float) CONSOLE_TEXT_PADDING_BOTTOM);
 
 // Input character buffer
-char        console_input_buffer[CONSOLE_COLS_MAX];
-bool        console_b_input_buffer_dirty = false;
-uint8       console_input_cursor = 0;
-uint8       console_input_buffer_count = 0;
+internal char        console_input_buffer[CONSOLE_COLS_MAX];
+internal bool        console_b_input_buffer_dirty = false;
+internal uint8       console_input_cursor = 0;
+internal uint8       console_input_buffer_count = 0;
 
 // Hidden character buffer
-char        console_messages[CONSOLE_MAX_PRINT_MSGS] = {};
-uint16      console_messages_read_cursor = 0;
-uint16      console_messages_write_cursor = 0;
-bool        console_b_messages_dirty = false;
+internal char        console_messages[CONSOLE_MAX_PRINT_MSGS] = {};
+internal uint16      console_messages_read_cursor = 0;
+internal uint16      console_messages_write_cursor = 0;
+internal bool        console_b_messages_dirty = false;
 
 // Text visuals
-tta_font_t*   console_font_handle;
-texture_t     console_font_atlas;
+internal tta_font_t*   console_font_handle;
+internal texture_t     console_font_atlas;
 // Input text & Messages VAOs
-mesh_t        console_inputtext_vao; // console_inputtext_vao gets added to console_messages_vaos if user "returns" command
-mesh_t        console_messages_vaos[CONSOLE_ROWS_MAX] = {}; // one vao is one line
+internal mesh_t        console_inputtext_vao; // console_inputtext_vao gets added to console_messages_vaos if user "returns" command
+internal mesh_t        console_messages_vaos[CONSOLE_ROWS_MAX] = {}; // one vao is one line
 
 // TODO buffer to hold previous commands (max 20 commands)
 
-internal void console_initialize(tta_font_t* in_console_font_handle, texture_t in_console_font_atlas)
+void console_initialize(tta_font_t* in_console_font_handle, texture_t in_console_font_atlas)
 {
     // ADD COMMANDS
     console_register_commands();
@@ -85,18 +102,24 @@ internal void console_initialize(tta_font_t* in_console_font_handle, texture_t i
     kctta_move_cursor(CONSOLE_INPUT_DRAW_X, CONSOLE_INPUT_DRAW_Y);
     kctta_append_glyph('>', console_font_handle, CONSOLE_TEXT_SIZE);
     tta_vertex_buffer_t vb = kctta_grab_buffer();
-    console_inputtext_vao = gl_create_mesh_array(vb.vertex_buffer, vb.index_buffer,
-                                                 vb.vertices_array_count, vb.indices_array_count, 2, 2, 0, GL_DYNAMIC_DRAW);
+    mesh_t::gl_create_mesh(console_inputtext_vao, vb.vertex_buffer, vb.index_buffer,
+                           vb.vertices_array_count, vb.indices_array_count,
+                           2, 2, 0, GL_DYNAMIC_DRAW);
     // INIT MESSAGES mesh_t OBJECTS
     for(int i = 0; i < CONSOLE_ROWS_MAX; ++i)
     {
-        console_messages_vaos[i] = gl_create_mesh_array(NULL, NULL, 0, 0, 2, 2, 0, GL_DYNAMIC_DRAW);
+        mesh_t::gl_create_mesh(console_messages_vaos[i], nullptr, nullptr,
+                               0, 0,
+                               2, 2, 0, GL_DYNAMIC_DRAW);
     }
 
+    // todo update console vertex buffer on window size change
     // INIT CONSOLE GUI
-    console_background_vertex_buffer[8] = (float) g_buffer_width;
-    console_background_vertex_buffer[12] = (float) g_buffer_width;
-    console_background_vertex_buffer[20] = (float) g_buffer_width;
+    render_manager* i_render_manager = render_manager::get_instance();
+    vec2i buffer_dimensions = i_render_manager->get_buffer_size();
+    console_background_vertex_buffer[8] = (float) buffer_dimensions.x;
+    console_background_vertex_buffer[12] = (float) buffer_dimensions.x;
+    console_background_vertex_buffer[20] = (float) buffer_dimensions.x;
     console_background_vertex_buffer[5] = CONSOLE_HEIGHT;
     console_background_vertex_buffer[9] = CONSOLE_HEIGHT;
     console_background_vertex_buffer[21] = CONSOLE_HEIGHT;
@@ -111,14 +134,14 @@ internal void console_initialize(tta_font_t* in_console_font_handle, texture_t i
             glEnableVertexAttribArray(1);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     console_line_vertex_buffer[1] = CONSOLE_HEIGHT - (float) CONSOLE_TEXT_SIZE - CONSOLE_TEXT_PADDING_BOTTOM;
-    console_line_vertex_buffer[2] = (float) g_buffer_width;
+    console_line_vertex_buffer[2] = (float) buffer_dimensions.x;
     console_line_vertex_buffer[3] = CONSOLE_HEIGHT - (float) CONSOLE_TEXT_SIZE - CONSOLE_TEXT_PADDING_BOTTOM;
     glGenVertexArrays(1, &console_line_vao_id);
     glBindVertexArray(console_line_vao_id);
         glGenBuffers(1, &console_line_vbo_id);
         glBindBuffer(GL_ARRAY_BUFFER, console_line_vbo_id);
             glBufferData(GL_ARRAY_BUFFER, sizeof(console_line_vertex_buffer), console_line_vertex_buffer, GL_STATIC_DRAW);
-            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
             glEnableVertexAttribArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -128,10 +151,10 @@ internal void console_initialize(tta_font_t* in_console_font_handle, texture_t i
 }
 
 /** logs the message into the messages buffer */
-internal void console_print(const char* message)
+void console_print(const char* message)
 {
 
-#if internal_BUILD
+#if INTERNAL_BUILD
     printf(message);
 #endif
 
@@ -151,7 +174,7 @@ internal void console_print(const char* message)
     console_b_messages_dirty = true;
 }
 
-internal void console_printf(const char* fmt, ...)
+void console_printf(const char* fmt, ...)
 {
     va_list argptr;
 
@@ -163,7 +186,8 @@ internal void console_printf(const char* fmt, ...)
     console_print(message);
 }
 
-internal void console_command(char* text_command)
+// TODO FUCKING MEMORY BUG TEXT_COMMAND GETS NULL TERMINATED EARLY SOMETIMES
+void console_command(char* text_command)
 {
     char text_command_buffer[CONSOLE_COLS_MAX];
     strcpy_s(text_command_buffer, CONSOLE_COLS_MAX, text_command);//because text_command might point to read-only data
@@ -181,7 +205,8 @@ internal void console_command(char* text_command)
     const char delim = ' ';
     token_buff = strtok(text_command_buffer, &delim);
     cmd = std::string(token_buff);
-    if (con_commands.find(cmd) != con_commands.end()) 
+    std::map<std::string, console_command_meta_t> con_commands = get_con_commands();
+    if (con_commands.find(cmd) != con_commands.end())
     {
         console_command_meta_t cmd_meta = con_commands.at(cmd);
 
@@ -200,7 +225,7 @@ internal void console_command(char* text_command)
         // invoke command
         if(cmd_meta.arg_types.size() == argcount)
         {
-            COMMAND_INVOKE(cmd_meta, argslist);
+            command_invoke(cmd_meta, argslist);
         }
         else
         {
@@ -213,7 +238,7 @@ internal void console_command(char* text_command)
     }
 }
 
-internal void console_toggle()
+void console_toggle()
 {
     if(console_state == CONSOLE_HIDING || console_state == CONSOLE_SHOWING)
     {
@@ -222,19 +247,19 @@ internal void console_toggle()
 
     if(console_state == CONSOLE_HIDDEN)
     {
-        b_is_update_running = false;
+        render_manager::get_instance()->gs->b_is_update_running = false;
         SDL_SetRelativeMouseMode(SDL_FALSE);
         console_state = CONSOLE_SHOWING;
     }
     else if(console_state == CONSOLE_SHOWN)
     {
-        b_is_update_running = true;
+        render_manager::get_instance()->gs->b_is_update_running = true;
         SDL_SetRelativeMouseMode(SDL_TRUE);
         console_state = CONSOLE_HIDING;
     }
 }
 
-internal void console_update_messages()
+void console_update_messages()
 {
     if(console_b_messages_dirty)
     {
@@ -283,8 +308,8 @@ internal void console_update_messages()
                     }
                 }
                 tta_vertex_buffer_t vb = kctta_grab_buffer();
-                gl_rebind_buffers(console_messages_vaos[row], vb.vertex_buffer, vb.index_buffer,
-                                  vb.vertices_array_count, vb.indices_array_count);
+                console_messages_vaos[row].gl_rebind_buffer_objects(vb.vertex_buffer, vb.index_buffer,
+                                                                    vb.vertices_array_count, vb.indices_array_count);
             }
         }
 
@@ -292,7 +317,7 @@ internal void console_update_messages()
     }
 }
 
-internal void console_update(real32 dt)
+void console_update()
 {
     if(!console_b_initialized || console_state == CONSOLE_HIDDEN)
     {
@@ -311,8 +336,8 @@ internal void console_update(real32 dt)
                 std::string input_text = ">" + std::string(console_input_buffer);
                 kctta_append_line(input_text.c_str(), console_font_handle, CONSOLE_TEXT_SIZE);
                 tta_vertex_buffer_t vb = kctta_grab_buffer();
-                gl_rebind_buffers(console_inputtext_vao, vb.vertex_buffer, vb.index_buffer,
-                                  vb.vertices_array_count, vb.indices_array_count);
+                console_inputtext_vao.gl_rebind_buffer_objects(vb.vertex_buffer, vb.index_buffer,
+                                                               vb.vertices_array_count, vb.indices_array_count);
                 console_b_input_buffer_dirty = false;
             }
 
@@ -320,7 +345,7 @@ internal void console_update(real32 dt)
         } break;
         case CONSOLE_HIDING:
         {
-            console_y -= CONSOLE_SCROLL_SPEED * dt;
+            console_y -= CONSOLE_SCROLL_SPEED * timer::delta_time;
             if(console_y < 0.f)
             {
                 console_y = 0.f;
@@ -329,7 +354,7 @@ internal void console_update(real32 dt)
         } break;
         case CONSOLE_SHOWING:
         {
-            console_y += CONSOLE_SCROLL_SPEED * dt;
+            console_y += CONSOLE_SCROLL_SPEED * timer::delta_time;
             if(console_y > CONSOLE_HEIGHT)
             {
                 console_y = CONSOLE_HEIGHT;
@@ -341,62 +366,64 @@ internal void console_update(real32 dt)
     }
 }
 
-internal void console_render(shader_orthographic_t ui_shader, shader_orthographic_t text_shader)
+void console_render(shader_t* ui_shader, shader_t* text_shader)
 {
     if(!console_b_initialized || console_state == CONSOLE_HIDDEN)
     {
         return;
     }
 
+    mat4& matrix_projection_ortho = render_manager::get_instance()->matrix_projection_ortho;
+
     float console_translation_y = console_y - (float) CONSOLE_HEIGHT;
     mat4 con_transform = identity_mat4();
     con_transform *= translation_matrix(0.f, console_translation_y, 0.f);
+
     // render console
-    gl_use_shader(ui_shader);
-        GLint id_uniform_b_use_colour = ui_shader.uniform_location("b_use_colour");
-        GLint id_uniform_ui_element_colour = ui_shader.uniform_location("ui_element_colour");
-        glUniform1i(id_uniform_b_use_colour, true);
-        gl_bind_model_matrix(ui_shader, con_transform.ptr());
-        gl_bind_projection_matrix(ui_shader, g_matrix_projection_ortho.ptr());
+    shader_t::gl_use_shader(*ui_shader);
+        ui_shader->gl_bind_1i("b_use_colour", true);
+        ui_shader->gl_bind_matrix4fv("matrix_model", 1, con_transform.ptr());
+        ui_shader->gl_bind_matrix4fv("matrix_proj_orthographic", 1, matrix_projection_ortho.ptr());
         glBindVertexArray(console_background_vao_id);
-            glUniform4f(id_uniform_ui_element_colour, 0.1f, 0.1f, 0.1f, 0.7f);
-            glDrawArrays(GL_TRIANGLES, 0, 6); // Last param could be pointer to indices but no need cuz IBO is already bound
+            ui_shader->gl_bind_4f("ui_element_colour", 0.1f, 0.1f, 0.1f, 0.7f);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(console_line_vao_id);
-            glUniform4f(id_uniform_ui_element_colour, 0.8f, 0.8f, 0.8f, 1.f);
+            ui_shader->gl_bind_4f("ui_element_colour", 0.8f, 0.8f, 0.8f, 1.f);
             glDrawArrays(GL_LINES, 0, 2);
         glBindVertexArray(0);
-    gl_use_shader(text_shader);
+
+    shader_t::gl_use_shader(*text_shader);
         // RENDER CONSOLE TEXT
-        gl_bind_projection_matrix(text_shader, g_matrix_projection_ortho.ptr());
-        gl_use_texture(console_font_atlas);
-        glUniform1i(text_shader.uniform_location("font_atlas_sampler"), 1);
+        text_shader->gl_bind_matrix4fv("matrix_proj_orthographic", 1, matrix_projection_ortho.ptr());
+        console_font_atlas.gl_use_texture();
+        text_shader->gl_bind_1i("font_atlas_sampler", 1);
 
         // Input text visual
-        glUniform3f(text_shader.uniform_location("text_colour"), 1.f, 1.f, 1.f);
-        gl_bind_model_matrix(text_shader, con_transform.ptr());
-        if(console_inputtext_vao.index_count > 0)
+        text_shader->gl_bind_3f("text_colour", 1.f, 1.f, 1.f);
+        text_shader->gl_bind_matrix4fv("matrix_model", 1, con_transform.ptr());
+        if(console_inputtext_vao.indices_count > 0)
         {
-            gl_render_mesh(console_inputtext_vao);
+            console_inputtext_vao.gl_render_mesh();
         }
         // move transform matrix up a lil
         con_transform[3][1] -= 30.f;
 
         // Messages text visual
-        glUniform3f(text_shader.uniform_location("text_colour"), 0.8f, 0.8f, 0.8f);
+        text_shader->gl_bind_3f("text_colour", 0.8f, 0.8f, 0.8f);
         for(int i = 0; i < CONSOLE_ROWS_MAX; ++i)
         {
             mesh_t m = console_messages_vaos[i];
-            if(m.index_count > 0)
+            if(m.indices_count > 0)
             {
-                gl_bind_model_matrix(text_shader, con_transform.ptr());
+                text_shader->gl_bind_matrix4fv("matrix_model", 1, con_transform.ptr());
                 con_transform[3][1] -= (float) CONSOLE_TEXT_SIZE + 3.f;
-                gl_render_mesh(m);
+                m.gl_render_mesh();
             }
         }
     glUseProgram(0);
 }
 
-internal void console_scroll_up()
+void console_scroll_up()
 {
     int temp_cursor = console_messages_read_cursor - 1;
     char c = console_messages[temp_cursor];
@@ -426,7 +453,7 @@ internal void console_scroll_up()
     console_b_messages_dirty = true;
 }
 
-internal void console_scroll_down()
+void console_scroll_down()
 {
     if(console_messages_read_cursor != console_messages_write_cursor)
     {
@@ -450,7 +477,7 @@ internal void console_scroll_down()
     }
 }
 
-internal void console_keydown(SDL_KeyboardEvent& keyevent)
+void console_keydown(SDL_KeyboardEvent& keyevent)
 {
     SDL_Keycode keycode = keyevent.keysym.sym;
 
@@ -569,12 +596,12 @@ internal void console_keydown(SDL_KeyboardEvent& keyevent)
     }
 }
 
-internal bool console_is_shown()
+bool console_is_shown()
 {
     return console_b_initialized && console_state == CONSOLE_SHOWN;
 }
 
-internal bool console_is_hidden()
+bool console_is_hidden()
 {
     return console_state == CONSOLE_HIDDEN;
 }
