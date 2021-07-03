@@ -1,12 +1,22 @@
 /** OpenGL 3D Renderer
 
 TODO:
-    - shadow map class
-    - render pass class
+    - Deferred rendering https://www.guerrilla-games.com/read/deferred-rendering-in-killzone-2
+        - https://gamedevelopment.tutsplus.com/articles/forward-rendering-vs-deferred-rendering--gamedev-12342
+    - Allow omnidirectional lights to disable shadows - no shadows for them by default
+    - option to completely disable shadows (test if we return to pre-shadows performance)
+    - Skybox
     - refactor member functions to use m_ prefix
     - BUG console command bug - commands get cut off when entered - could be a memory bug?
-    - Skyboxes
-    - Allow omnidirectional lights to disable shadows - no shadows for them by default
+    - Modify kc_truetypeassembler.h documentation to say that one can use translation and scaling matrices with the resulting
+      vertices in order to transform them on the screen (e.g. animate the text).
+
+Backlog:
+    - Baked shadow maps for static lights?
+    - Memory management / custom memory allocator / replace all mallocs and callocs
+    - Remove all STL usage
+    - Default to not using index buffer (IBO) so that we can have flat normals on flat surfaces
+    - Ditch SDL and implement windows, input, file io myself
     - CASCADED SHADOW MAPS https://developer.download.nvidia.com/SDK/10.5/opengl/src/cascaded_shadow_maps/doc/cascaded_shadow_maps.pdf
         - make a test map for CSM. (e.g. field of trees or cubes all with shadows)
     - option to completely disable shadows (test if we return to pre-shadows performance)
@@ -22,10 +32,6 @@ TODO:
             - use console commands to create geometry? or is that retarded?
         - texture blending - store the bitmap in memory, and we can write it to map data or an actual bitmap whatever
             - brush system like in unity/unreal where you paint textures, and behind the scenes we can edit the blend map in memory
-    - Modify kc_truetypeassembler.h documentation to say that one can use translation and scaling matrices with the resulting
-      vertices in order to transform them on the screen (e.g. animate the text).
-
-Backlog:
     - Implement GJK EPA collisions in a clone of this repo
     - option for some console messages to be displayed to game screen.
     - Memory management / custom memory allocator / replace all mallocs and callocs
