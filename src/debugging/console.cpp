@@ -154,7 +154,7 @@ void console_initialize(tta_font_t* in_console_font_handle, texture_t in_console
 void console_print(const char* message)
 {
 
-#if INTERNAL_BUILD
+#if INTERNAL_BUILD & SLOW_BUILD
     printf(message);
 #endif
 

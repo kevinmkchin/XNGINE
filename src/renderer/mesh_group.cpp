@@ -40,10 +40,29 @@ void mesh_group_t::assimp_load(const char* file_name)
     Assimp::Importer importer;
     /*  NOTE: To create smooth normals respecting edges sharper than a given angle,
         use importer.SetPropertyFloat("PP_GSN_MAX_SMOOTHING_ANGLE", 90) along with
-        aiProcess_GenSmoothNormals flag. https://github.com/assimp/assimp/issues/1713 */
+        aiProcess_GenSmoothNormals flag. https://github.com/assimp/assimp/issues/1713
+
+        aiProcess_GenSmoothNormals
+        This flag may not be specified together with #aiProcess_GenNormals. There's
+        a importer property, #AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE which allows you to
+        specify an angle maximum for the normal smoothing algorithm. Normals exceeding
+        this limit are not smoothed, resulting in a 'hard' seam between two faces.
+        Using a decent angle here (e.g. 80 degrees) results in very good visual
+        appearance. To create smooth normals respecting edges sharper than a given angle,
+        use importer.SetPropertyFloat("PP_GSN_MAX_SMOOTHING_ANGLE", 90) along with
+        aiProcess_GenSmoothNormals flag. https://github.com/assimp/assimp/issues/1713
+
+        aiProcess_JoinIdenticalVertices
+        is compulsory for indexed drawing. This still works with flat shaded geometry
+        because it only joins vertices that are identical in both position and normal.
+        e.g. a flat shaded cube will have 24 vertices after joining because each side
+        of the cube will have 4 unique vertices and the vertices at the corners will
+        not be shared by multiple faces of the cube because they will have different
+        normals even though their positions are the same.
+    */
     const aiScene* scene = importer.ReadFile(file_name,
                                              aiProcess_Triangulate
-                                             |aiProcess_GenSmoothNormals
+                                             |aiProcess_GenNormals
                                              |aiProcess_JoinIdenticalVertices
     );
     if(!scene)
