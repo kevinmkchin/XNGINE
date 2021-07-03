@@ -7,8 +7,8 @@ in vec4 DirectionalLightSpacePos;
 
 out vec4 colour;
 
-const int MAX_POINT_LIGHTS = 10;
-const int MAX_SPOT_LIGHTS = 10;
+const int MAX_POINT_LIGHTS = 42;
+const int MAX_SPOT_LIGHTS = 1;
 
 struct DirectionalLight
 {
@@ -53,7 +53,7 @@ struct OmniShadowMap
 
 uniform sampler2D texture_sampler_0;
 uniform sampler2D directionalShadowMap;
-uniform OmniShadowMap omniShadowMaps[MAX_POINT_LIGHTS + MAX_SPOT_LIGHTS];
+uniform OmniShadowMap omniShadowMaps[1];//MAX_POINT_LIGHTS + MAX_SPOT_LIGHTS
 
 uniform DirectionalLight directional_light;
 uniform int point_light_count;
@@ -144,7 +144,7 @@ vec4 calc_light_by_direction(vec3 colour, float ambient_intensity, float diffuse
 
 vec4 calc_directional_light()
 {
-    float shadowFactor = CalcDirectionalShadowFactor(directional_light);
+    float shadowFactor = 0.f;//CalcDirectionalShadowFactor(directional_light);
     return calc_light_by_direction(directional_light.colour, directional_light.ambient_intensity, 
         directional_light.diffuse_intensity, directional_light.direction, shadowFactor);
 }
@@ -152,7 +152,7 @@ vec4 calc_directional_light()
 vec4 calc_point_light(PointLight plight, int shadowMapIndex)
 {
     vec3 direction = frag_pos - plight.position;
-    float shadowFactor = CalcOmniShadowFactor(plight, shadowMapIndex);
+    float shadowFactor = 0.f;//CalcOmniShadowFactor(plight, shadowMapIndex);
     vec4 plight_colour = calc_light_by_direction(plight.colour, 
         plight.ambient_intensity, plight.diffuse_intensity, direction, shadowFactor);
     float distance = length(direction);
