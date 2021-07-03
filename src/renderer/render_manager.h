@@ -73,7 +73,7 @@ private:
     shader_t    shader_simple;
 
     directional_shadow_map_t directional_shadow_map;
-    omni_shadow_map_t omni_shadow_maps[10];
+    omni_shadow_map_t omni_shadow_maps[42];
 
     SINGLETON(render_manager)
 };

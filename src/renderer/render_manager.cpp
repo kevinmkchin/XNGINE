@@ -47,8 +47,8 @@ void render_manager::initialize()
 
 void render_manager::render()
 {
-    render_pass_directional_shadow_map();
-    render_pass_omnidirectional_shadow_map();
+    //render_pass_directional_shadow_map();
+    //render_pass_omnidirectional_shadow_map();
     render_pass_main();
 }
 
@@ -133,24 +133,24 @@ void render_manager::render_pass_main()
         vec3 direction = orientation_to_direction(light.orientation);
         shader_common.gl_bind_3f("directional_light.direction", direction.x, direction.y, direction.z);
 
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, directional_shadow_map.directionalShadowMapTexture);
-
-        shader_common.gl_bind_1i("directionalShadowMap", 2);
-        shader_common.gl_bind_matrix4fv("directionalLightTransform", 1, directional_shadow_map.directionalLightSpaceMatrix.ptr());
+//        glActiveTexture(GL_TEXTURE2);
+//        glBindTexture(GL_TEXTURE_2D, directional_shadow_map.directionalShadowMapTexture);
+//
+//        shader_common.gl_bind_1i("directionalShadowMap", 2);
+//        shader_common.gl_bind_matrix4fv("directionalLightTransform", 1, directional_shadow_map.directionalLightSpaceMatrix.ptr());
     }
 
     {
         for(int omniLightCount = 0; omniLightCount < loaded_map.pointlights.size() + loaded_map.spotlights.size(); ++omniLightCount)
         {
-            glActiveTexture(GL_TEXTURE3 + omniLightCount);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, omni_shadow_maps[omniLightCount].depthCubeMapTexture);
-
-            char name_buffer[128] = {'\0'};
-            stbsp_snprintf(name_buffer, sizeof(name_buffer), "omniShadowMaps[%d].shadowMap", omniLightCount);
-            shader_common.gl_bind_1i(name_buffer, 3 + omniLightCount);
-            stbsp_snprintf(name_buffer, sizeof(name_buffer), "omniShadowMaps[%d].farPlane", omniLightCount);
-            shader_common.gl_bind_1f(name_buffer, omni_shadow_maps[omniLightCount].depthCubeMapFarPlane);
+//            glActiveTexture(GL_TEXTURE3 + omniLightCount);
+//            glBindTexture(GL_TEXTURE_CUBE_MAP, omni_shadow_maps[omniLightCount].depthCubeMapTexture);
+//
+//            char name_buffer[128] = {'\0'};
+//            stbsp_snprintf(name_buffer, sizeof(name_buffer), "omniShadowMaps[%d].shadowMap", omniLightCount);
+//            shader_common.gl_bind_1i(name_buffer, 3 + omniLightCount);
+//            stbsp_snprintf(name_buffer, sizeof(name_buffer), "omniShadowMaps[%d].farPlane", omniLightCount);
+//            shader_common.gl_bind_1f(name_buffer, omni_shadow_maps[omniLightCount].depthCubeMapFarPlane);
         }
 
         std::vector<point_light_t> plights = loaded_map.pointlights;
