@@ -46,6 +46,8 @@ struct render_manager
 
     void temp_create_shadow_maps();
 
+    void temp_create_geometry_buffer();
+
     game_state* gs = nullptr;
 
     mat4 matrix_projection_ortho;
@@ -61,10 +63,12 @@ private:
     void render_scene(shader_t& shader);
 
     // Width and Height of writable buffer
-    i32 g_buffer_width = -1;
-    i32 g_buffer_height = -1;
+    i32 back_buffer_width = -1;
+    i32 back_buffer_height = -1;
 
     shader_t    shader_common;
+    shader_t    shader_deferred_geometry_pass;
+    shader_t    shader_deferred_lighting_pass;
     shader_t    shader_directional_shadow_map;
     shader_t    shader_omni_shadow_map;
     shader_t    shader_debug_dir_shadow_map;
@@ -74,6 +78,13 @@ private:
 
     directional_shadow_map_t directional_shadow_map;
     omni_shadow_map_t omni_shadow_maps[42];
+
+    u32 g_buffer_FBO = 0;
+    u32 g_position_texture = 0;
+    u32 g_normal_texture = 0;
+    u32 g_albedo_texture = 0;
+    u32 g_specular_shininess_texture = 0;
+    u32 g_depth_RBO = 0;
 
     SINGLETON(render_manager)
 };
