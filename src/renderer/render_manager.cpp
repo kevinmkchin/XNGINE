@@ -308,17 +308,45 @@ void render_manager::render_scene(shader_t& shader)
     /** We could simply update the game object's position, rotation, scale fields,
         then construct the model matrix in game_render based on those fields.
     */
+    if(shader.get_cached_uniform_location("material.specular_intensity") >= 0)
+    {
+        shader.gl_bind_1f("material.specular_intensity", material_dull.specular_intensity);
+        shader.gl_bind_1f("material.shininess", material_dull.shininess);
+    }
     mat4 matrix_model = identity_mat4();
     matrix_model = identity_mat4();
     matrix_model *= translation_matrix(loaded_map.mainobject.pos);
     matrix_model *= rotation_matrix(loaded_map.mainobject.orient);
     matrix_model *= scale_matrix(loaded_map.mainobject.scale);
     shader.gl_bind_matrix4fv("matrix_model", 1, matrix_model.ptr());
-    if(shader.get_cached_uniform_location("material.specular_intensity") >= 0)
-    {
-        shader.gl_bind_1f("material.specular_intensity", material_dull.specular_intensity);
-        shader.gl_bind_1f("material.shininess", material_dull.shininess);
-    }
+    loaded_map.mainobject.model.render();
+
+    matrix_model = identity_mat4();
+    matrix_model *= translation_matrix(loaded_map.mainobject.pos + make_vec3(0.f, 0.f, 100.f));
+    matrix_model *= rotation_matrix(loaded_map.mainobject.orient);
+    matrix_model *= scale_matrix(loaded_map.mainobject.scale);
+    shader.gl_bind_matrix4fv("matrix_model", 1, matrix_model.ptr());
+    loaded_map.mainobject.model.render();
+
+    matrix_model = identity_mat4();
+    matrix_model *= translation_matrix(loaded_map.mainobject.pos - make_vec3(0.f, 0.f, 100.f));
+    matrix_model *= rotation_matrix(loaded_map.mainobject.orient);
+    matrix_model *= scale_matrix(loaded_map.mainobject.scale);
+    shader.gl_bind_matrix4fv("matrix_model", 1, matrix_model.ptr());
+    loaded_map.mainobject.model.render();
+
+    matrix_model = identity_mat4();
+    matrix_model *= translation_matrix(loaded_map.mainobject.pos + make_vec3(0.f, 0.f, 200.f));
+    matrix_model *= rotation_matrix(loaded_map.mainobject.orient);
+    matrix_model *= scale_matrix(loaded_map.mainobject.scale);
+    shader.gl_bind_matrix4fv("matrix_model", 1, matrix_model.ptr());
+    loaded_map.mainobject.model.render();
+
+    matrix_model = identity_mat4();
+    matrix_model *= translation_matrix(loaded_map.mainobject.pos - make_vec3(0.f, 0.f, 200.f));
+    matrix_model *= rotation_matrix(loaded_map.mainobject.orient);
+    matrix_model *= scale_matrix(loaded_map.mainobject.scale);
+    shader.gl_bind_matrix4fv("matrix_model", 1, matrix_model.ptr());
     loaded_map.mainobject.model.render();
 }
 
