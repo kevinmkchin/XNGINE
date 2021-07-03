@@ -9,6 +9,6 @@
 
 ## How to Build and Run
 ### Windows
-- Run build-win64-msvc.bat or build-win64-cmake.bat (msvc build requires 64 bit msvc compiler)
+- Run build-win64-cmake.bat (requires CMake)
 - Run run.bat (with argument "vs" if you want to launch Visual Studio to debug)
 - Profit
