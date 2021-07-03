@@ -9,7 +9,7 @@
 #include "../../core/kc_math.h"
 #include "../../renderer/render_manager.h"
 
-internal int    perf_profiler_level = 1;
+internal int    perf_profiler_level = 0;
 internal u8  PERF_TEXT_SIZE = 17;
 internal u16 PERF_DRAW_X = 4;
 internal u16 PERF_DRAW_Y = PERF_TEXT_SIZE + 3;

@@ -5,7 +5,7 @@
 #include "../renderer/shader.h"
 #include "../renderer/camera.h"
 
-internal int debugger_level = 1;
+internal int debugger_level = 0;
 int debug_drawer_get_level()
 {
     return debugger_level;
