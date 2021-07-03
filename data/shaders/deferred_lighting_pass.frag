@@ -9,8 +9,7 @@ in vec2 tex_coord;
 
 out vec4 frag_colour;
 
-const int MAX_POINT_LIGHTS = 42;
-const int MAX_SPOT_LIGHTS = 1;
+const int MAX_POINT_LIGHTS = 504;
 
 struct DirectionalLight
 {
@@ -31,14 +30,6 @@ struct PointLight
     float att_constant;
     float att_linear;
     float att_quadratic;
-};
-
-struct SpotLight
-{
-    PointLight plight;
-
-    vec3 direction;
-    float cutoff;
 };
 
 uniform DirectionalLight directional_light;
