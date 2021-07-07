@@ -24,7 +24,6 @@ void debug_render_cone(shader_t& shader,
                        float height, float base_radius,
                        quaternion orientation);
 void debug_render_line();
-float debug_calculate_attenuation_range(float c, float l, float q);
 void debug_render_pointlight(shader_t& shader, point_light_t& plight);
 void debug_render_spotlight(shader_t& shader, spot_light_t& slight);
 void debug_initialize();

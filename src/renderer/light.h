@@ -18,12 +18,37 @@ struct directional_light_t : light_t
 struct point_light_t : light_t
 {
     vec3        position = { 0.f, 0.f, 0.f };
-    float       radius = 0.f;
+
+private:
+    float       radius;
     // Attenuation coefficients
-    float       att_constant = 0.1f; //0.3f;
-    float       att_linear = 0.1f; //0.2f;
-    float       att_quadratic = 0.6f; //0.1f;
+    float       att_constant;
+    float       att_linear;
+    float       att_quadratic;
     u32:32;
+
+public:
+    point_light_t()
+    {
+        att_constant = 0.3f;
+        att_linear = 0.2f;
+        att_quadratic = 0.1f;
+        radius = update_radius();
+    }
+
+    float get_radius() const;
+
+    float get_att_constant() const;
+    void set_att_constant(float att_constant);
+
+    float get_att_linear() const;
+    void set_att_linear(float att_linear);
+
+    float get_att_quadratic() const;
+    void set_att_quadratic(float att_quadratic);
+
+private:
+    float update_radius();
 };
 
 struct spot_light_t : point_light_t
