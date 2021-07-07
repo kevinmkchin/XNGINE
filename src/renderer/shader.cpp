@@ -101,6 +101,41 @@ void shader_t::gl_create_shader_program(shader_t& shader, const char* vertex_sha
     shader_t::cache_uniform_locations(shader);
 }
 
+
+void shader_t::gl_create_compute_shader_program(shader_t& shader, const char* compute_shader_str)
+{
+    shader.id_shader_program = glCreateProgram();
+    if (!shader.id_shader_program)
+    {
+        console_printf("Failed to create shader program! Aborting.\n");
+        return;
+    }
+    gl_compile_shader(shader.id_shader_program, compute_shader_str, GL_COMPUTE_SHADER);
+
+    glLinkProgram(shader.id_shader_program);
+    GLint result = 0;
+    GLchar eLog[1024] = {};
+    glGetProgramiv(shader.id_shader_program, GL_LINK_STATUS, &result); // Make sure the program was created
+    if (!result)
+    {
+        glGetProgramInfoLog(shader.id_shader_program, sizeof(eLog), nullptr, eLog);
+        console_printf("Error linking program: '%s'! Aborting.\n", eLog);
+        return;
+    }
+
+    // Validate the program will work
+//    glValidateProgram(shader.id_shader_program);
+//    glGetProgramiv(shader.id_shader_program, GL_VALIDATE_STATUS, &result);
+//    if (!result)
+//    {
+//        glGetProgramInfoLog(shader.id_shader_program, sizeof(eLog), nullptr, eLog);
+//        console_printf("Error validating program: '%s'! Aborting.\n", eLog);
+//        return;
+//    }
+
+    shader_t::cache_uniform_locations(shader);
+}
+
 void shader_t::gl_load_shader_program_from_file(shader_t& shader, const char* vertex_path, const char* fragment_path)
 {
     std::string v = read_file_string(vertex_path);
@@ -114,6 +149,12 @@ void shader_t::gl_load_shader_program_from_file(shader_t& shader, const char* ve
     std::string g = read_file_string(geometry_path);
     std::string f = read_file_string(fragment_path);
     gl_create_shader_program(shader, v.c_str(), g.c_str(), f.c_str());
+}
+
+void shader_t::gl_load_compute_shader_program_from_file(shader_t& shader, const char* compute_path)
+{
+    std::string c = read_file_string(compute_path);
+    gl_create_compute_shader_program(shader, c.c_str());
 }
 
 void shader_t::cache_uniform_locations(shader_t &shader)

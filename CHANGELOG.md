@@ -1,5 +1,10 @@
 ## Development Log
 
+### 2021-07-04 - 2021-07-07
+- Lighting calculations and shading moved into compute shader. Still no light culling
+  but performance improved from ~45 fps in no compute shader deferred renderer to ~55 fps
+  in compute shader deferred renderer.
+
 ### 2021-07-03
 - Deferred renderer with no light culling (no optimization)
 
