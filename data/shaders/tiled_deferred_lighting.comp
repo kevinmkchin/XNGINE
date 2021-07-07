@@ -1,0 +1,178 @@
+#version 430
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+const int NUM_LIGHTS = 1024;
+const int MAX_LIGHTS_PER_TILE = 256;
+const int WORK_GROUP_SIZE = 16;
+
+uniform sampler2D gPosition;
+uniform sampler2D gNormal;
+uniform sampler2D gAlbedo;
+uniform sampler2D gSpecularAndShininess;
+
+struct directional_light_t
+{
+   vec3 colour;
+   float ambient_intensity;
+   float diffuse_intensity;
+
+   vec3 direction;
+};
+struct point_light_t
+{
+    vec3 colour;
+    float diffuse_intensity;
+    vec3 position;
+    float radius;
+    float att_constant;
+    float att_linear;
+    float att_quadratic;
+    // spotlight cutoff
+};
+
+layout(rgba32f, binding = 0) uniform writeonly image2D img_output;
+layout(std430, binding = 1) buffer point_lights_buffer
+{
+    point_light_t   all_point_lights[];
+};
+
+uniform int point_light_count;
+uniform directional_light_t directional_light;
+uniform vec3 camera_pos; // camera
+uniform mat4 projection_matrix;
+uniform mat4 view_matrix;
+uniform vec2 camera_near_far; // x is near clip, y is far clip
+
+// shared list of indices INTO the buffer of all point lights - these are the only point lights used for this tile/workgroup
+shared uint s_visible_light_indices[NUM_LIGHTS];
+shared int s_num_visible_lights;
+
+vec3 frag_pos;
+vec3 surface_normal;
+vec3 albedo_colour;
+float specular_intensity;
+float shininess;
+
+vec4 calculate_light()
+{
+    vec4 light_accumulation;
+    
+    vec3 direction = -normalize(directional_light.direction);
+    vec4 ambient_colour = vec4(directional_light.colour * directional_light.ambient_intensity, 1.0f);
+    float diffuse_factor = max(0.f, dot(normalize(surface_normal), direction));
+    vec4 diffuse_colour = vec4(directional_light.colour * directional_light.diffuse_intensity * diffuse_factor, 1.0f);
+    vec4 specular_colour = vec4(0.f,0.f,0.f,0.f);
+    if(diffuse_factor > 0.f && directional_light.diffuse_intensity > 0.f)
+    {
+        vec3 observer_vec = normalize(camera_pos - frag_pos);
+        vec3 reflection_vec = normalize(reflect(direction, normalize(surface_normal)));
+        float specular_factor = max(0.f, pow(dot(observer_vec, reflection_vec), shininess));
+        specular_colour = vec4(directional_light.colour * specular_intensity * specular_factor, 1.0f);
+    }
+    light_accumulation = ambient_colour + ((1.0 - 0.0) * (diffuse_colour + specular_colour));
+
+    for(int i = 0; i < s_num_visible_lights; ++i)
+    {
+        point_light_t light = all_point_lights[s_visible_light_indices[i]];
+
+        vec3 raw_direction = frag_pos - light.position;
+        direction = -normalize(raw_direction);
+        ambient_colour = vec4(light.colour * directional_light.ambient_intensity, 1.0f);
+        diffuse_factor = max(0.f, dot(normalize(surface_normal), direction));
+        diffuse_colour = vec4(light.colour * light.diffuse_intensity * diffuse_factor, 1.0f);
+        specular_colour = vec4(0.f,0.f,0.f,0.f);
+        if(diffuse_factor > 0.f && light.diffuse_intensity > 0.f)
+        {
+            vec3 observer_vec = normalize(camera_pos - frag_pos);
+            vec3 reflection_vec = normalize(reflect(direction, normalize(surface_normal)));
+            float specular_factor = max(0.f, pow(dot(observer_vec, reflection_vec), shininess));
+            specular_colour = vec4(light.colour * specular_intensity * specular_factor, 1.0f);
+        }
+        vec4 point_light_contribution = ambient_colour + (1.0 - 0.0) * (diffuse_colour + specular_colour);
+
+        float distance = length(raw_direction);
+        float attenuation = 1.f / (light.att_constant + light.att_linear * distance + light.att_quadratic * distance * distance);
+        light_accumulation += point_light_contribution * attenuation;
+    }
+
+    return light_accumulation;
+}
+
+void main()
+{
+    if(gl_LocalInvocationIndex == 0)
+    {
+        s_num_visible_lights = 0;   
+    }
+
+    barrier();
+
+    vec4 pixel = vec4(0.0f, 1.f, 1.f, 1.0f);
+
+    ivec2 img_output_size = imageSize(img_output);
+    vec2 fimg_output_size = vec2(img_output_size);
+    ivec2 pixel_coord = ivec2(gl_GlobalInvocationID.xy);
+    vec2 fpixel_coord = vec2(pixel_coord);
+    vec2 tex_uv_coord = fpixel_coord / fimg_output_size;
+
+    int num_threads = WORK_GROUP_SIZE * WORK_GROUP_SIZE;
+    int num_passes = (point_light_count + num_threads - 1) / num_threads;
+    for(int pass = 0; pass < num_passes; ++pass)
+    {
+        uint light_index = pass * num_threads + gl_LocalInvocationIndex;
+        if(light_index > point_light_count - 1)
+        {
+            break;
+        }
+        int memory_index = atomicAdd(s_num_visible_lights, 1);
+        s_visible_light_indices[memory_index] = light_index;
+    }
+
+    barrier();
+
+    frag_pos = texture(gPosition, tex_uv_coord).rgb;
+    surface_normal = texture(gNormal, tex_uv_coord).rgb;
+    albedo_colour = texture(gAlbedo, tex_uv_coord).rgb;
+    specular_intensity = texture(gSpecularAndShininess, tex_uv_coord).r;
+    shininess = texture(gSpecularAndShininess, tex_uv_coord).g;
+
+    pixel = vec4(albedo_colour, 1.f) * calculate_light();
+    
+    imageStore(img_output, pixel_coord, pixel);
+    /*
+    Buffer G-Buffer
+    shared Light list for the tile
+
+    all local group invocations can try to populate the light list until that job is done
+    once that's done all local group invocations can shade their fragment
+    
+    // Now work out composite projection matrix
+    // Relevant matrix columns for this tile frusta
+    // Derive frustum planes
+    float4 frustumPlanes[6];
+    // Sides
+    frustumPlanes[0] = c4 - c1;
+    frustumPlanes[1] = c4 + c1;
+    frustumPlanes[2] = c4 - c2;
+    frustumPlanes[3] = c4 + c2;
+    // Near/far
+    frustumPlanes[4] = float4(0.0f, 0.0f,  1.0f, -minTileZ);
+    frustumPlanes[5] = float4(0.0f, 0.0f, -1.0f,  maxTileZ);
+    // Normalize frustum planes (near/far already normalized)
+    
+    // Cull lights for this tile
+    // Cull: point light sphere vs tile frustum
+
+    Check if light is in tile frustum, add light index to light list for this tile if true. frustum is only used for this check.
+    This check is performed COLLECTIVELY, e.g. the work/lights is divided amongst the threads
+
+
+    For the list of pixels in this tile that require per-sample shading, we iterate each pixel
+    and shade them using our lighting calculations. Only process onscreen pixels (tiles can span screen edges)
+    Write back the pixel data into a texture
+
+
+    */
+
+}

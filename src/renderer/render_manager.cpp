@@ -133,7 +133,62 @@ void render_manager::render_pass_main()
 
     render_scene(shader_deferred_geometry_pass);
 
-glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+/////////////////////////////////////////////////////////////
+// 1.5 Compute shader pass - Light culling and shading
+/////////////////////////////////////////////////////////////
+    shader_t::gl_use_shader(shader_tiled_deferred_lighting);
+    glActiveTexture(GL_TEXTURE0);
+    glBindImageTexture(0, tiled_deferred_shading_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, g_position_texture);
+    shader_tiled_deferred_lighting.gl_bind_1i("gPosition", 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, g_normal_texture);
+    shader_tiled_deferred_lighting.gl_bind_1i("gNormal", 1);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, g_albedo_texture);
+    shader_tiled_deferred_lighting.gl_bind_1i("gAlbedo", 2);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, g_specular_shininess_texture);
+    shader_tiled_deferred_lighting.gl_bind_1i("gSpecularAndShininess", 3);
+
+    shader_tiled_deferred_lighting.gl_bind_1i("point_light_count", 0);
+    shader_tiled_deferred_lighting.gl_bind_3f("camera_pos", camera.position.x, camera.position.y, camera.position.z);
+    {
+        directional_light_t light = loaded_map.directionallight;
+        shader_tiled_deferred_lighting.gl_bind_3f("directional_light.colour", light.colour.x, light.colour.y,
+                                                  light.colour.z);
+        shader_tiled_deferred_lighting.gl_bind_1f("directional_light.ambient_intensity", light.ambient_intensity);
+        shader_tiled_deferred_lighting.gl_bind_1f("directional_light.diffuse_intensity", light.diffuse_intensity);
+        vec3 direction = orientation_to_direction(light.orientation);
+        shader_tiled_deferred_lighting.gl_bind_3f("directional_light.direction", direction.x, direction.y, direction.z);
+    }
+
+    std::vector<point_light_t> plights = loaded_map.pointlights;
+    shader_tiled_deferred_lighting.gl_bind_1i("point_light_count", plights.size());
+
+    local_persist u32 lightsBuffer = 0;
+    if (lightsBuffer == 0) {
+        glGenBuffers(1, &lightsBuffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightsBuffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, plights.size() * sizeof(point_light_t), nullptr, GL_DYNAMIC_COPY);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    }
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, lightsBuffer);
+    GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+    memcpy(p, plights.data(), plights.size() * sizeof(point_light_t));
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+    const u32 COMPUTE_SHADER_TILE_GROUP_DIM = 16;
+    u32 dispatch_width = (back_buffer_width + COMPUTE_SHADER_TILE_GROUP_DIM - 1) / COMPUTE_SHADER_TILE_GROUP_DIM;
+    u32 dispatch_height = (back_buffer_height + COMPUTE_SHADER_TILE_GROUP_DIM - 1) / COMPUTE_SHADER_TILE_GROUP_DIM;
+    glDispatchCompute(dispatch_width, dispatch_height, 1);
+
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 /////////////////////////////////////////////////////////////
 // 2. Lighting pass
@@ -141,35 +196,16 @@ glBindFramebuffer(GL_FRAMEBUFFER, 0);
     shader_t::gl_use_shader(shader_deferred_lighting_pass);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, g_position_texture);
-    shader_deferred_lighting_pass.gl_bind_1i("gPosition", 0);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, g_normal_texture);
-    shader_deferred_lighting_pass.gl_bind_1i("gNormal", 1);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, g_albedo_texture);
-    shader_deferred_lighting_pass.gl_bind_1i("gAlbedo", 2);
-    glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, g_specular_shininess_texture);
-    shader_deferred_lighting_pass.gl_bind_1i("gSpecularAndShininess", 3);
+    glBindTexture(GL_TEXTURE_2D, tiled_deferred_shading_texture);
 
-    shader_deferred_lighting_pass.gl_bind_3f("observer_pos", camera.position.x, camera.position.y, camera.position.z);
-
-    {
-        directional_light_t light = loaded_map.directionallight;
-        shader_deferred_lighting_pass.gl_bind_3f("directional_light.colour", light.colour.x, light.colour.y, light.colour.z);
-        shader_deferred_lighting_pass.gl_bind_1f("directional_light.ambient_intensity", light.ambient_intensity);
-        shader_deferred_lighting_pass.gl_bind_1f("directional_light.diffuse_intensity", light.diffuse_intensity);
-        vec3 direction = orientation_to_direction(light.orientation);
-        shader_deferred_lighting_pass.gl_bind_3f("directional_light.direction", direction.x, direction.y, direction.z);
-
+//    {
 //        glActiveTexture(GL_TEXTURE2);
 //        glBindTexture(GL_TEXTURE_2D, directional_shadow_map.directionalShadowMapTexture);
 //        shader_common.gl_bind_1i("directionalShadowMap", 2);
 //        shader_common.gl_bind_matrix4fv("directionalLightTransform", 1, directional_shadow_map.directionalLightSpaceMatrix.ptr());
-    }
-
-    {
+//    }
+//
+//    {
 //        for(int omniLightCount = 0; omniLightCount < loaded_map.pointlights.size() + loaded_map.spotlights.size(); ++omniLightCount)
 //        {
 //            glActiveTexture(GL_TEXTURE3 + omniLightCount);
@@ -181,55 +217,7 @@ glBindFramebuffer(GL_FRAMEBUFFER, 0);
 //            stbsp_snprintf(name_buffer, sizeof(name_buffer), "omniShadowMaps[%d].farPlane", omniLightCount);
 //            shader_common.gl_bind_1f(name_buffer, omni_shadow_maps[omniLightCount].depthCubeMapFarPlane);
 //        }
-
-        std::vector<point_light_t> plights = loaded_map.pointlights;
-        shader_deferred_lighting_pass.gl_bind_1i("point_light_count", plights.size());
-        for(size_t i = 0; i < plights.size(); ++i)
-        {
-            char name_buffer[128] = {'\0'};
-            stbsp_snprintf(name_buffer, sizeof(name_buffer), "point_light[%d].colour", i);
-            shader_deferred_lighting_pass.gl_bind_3f(name_buffer, plights[i].colour.x, plights[i].colour.y, plights[i].colour.z);
-            stbsp_snprintf(name_buffer, sizeof(name_buffer), "point_light[%d].ambient_intensity", i);
-            shader_deferred_lighting_pass.gl_bind_1f(name_buffer, plights[i].ambient_intensity);
-            stbsp_snprintf(name_buffer, sizeof(name_buffer), "point_light[%d].diffuse_intensity", i);
-            shader_deferred_lighting_pass.gl_bind_1f(name_buffer, plights[i].diffuse_intensity);
-            stbsp_snprintf(name_buffer, sizeof(name_buffer), "point_light[%d].position", i);
-            shader_deferred_lighting_pass.gl_bind_3f(name_buffer, plights[i].position.x, plights[i].position.y, plights[i].position.z);
-            stbsp_snprintf(name_buffer, sizeof(name_buffer), "point_light[%d].att_constant", i);
-            shader_deferred_lighting_pass.gl_bind_1f(name_buffer, plights[i].att_constant);
-            stbsp_snprintf(name_buffer, sizeof(name_buffer), "point_light[%d].att_linear", i);
-            shader_deferred_lighting_pass.gl_bind_1f(name_buffer, plights[i].att_linear);
-            stbsp_snprintf(name_buffer, sizeof(name_buffer), "point_light[%d].att_quadratic", i);
-            shader_deferred_lighting_pass.gl_bind_1f(name_buffer, plights[i].att_quadratic);
-        }
-
-//        std::vector<spot_light_t> slights = loaded_map.spotlights;
-//        shader_common.gl_bind_1i("spot_light_count", slights.size());
-//        for(size_t i = 0; i < slights.size(); ++i)
-//        {
-//            char name_buffer[128] = {'\0'};
-//            stbsp_snprintf(name_buffer, sizeof(name_buffer), "spot_light[%d].plight.colour", i);
-//            shader_common.gl_bind_3f(name_buffer, slights[i].colour.x, slights[i].colour.y, slights[i].colour.z);
-//            stbsp_snprintf(name_buffer, sizeof(name_buffer), "spot_light[%d].plight.ambient_intensity", i);
-//            shader_common.gl_bind_1f(name_buffer, slights[i].ambient_intensity);
-//            stbsp_snprintf(name_buffer, sizeof(name_buffer), "spot_light[%d].plight.diffuse_intensity", i);
-//            shader_common.gl_bind_1f(name_buffer, slights[i].diffuse_intensity);
-//            stbsp_snprintf(name_buffer, sizeof(name_buffer), "spot_light[%d].plight.position", i);
-//            shader_common.gl_bind_3f(name_buffer, slights[i].position.x, slights[i].position.y, slights[i].position.z);
-//            stbsp_snprintf(name_buffer, sizeof(name_buffer), "spot_light[%d].plight.att_constant", i);
-//            shader_common.gl_bind_1f(name_buffer, slights[i].att_constant);
-//            stbsp_snprintf(name_buffer, sizeof(name_buffer), "spot_light[%d].plight.att_linear", i);
-//            shader_common.gl_bind_1f(name_buffer, slights[i].att_linear);
-//            stbsp_snprintf(name_buffer, sizeof(name_buffer), "spot_light[%d].plight.att_quadratic", i);
-//            shader_common.gl_bind_1f(name_buffer, slights[i].att_quadratic);
-//
-//            vec3 direction = orientation_to_direction(slights[i].orientation);
-//            stbsp_snprintf(name_buffer, sizeof(name_buffer), "spot_light[%d].direction", i);
-//            shader_common.gl_bind_3f(name_buffer, direction.x, direction.y, direction.z);
-//            stbsp_snprintf(name_buffer, sizeof(name_buffer), "spot_light[%d].cutoff", i);
-//            shader_common.gl_bind_1f(name_buffer, slights[i].cosine_cutoff());
-//        }
-    }
+//    }
 
     {
         local_persist mesh_t quad;
@@ -362,6 +350,8 @@ render_manager::load_shaders()
     shader_t::gl_load_shader_program_from_file(shader_text, text_vs_path, text_fs_path);
     shader_t::gl_load_shader_program_from_file(shader_ui, ui_vs_path, ui_fs_path);
     shader_t::gl_load_shader_program_from_file(shader_simple, simple_vs_path, simple_fs_path);
+
+    shader_t::gl_load_compute_shader_program_from_file(shader_tiled_deferred_lighting, "shaders/tiled_deferred_lighting.comp");
 }
 
 void render_manager::clean_up()
@@ -499,4 +489,16 @@ void render_manager::temp_create_geometry_buffer()
     glBindRenderbuffer(GL_RENDERBUFFER, g_depth_RBO);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, back_buffer_width, back_buffer_height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, g_depth_RBO);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glGenTextures(1, &tiled_deferred_shading_texture);
+    glBindTexture(GL_TEXTURE_2D, tiled_deferred_shading_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, back_buffer_width, back_buffer_height, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }

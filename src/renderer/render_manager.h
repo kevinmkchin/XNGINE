@@ -76,6 +76,8 @@ private:
     shader_t    shader_ui;
     shader_t    shader_simple;
 
+    shader_t    shader_tiled_deferred_lighting;
+
     directional_shadow_map_t directional_shadow_map;
     omni_shadow_map_t omni_shadow_maps[42];
 
@@ -85,6 +87,8 @@ private:
     u32 g_albedo_texture = 0;
     u32 g_specular_shininess_texture = 0;
     u32 g_depth_RBO = 0;
+
+    u32 tiled_deferred_shading_texture = 0;
 
     SINGLETON(render_manager)
 };
