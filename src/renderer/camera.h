@@ -20,6 +20,9 @@ struct camera_t
     float movespeed             = 12.f;
     float turnspeed             = 0.17f;
 
+    float nearclip              = 0.1f;
+    float farclip               = 1000.f;
+
     void update_camera();
 
     void calculate_perspective_matrix();

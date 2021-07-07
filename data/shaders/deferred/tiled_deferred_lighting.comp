@@ -28,7 +28,6 @@ struct point_light_t
     float att_constant;
     float att_linear;
     float att_quadratic;
-    // spotlight cutoff
 };
 
 layout(rgba32f, binding = 0) uniform writeonly image2D img_output;
@@ -108,6 +107,34 @@ void main()
 
     barrier();
 
+    ivec2 img_output_size = imageSize(img_output);
+    vec2 fimg_output_size = vec2(img_output_size);
+    ivec2 pixel_coord = ivec2(gl_GlobalInvocationID.xy);
+    vec2 fpixel_coord = vec2(pixel_coord);
+    vec2 tex_uv_coord = fpixel_coord / fimg_output_size;
+
+// Frustum construction
+
+    vec2 center = fimg_output_size / float(2 * WORK_GROUP_SIZE); // Location of the middle work group
+    vec2 offset = center - vec2(gl_WorkGroupID.xy);
+
+    // Extract the viewing frustum planes (normals)
+    // https://gamedev.stackexchange.com/questions/156743/finding-the-normals-of-the-planes-of-a-view-frustum
+    // https://gamedev.stackexchange.com/questions/79172/checking-if-a-vector-is-contained-inside-a-viewing-frustum
+    vec4 column0 = vec4(-projection_matrix[0][0] * center.x, projection_matrix[0][1], offset.x, projection_matrix[0][3]);
+    vec4 column1 = vec4(projection_matrix[1][0], -projection_matrix[1][1] * center.y, offset.y, projection_matrix[1][3]);
+    vec4 column3 = vec4(projection_matrix[3][0], projection_matrix[3][1], -1.0f, projection_matrix[3][3]);
+
+    vec4 frustumPlanes[4];
+    frustumPlanes[0] = column3 + column0; // Left
+    frustumPlanes[1] = column3 - column0; // Right
+    frustumPlanes[2] = column3 - column1; // Top
+    frustumPlanes[3] = column3 + column1; // Bottom
+    for (int i = 0; i < 4; ++i)
+    {
+        frustumPlanes[i] /= length(frustumPlanes[i].xyz); // normalize
+    }
+
 // Light culling
 
     int num_threads = WORK_GROUP_SIZE * WORK_GROUP_SIZE;
@@ -119,21 +146,24 @@ void main()
         {
             break;
         }
-        int memory_index = atomicAdd(s_num_visible_lights, 1);
-        s_visible_light_indices[memory_index] = light_index;
+
+        point_light_t point_light = all_point_lights[light_index];
+        bool inFrustum = true;
+        for (int frustum_side = 0; frustum_side < 4 && inFrustum; ++frustum_side)
+        {
+            float distance_of_light_from_plane = dot(frustumPlanes[frustum_side], view_matrix * vec4(point_light.position, 1.0f));
+            inFrustum = -point_light.radius <= distance_of_light_from_plane;
+        }
+        if (inFrustum)
+        {
+            int memory_index = atomicAdd(s_num_visible_lights, 1);
+            s_visible_light_indices[memory_index] = light_index;
+        }
     }
 
     barrier();
 
-
 // Shading
-
-    vec4 pixel = vec4(0.0f, 1.f, 1.f, 1.0f);
-    ivec2 img_output_size = imageSize(img_output);
-    vec2 fimg_output_size = vec2(img_output_size);
-    ivec2 pixel_coord = ivec2(gl_GlobalInvocationID.xy);
-    vec2 fpixel_coord = vec2(pixel_coord);
-    vec2 tex_uv_coord = fpixel_coord / fimg_output_size;
 
     frag_pos = texture(gPosition, tex_uv_coord).rgb;
     surface_normal = texture(gNormal, tex_uv_coord).rgb;
@@ -141,29 +171,16 @@ void main()
     specular_intensity = texture(gSpecularAndShininess, tex_uv_coord).r;
     shininess = texture(gSpecularAndShininess, tex_uv_coord).g;
 
+    vec4 pixel = vec4(0.0f, 0.5f, 0.f, 1.0f);
     pixel = vec4(albedo_colour, 1.f) * calculate_light();
-    
+
+// Debug view of tiles
+//    if((gl_LocalInvocationID.x > 0 && gl_LocalInvocationID.x < 15)
+//    && (gl_LocalInvocationID.y > 0 && gl_LocalInvocationID.y < 15))
+//    {
+//        float rg = (float(s_num_visible_lights) / float(100));
+//        pixel *= vec4(rg,rg,1.f,1.f);
+//    }
+
     imageStore(img_output, pixel_coord, pixel);
-    /*
-    Buffer G-Buffer
-    shared Light list for the tile
-
-    all local group invocations can try to populate the light list until that job is done
-    once that's done all local group invocations can shade their fragment
-    
-    // Now work out composite projection matrix
-    // Relevant matrix columns for this tile frusta
-    // Derive frustum planes
-    float4 frustumPlanes[6];
-    // Sides
-    frustumPlanes[0] = c4 - c1;
-    frustumPlanes[1] = c4 + c1;
-    frustumPlanes[2] = c4 - c2;
-    frustumPlanes[3] = c4 + c2;
-    // Near/far
-    frustumPlanes[4] = float4(0.0f, 0.0f,  1.0f, -minTileZ);
-    frustumPlanes[5] = float4(0.0f, 0.0f, -1.0f,  maxTileZ);
-    // Normalize frustum planes (near/far already normalized)
-    */
-
 }

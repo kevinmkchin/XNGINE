@@ -1,5 +1,12 @@
 ## Development Log
 
+### 2021-07-07
+- Light culling based on 16x16 tiles on the screen. If the tile is within range of 
+  a point light, then for the fragments within that tile, we will accumulate light 
+  from that point light. Variable performance - around ~90 to ~100 fps. Dependent on
+  the scene, but overall much improved from forward rendering as well as regular
+  deferred rendering.
+
 ### 2021-07-04 - 2021-07-07
 - Lighting calculations and shading moved into compute shader. Still no light culling
   but performance improved from ~45 fps in no compute shader deferred renderer to ~55 fps
