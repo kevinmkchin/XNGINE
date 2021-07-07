@@ -10,12 +10,15 @@
 
 SINGLETON_INIT(render_manager)
 
-static const char* vertex_shader_path = "shaders/default_phong.vert";
-static const char* frag_shader_path = "shaders/default_phong.frag";
-static const char* deferred_geometry_vs_path = "shaders/deferred_geometry_pass.vert";
-static const char* deferred_geometry_fs_path = "shaders/deferred_geometry_pass.frag";
-static const char* deferred_lighting_vs_path = "shaders/deferred_lighting_pass.vert";
-static const char* deferred_lighting_fs_path = "shaders/deferred_lighting_pass.frag";
+static const char* forward_vs_path = "shaders/forward/default_phong.vert";
+static const char* forward_fs_path = "shaders/forward/default_phong.frag";
+
+static const char* deferred_geometry_vs_path = "shaders/deferred/deferred_geometry_pass.vert";
+static const char* deferred_geometry_fs_path = "shaders/deferred/deferred_geometry_pass.frag";
+static const char* deferred_tiled_cs_path = "shaders/deferred/tiled_deferred_lighting.comp";
+static const char* deferred_final_vs_path = "shaders/deferred/deferred_lighting_pass.vert";
+static const char* deferred_final_fs_path = "shaders/deferred/deferred_lighting_pass.frag";
+
 static const char* ui_vs_path = "shaders/ui.vert";
 static const char* ui_fs_path = "shaders/ui.frag";
 static const char* text_vs_path = "shaders/text_ui.vert";
@@ -341,9 +344,9 @@ void render_manager::render_scene(shader_t& shader)
 void
 render_manager::load_shaders()
 {
-    shader_t::gl_load_shader_program_from_file(shader_common, vertex_shader_path, frag_shader_path);
+    shader_t::gl_load_shader_program_from_file(shader_common, forward_vs_path, forward_fs_path);
     shader_t::gl_load_shader_program_from_file(shader_deferred_geometry_pass, deferred_geometry_vs_path, deferred_geometry_fs_path);
-    shader_t::gl_load_shader_program_from_file(shader_deferred_lighting_pass, deferred_lighting_vs_path, deferred_lighting_fs_path);
+    shader_t::gl_load_shader_program_from_file(shader_deferred_lighting_pass, deferred_final_vs_path, deferred_final_fs_path);
     shader_t::gl_load_shader_program_from_file(shader_directional_shadow_map, "shaders/directional_shadow_map.vert", "shaders/directional_shadow_map.frag");
     shader_t::gl_load_shader_program_from_file(shader_omni_shadow_map, "shaders/omni_shadow_map.vert", "shaders/omni_shadow_map.geom", "shaders/omni_shadow_map.frag");
     shader_t::gl_load_shader_program_from_file(shader_debug_dir_shadow_map, "shaders/debug_directional_shadow_map.vert", "shaders/debug_directional_shadow_map.frag");
@@ -351,7 +354,7 @@ render_manager::load_shaders()
     shader_t::gl_load_shader_program_from_file(shader_ui, ui_vs_path, ui_fs_path);
     shader_t::gl_load_shader_program_from_file(shader_simple, simple_vs_path, simple_fs_path);
 
-    shader_t::gl_load_compute_shader_program_from_file(shader_tiled_deferred_lighting, "shaders/tiled_deferred_lighting.comp");
+    shader_t::gl_load_compute_shader_program_from_file(shader_tiled_deferred_lighting, deferred_tiled_cs_path);
 }
 
 void render_manager::clean_up()
