@@ -17,7 +17,6 @@ internal u8 debugger_point_lights_count = 0;
 internal bool debugger_b_debug_spotlights = true;
 internal spot_light_t* debugger_spot_lights = nullptr;
 internal u8 debugger_spot_lights_count = 0;
-internal float ATTENUATION_FACTOR_TO_CALC_RANGE_FOR = 0.1f;
 
 internal mesh_t debug_sphere_mesh;
 internal mesh_t debug_cone_mesh;
@@ -130,26 +129,9 @@ void debug_render_line()
     // TODO
 }
 
-float debug_calculate_attenuation_range(float c, float l, float q)
-{
-    c -= 1.f / ATTENUATION_FACTOR_TO_CALC_RANGE_FOR;
-    float discriminant = l * l - 4 * q * c;
-    if (discriminant >= 0) 
-    {
-        float root1 = (-l + sqrt(discriminant)) / (2 * q);
-        float root2 = (-l - sqrt(discriminant)) / (2 * q);
-        float att_range = max(root1, root2);
-        return att_range;
-    }
-    else
-    {
-        return 0.f;
-    }
-}
-
 void debug_render_pointlight(shader_t& shader, point_light_t& plight)
 {
-    float att_radius = debug_calculate_attenuation_range(plight.att_constant, plight.att_linear, plight.att_quadratic);
+    float att_radius = plight.get_radius();
     shader.gl_bind_4f("frag_colour", 1.f, 1.f, 1.f, 1.f);
     debug_render_sphere(shader, plight.position.x, plight.position.y, plight.position.z, att_radius);
     shader.gl_bind_4f("frag_colour", 1.f, 1.f, 0.f, 1.f);
@@ -158,7 +140,7 @@ void debug_render_pointlight(shader_t& shader, point_light_t& plight)
 
 void debug_render_spotlight(shader_t& shader, spot_light_t& slight)
 {
-    float att_radius = debug_calculate_attenuation_range(slight.att_constant, slight.att_linear, slight.att_quadratic);
+    float att_radius = slight.get_radius();
     shader.gl_bind_4f("frag_colour", 1.f, 1.f, 1.f, 1.f);
     float base_radius = att_radius * tanf(acosf(slight.cosine_cutoff()));
     float height = att_radius / slight.cosine_cutoff();
