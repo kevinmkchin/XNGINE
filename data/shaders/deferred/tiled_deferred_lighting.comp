@@ -34,7 +34,7 @@ struct point_light_t
 layout(rgba32f, binding = 0) uniform writeonly image2D img_output;
 layout(std430, binding = 1) buffer point_lights_buffer
 {
-    point_light_t   all_point_lights[];
+    point_light_t all_point_lights[];
 };
 
 uniform int point_light_count;
@@ -108,13 +108,7 @@ void main()
 
     barrier();
 
-    vec4 pixel = vec4(0.0f, 1.f, 1.f, 1.0f);
-
-    ivec2 img_output_size = imageSize(img_output);
-    vec2 fimg_output_size = vec2(img_output_size);
-    ivec2 pixel_coord = ivec2(gl_GlobalInvocationID.xy);
-    vec2 fpixel_coord = vec2(pixel_coord);
-    vec2 tex_uv_coord = fpixel_coord / fimg_output_size;
+// Light culling
 
     int num_threads = WORK_GROUP_SIZE * WORK_GROUP_SIZE;
     int num_passes = (point_light_count + num_threads - 1) / num_threads;
@@ -130,6 +124,16 @@ void main()
     }
 
     barrier();
+
+
+// Shading
+
+    vec4 pixel = vec4(0.0f, 1.f, 1.f, 1.0f);
+    ivec2 img_output_size = imageSize(img_output);
+    vec2 fimg_output_size = vec2(img_output_size);
+    ivec2 pixel_coord = ivec2(gl_GlobalInvocationID.xy);
+    vec2 fpixel_coord = vec2(pixel_coord);
+    vec2 tex_uv_coord = fpixel_coord / fimg_output_size;
 
     frag_pos = texture(gPosition, tex_uv_coord).rgb;
     surface_normal = texture(gNormal, tex_uv_coord).rgb;
@@ -160,19 +164,6 @@ void main()
     frustumPlanes[4] = float4(0.0f, 0.0f,  1.0f, -minTileZ);
     frustumPlanes[5] = float4(0.0f, 0.0f, -1.0f,  maxTileZ);
     // Normalize frustum planes (near/far already normalized)
-    
-    // Cull lights for this tile
-    // Cull: point light sphere vs tile frustum
-
-    Check if light is in tile frustum, add light index to light list for this tile if true. frustum is only used for this check.
-    This check is performed COLLECTIVELY, e.g. the work/lights is divided amongst the threads
-
-
-    For the list of pixels in this tile that require per-sample shading, we iterate each pixel
-    and shade them using our lighting calculations. Only process onscreen pixels (tiles can span screen edges)
-    Write back the pixel data into a texture
-
-
     */
 
 }
