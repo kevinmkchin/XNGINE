@@ -139,7 +139,7 @@ void render_manager::render_pass_main()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 /////////////////////////////////////////////////////////////
-// 1.5 Compute shader pass - Light culling and shading
+// 2. Compute shader pass - Light culling, shading, composition
 /////////////////////////////////////////////////////////////
     shader_t::gl_use_shader(shader_tiled_deferred_lighting);
     glActiveTexture(GL_TEXTURE0);
@@ -185,20 +185,16 @@ void render_manager::render_pass_main()
     memcpy(p, plights.data(), plights.size() * sizeof(point_light_t));
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
+    shader_tiled_deferred_lighting.gl_bind_matrix4fv("projection_matrix", 1, camera.matrix_perspective.ptr());
+    shader_tiled_deferred_lighting.gl_bind_matrix4fv("view_matrix", 1, camera.matrix_view.ptr());
+    //shader_tiled_deferred_lighting.gl_bind_2f("camera_near_far", camera.nearclip, camera.farclip);
+
     const u32 COMPUTE_SHADER_TILE_GROUP_DIM = 16;
     u32 dispatch_width = (back_buffer_width + COMPUTE_SHADER_TILE_GROUP_DIM - 1) / COMPUTE_SHADER_TILE_GROUP_DIM;
     u32 dispatch_height = (back_buffer_height + COMPUTE_SHADER_TILE_GROUP_DIM - 1) / COMPUTE_SHADER_TILE_GROUP_DIM;
     glDispatchCompute(dispatch_width, dispatch_height, 1);
 
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-/////////////////////////////////////////////////////////////
-// 2. Lighting pass
-/////////////////////////////////////////////////////////////
-    shader_t::gl_use_shader(shader_deferred_lighting_pass);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, tiled_deferred_shading_texture);
 
 //    {
 //        glActiveTexture(GL_TEXTURE2);
@@ -221,7 +217,15 @@ void render_manager::render_pass_main()
 //        }
 //    }
 
+/////////////////////////////////////////////////////////////
+// 3. Final image rendering pass
+/////////////////////////////////////////////////////////////
+    shader_t::gl_use_shader(shader_deferred_lighting_pass);
     {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, tiled_deferred_shading_texture);
+
         local_persist mesh_t quad;
         local_persist bool meshmade = false;
         if (!meshmade) {
@@ -241,7 +245,6 @@ void render_manager::render_pass_main()
         }
         quad.gl_render_mesh();
     }
-
     glUseProgram(0);
 
 // ALPHA BLENDED
