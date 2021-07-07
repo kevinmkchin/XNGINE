@@ -2,7 +2,7 @@
 
 layout(local_size_x = 16, local_size_y = 16) in;
 
-const int NUM_LIGHTS = 1024;
+const int MAX_NUM_LIGHTS = 1024;
 const int MAX_LIGHTS_PER_TILE = 256;
 const int WORK_GROUP_SIZE = 16;
 
@@ -44,7 +44,7 @@ uniform mat4 view_matrix;
 uniform vec2 camera_near_far; // x is near clip, y is far clip
 
 // shared list of indices INTO the buffer of all point lights - these are the only point lights used for this tile/workgroup
-shared uint s_visible_light_indices[NUM_LIGHTS];
+shared uint s_visible_light_indices[MAX_NUM_LIGHTS];
 shared int s_num_visible_lights;
 
 vec3 frag_pos;
@@ -171,8 +171,7 @@ void main()
     specular_intensity = texture(gSpecularAndShininess, tex_uv_coord).r;
     shininess = texture(gSpecularAndShininess, tex_uv_coord).g;
 
-    vec4 pixel = vec4(0.0f, 0.5f, 0.f, 1.0f);
-    pixel = vec4(albedo_colour, 1.f) * calculate_light();
+    vec4 pixel = vec4(albedo_colour, 1.f) * calculate_light();
 
 // Debug view of tiles
 //    if((gl_LocalInvocationID.x > 0 && gl_LocalInvocationID.x < 15)

@@ -54,7 +54,7 @@ void render_manager::initialize()
 
 void render_manager::render()
 {
-    //render_pass_directional_shadow_map();
+    render_pass_directional_shadow_map();
     //render_pass_omnidirectional_shadow_map();
     render_pass_main();
 }
@@ -112,7 +112,7 @@ void render_manager::render_pass_main()
     glDisable(GL_BLEND);
 // DEPTH TESTED
     glEnable(GL_DEPTH_TEST);
-    // TODO Probably should make own shader for wireframe draws so that wireframe fragments aren't affected by lighting or textures
+    // TODO Probably make frag color constant if in wireframe mode instead of using albedo and lighting
     if (g_b_wireframe) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     } else {
@@ -256,35 +256,35 @@ void render_manager::render_pass_main()
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     debug_render(shader_simple, camera);
-//#if INTERNAL_BUILD
-//    if(input::get_instance()->g_keystate[SDL_SCANCODE_F3])
-//    {
-//        local_persist mesh_t quad;
-//        local_persist bool meshmade = false;
-//        if(!meshmade)
-//        {
-//            meshmade = true;
-//
-//            u32 quadindices[6] = {
-//                    0, 1, 3,
-//                    0, 3, 2
-//            };
-//            GLfloat quadvertices[16] = {
-//                    //  x     y        u    v
-//                    -1.f, -1.f,   -0.1f, -0.1f,
-//                    1.f, -1.f,    1.1f, -0.1f,
-//                    -1.f, 1.f,    -0.1f, 1.1f,
-//                    1.f, 1.f,     1.1f, 1.1f
-//            };
-//            mesh_t::gl_create_mesh(quad, quadvertices, quadindices, 16, 6, 2, 2, 0);
-//        }
-//        shader_t::gl_use_shader(shader_debug_dir_shadow_map);
-//        glActiveTexture(GL_TEXTURE0);
-//        glBindTexture(GL_TEXTURE_2D, directional_shadow_map.directionalShadowMapTexture);
-//        quad.gl_render_mesh();
-//        glUseProgram(0);
-//    }
-//#endif
+#if INTERNAL_BUILD
+    if(input::get_instance()->g_keystate[SDL_SCANCODE_F3])
+    {
+        local_persist mesh_t quad;
+        local_persist bool meshmade = false;
+        if(!meshmade)
+        {
+            meshmade = true;
+
+            u32 quadindices[6] = {
+                    0, 1, 3,
+                    0, 3, 2
+            };
+            GLfloat quadvertices[16] = {
+                    //  x     y        u    v
+                    -1.f, -1.f,   -0.1f, -0.1f,
+                    1.f, -1.f,    1.1f, -0.1f,
+                    -1.f, 1.f,    -0.1f, 1.1f,
+                    1.f, 1.f,     1.1f, 1.1f
+            };
+            mesh_t::gl_create_mesh(quad, quadvertices, quadindices, 16, 6, 2, 2, 0);
+        }
+        shader_t::gl_use_shader(shader_debug_dir_shadow_map);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, directional_shadow_map.directionalShadowMapTexture);
+        quad.gl_render_mesh();
+        glUseProgram(0);
+    }
+#endif
 
     profiler_render(&shader_ui, &shader_text);
     console_render(&shader_ui, &shader_text);
@@ -410,47 +410,47 @@ void render_manager::temp_create_shadow_maps()
             //* view_matrix_look_at(make_vec3(-2.0f, 4.0f, -1.0f), make_vec3(0.f, 0.f, 0.f), make_vec3(0.f,1.f,0.f)); // TODO make up 0,0,1 if light is straight up or down
             * view_matrix_look_at(make_vec3(-47.44f, 66.29f, 9.65f), make_vec3(-47.44f, 66.29f, 9.65f) + orientation_to_direction(loaded_map.directionallight.orientation), make_vec3(0.f,1.f,0.f)); // TODO make up 0,0,1 if light is straight up or down
 
-    for(int omniLightCount = 0; omniLightCount < loaded_map.pointlights.size() + loaded_map.spotlights.size(); ++omniLightCount)
-    {
-        glGenFramebuffers(1, &omni_shadow_maps[omniLightCount].depthCubeMapFBO);
-
-        glGenTextures(1, &omni_shadow_maps[omniLightCount].depthCubeMapTexture);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, omni_shadow_maps[omniLightCount].depthCubeMapTexture);
-        for (unsigned int i = 0; i < 6; ++i)
-        {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT,
-                         omni_shadow_maps[omniLightCount].CUBE_SHADOW_WIDTH, omni_shadow_maps[omniLightCount].CUBE_SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-        }
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, omni_shadow_maps[omniLightCount].depthCubeMapFBO);
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, omni_shadow_maps[omniLightCount].depthCubeMapTexture, 0);
-        glDrawBuffer(GL_NONE);
-        glReadBuffer(GL_NONE);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        float aspect = (float)omni_shadow_maps[omniLightCount].CUBE_SHADOW_WIDTH/(float)omni_shadow_maps[omniLightCount].CUBE_SHADOW_HEIGHT;
-        float nearPlane = 1.0f;
-        mat4 shadowProj = projection_matrix_perspective(90.f * KC_DEG2RAD, aspect, nearPlane, omni_shadow_maps[omniLightCount].depthCubeMapFarPlane);
-
-        vec3 lightPos = loaded_map.pointlights[omniLightCount].position;
-        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
-                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_FORWARD_VECTOR, WORLD_DOWN_VECTOR));
-        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
-                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_BACKWARD_VECTOR, WORLD_DOWN_VECTOR));
-        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
-                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_UP_VECTOR, WORLD_RIGHT_VECTOR));
-        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
-                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_DOWN_VECTOR, WORLD_LEFT_VECTOR));
-        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
-                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_RIGHT_VECTOR, WORLD_DOWN_VECTOR));
-        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
-                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_LEFT_VECTOR, WORLD_DOWN_VECTOR));
-    }
+//    for(int omniLightCount = 0; omniLightCount < loaded_map.pointlights.size() + loaded_map.spotlights.size(); ++omniLightCount)
+//    {
+//        glGenFramebuffers(1, &omni_shadow_maps[omniLightCount].depthCubeMapFBO);
+//
+//        glGenTextures(1, &omni_shadow_maps[omniLightCount].depthCubeMapTexture);
+//        glBindTexture(GL_TEXTURE_CUBE_MAP, omni_shadow_maps[omniLightCount].depthCubeMapTexture);
+//        for (unsigned int i = 0; i < 6; ++i)
+//        {
+//            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT,
+//                         omni_shadow_maps[omniLightCount].CUBE_SHADOW_WIDTH, omni_shadow_maps[omniLightCount].CUBE_SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+//        }
+//        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+//        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+//        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+//        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+//        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+//
+//        glBindFramebuffer(GL_FRAMEBUFFER, omni_shadow_maps[omniLightCount].depthCubeMapFBO);
+//        glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, omni_shadow_maps[omniLightCount].depthCubeMapTexture, 0);
+//        glDrawBuffer(GL_NONE);
+//        glReadBuffer(GL_NONE);
+//        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//
+//        float aspect = (float)omni_shadow_maps[omniLightCount].CUBE_SHADOW_WIDTH/(float)omni_shadow_maps[omniLightCount].CUBE_SHADOW_HEIGHT;
+//        float nearPlane = 1.0f;
+//        mat4 shadowProj = projection_matrix_perspective(90.f * KC_DEG2RAD, aspect, nearPlane, omni_shadow_maps[omniLightCount].depthCubeMapFarPlane);
+//
+//        vec3 lightPos = loaded_map.pointlights[omniLightCount].position;
+//        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
+//                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_FORWARD_VECTOR, WORLD_DOWN_VECTOR));
+//        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
+//                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_BACKWARD_VECTOR, WORLD_DOWN_VECTOR));
+//        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
+//                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_UP_VECTOR, WORLD_RIGHT_VECTOR));
+//        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
+//                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_DOWN_VECTOR, WORLD_LEFT_VECTOR));
+//        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
+//                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_RIGHT_VECTOR, WORLD_DOWN_VECTOR));
+//        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
+//                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_LEFT_VECTOR, WORLD_DOWN_VECTOR));
+//    }
 }
 
 void render_manager::temp_create_geometry_buffer()
