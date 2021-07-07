@@ -16,8 +16,8 @@ static const char* forward_fs_path = "shaders/forward/default_phong.frag";
 static const char* deferred_geometry_vs_path = "shaders/deferred/deferred_geometry_pass.vert";
 static const char* deferred_geometry_fs_path = "shaders/deferred/deferred_geometry_pass.frag";
 static const char* deferred_tiled_cs_path = "shaders/deferred/tiled_deferred_lighting.comp";
-static const char* deferred_final_vs_path = "shaders/deferred/deferred_lighting_pass.vert";
-static const char* deferred_final_fs_path = "shaders/deferred/deferred_lighting_pass.frag";
+static const char* deferred_final_vs_path = "shaders/deferred/deferred_final.vert";
+static const char* deferred_final_fs_path = "shaders/deferred/deferred_final.frag";
 
 static const char* ui_vs_path = "shaders/ui.vert";
 static const char* ui_fs_path = "shaders/ui.frag";
@@ -158,7 +158,6 @@ void render_manager::render_pass_main()
     glBindTexture(GL_TEXTURE_2D, g_specular_shininess_texture);
     shader_tiled_deferred_lighting.gl_bind_1i("gSpecularAndShininess", 3);
 
-    shader_tiled_deferred_lighting.gl_bind_1i("point_light_count", 0);
     shader_tiled_deferred_lighting.gl_bind_3f("camera_pos", camera.position.x, camera.position.y, camera.position.z);
     {
         directional_light_t light = loaded_map.directionallight;
