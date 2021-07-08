@@ -131,14 +131,7 @@ void render_manager::render_pass_main()
 
     shader_deferred_geometry_pass.gl_bind_matrix4fv("matrix_view", 1, camera.matrix_view.ptr());
     shader_deferred_geometry_pass.gl_bind_matrix4fv("matrix_proj_perspective", 1, camera.matrix_perspective.ptr());
-
     shader_deferred_geometry_pass.gl_bind_1i("texture_sampler_0", 1);
-
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, directional_shadow_map.directionalShadowMapTexture);
-    shader_deferred_geometry_pass.gl_bind_1i("directional_shadow_map", 2);
-    shader_deferred_geometry_pass.gl_bind_matrix4fv("directional_light_transform", 1,
-                                                    directional_shadow_map.directionalLightSpaceMatrix.ptr());
 
     render_scene(shader_deferred_geometry_pass);
 
@@ -163,6 +156,12 @@ void render_manager::render_pass_main()
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, g_specular_shininess_texture);
     shader_tiled_deferred_lighting.gl_bind_1i("gSpecularAndShininess", 3);
+
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, directional_shadow_map.directionalShadowMapTexture);
+    shader_tiled_deferred_lighting.gl_bind_1i("directional_shadow_map", 4);
+    shader_tiled_deferred_lighting.gl_bind_matrix4fv("directional_light_transform", 1,
+                                                     directional_shadow_map.directionalLightSpaceMatrix.ptr());
 
     shader_tiled_deferred_lighting.gl_bind_3f("camera_pos", camera.position.x, camera.position.y, camera.position.z);
     {
