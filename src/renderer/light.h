@@ -30,9 +30,9 @@ private:
 public:
     point_light_t()
     {
-        att_constant = 0.1f;//0.3f;
-        att_linear = 0.1f;//0.2f;
-        att_quadratic = 0.6f;//0.1f;
+        att_constant = 0.3f;
+        att_linear = 0.2f;
+        att_quadratic = 0.1f;
         radius = update_radius();
     }
 

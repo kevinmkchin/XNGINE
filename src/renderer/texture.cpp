@@ -1,7 +1,10 @@
+#include <unordered_map>
 #include "texture.h"
 #include "../runtime/memory_handle.h"
 #include "../core/file_system.h"
 #include "../debugging/console.h"
+
+internal std::unordered_map<std::string, texture_t> gpu_loaded_textures;
 
 void texture_t::gl_create_from_bitmap(texture_t&        texture,
                                       unsigned char*    bitmap,
@@ -41,13 +44,22 @@ void texture_t::gl_create_from_bitmap(texture_t&        texture,
 }
 
 void texture_t::gl_create_from_file(texture_t&    texture,
-                                          const char* texture_file_path)
+                                    const char*   texture_file_path)
 {
+    auto texture_already_loaded = gpu_loaded_textures.find(std::string(texture_file_path));
+    if(texture_already_loaded != gpu_loaded_textures.end())
+    {
+        texture = texture_already_loaded->second;
+        return;
+    }
+
     bitmap_handle_t texture_handle;
     read_image(texture_handle, texture_file_path);
     gl_create_from_bitmap(texture, (unsigned char*)texture_handle.memory, texture_handle.width,
-                                texture_handle.height, GL_RGBA, (texture_handle.bit_depth == 3 ? GL_RGB : GL_RGBA));
+                          texture_handle.height, GL_RGBA, (texture_handle.bit_depth == 3 ? GL_RGB : GL_RGBA));
     free_image(texture_handle); // texture data has been copied to GPU memory, so we can free image from memory
+
+    gpu_loaded_textures[std::string(texture_file_path)] = texture;
 }
 
 void texture_t::gl_delete(texture_t& texture)
@@ -58,6 +70,9 @@ void texture_t::gl_delete(texture_t& texture)
         return;
     }
     glDeleteTextures(1, &texture.texture_id);
+
+    // todo find texture from loaded textures and delete
+
     texture.texture_id = 0;
     texture.width = 0;
     texture.height = 0;
