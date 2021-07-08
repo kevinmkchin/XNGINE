@@ -52,6 +52,7 @@ vec3 surface_normal;
 vec3 albedo_colour;
 float specular_intensity;
 float shininess;
+float direct_shadow_factor;
 
 vec4 calculate_light()
 {
@@ -69,7 +70,7 @@ vec4 calculate_light()
         float specular_factor = max(0.f, pow(dot(observer_vec, reflection_vec), shininess));
         specular_colour = vec4(directional_light.colour * specular_intensity * specular_factor, 1.0f);
     }
-    light_accumulation = ambient_colour + ((1.0 - 0.0) * (diffuse_colour + specular_colour));
+    light_accumulation = ambient_colour + ((1.0 - direct_shadow_factor) * (diffuse_colour + specular_colour));
 
     for(int i = 0; i < s_num_visible_lights; ++i)
     {
@@ -170,6 +171,7 @@ void main()
     albedo_colour = texture(gAlbedo, tex_uv_coord).rgb;
     specular_intensity = texture(gSpecularAndShininess, tex_uv_coord).r;
     shininess = texture(gSpecularAndShininess, tex_uv_coord).g;
+    direct_shadow_factor = texture(gSpecularAndShininess, tex_uv_coord).b;
 
     vec4 pixel = vec4(albedo_colour, 1.f) * calculate_light();
 

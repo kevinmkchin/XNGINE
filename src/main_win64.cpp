@@ -2,17 +2,16 @@
 
 TODO:
     - Spot lights for Deferred Renderer
-    - Directional shadows for Deferred renderer
     - Omni-directional shadows for Deferred renderer (only allow up to a set number per scene/view)
-    ---
+    ~~~
     - Skybox
     - BUG console command bug - commands get cut off when entered - could be a memory bug?
     - kc_truetypeassembler.h
         - clean up - allocate all memory on init and deallocate all memory on clean up
         - documentation to say that one can use translation and scaling matrices with the resulting
           vertices in order to transform them on the screen (e.g. animate the text).
+    ~~~
     - STATIC and DYNAMIC lights and STATIC and DYNAMIC objects/casters
-    ---
     - CASCADED SHADOW MAPS https://developer.download.nvidia.com/SDK/10.5/opengl/src/cascaded_shadow_maps/doc/cascaded_shadow_maps.pdf
         - make a test map for CSM. (e.g. field of trees or cubes all with shadows)
 

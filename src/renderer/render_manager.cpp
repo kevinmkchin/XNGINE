@@ -134,6 +134,12 @@ void render_manager::render_pass_main()
 
     shader_deferred_geometry_pass.gl_bind_1i("texture_sampler_0", 1);
 
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, directional_shadow_map.directionalShadowMapTexture);
+    shader_deferred_geometry_pass.gl_bind_1i("directional_shadow_map", 2);
+    shader_deferred_geometry_pass.gl_bind_matrix4fv("directional_light_transform", 1,
+                                                    directional_shadow_map.directionalLightSpaceMatrix.ptr());
+
     render_scene(shader_deferred_geometry_pass);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -309,34 +315,6 @@ void render_manager::render_scene(shader_t& shader)
     mat4 matrix_model = identity_mat4();
     matrix_model = identity_mat4();
     matrix_model *= translation_matrix(loaded_map.mainobject.pos);
-    matrix_model *= rotation_matrix(loaded_map.mainobject.orient);
-    matrix_model *= scale_matrix(loaded_map.mainobject.scale);
-    shader.gl_bind_matrix4fv("matrix_model", 1, matrix_model.ptr());
-    loaded_map.mainobject.model.render();
-
-    matrix_model = identity_mat4();
-    matrix_model *= translation_matrix(loaded_map.mainobject.pos + make_vec3(0.f, 0.f, 100.f));
-    matrix_model *= rotation_matrix(loaded_map.mainobject.orient);
-    matrix_model *= scale_matrix(loaded_map.mainobject.scale);
-    shader.gl_bind_matrix4fv("matrix_model", 1, matrix_model.ptr());
-    loaded_map.mainobject.model.render();
-
-    matrix_model = identity_mat4();
-    matrix_model *= translation_matrix(loaded_map.mainobject.pos - make_vec3(0.f, 0.f, 100.f));
-    matrix_model *= rotation_matrix(loaded_map.mainobject.orient);
-    matrix_model *= scale_matrix(loaded_map.mainobject.scale);
-    shader.gl_bind_matrix4fv("matrix_model", 1, matrix_model.ptr());
-    loaded_map.mainobject.model.render();
-
-    matrix_model = identity_mat4();
-    matrix_model *= translation_matrix(loaded_map.mainobject.pos + make_vec3(0.f, 0.f, 200.f));
-    matrix_model *= rotation_matrix(loaded_map.mainobject.orient);
-    matrix_model *= scale_matrix(loaded_map.mainobject.scale);
-    shader.gl_bind_matrix4fv("matrix_model", 1, matrix_model.ptr());
-    loaded_map.mainobject.model.render();
-
-    matrix_model = identity_mat4();
-    matrix_model *= translation_matrix(loaded_map.mainobject.pos - make_vec3(0.f, 0.f, 200.f));
     matrix_model *= rotation_matrix(loaded_map.mainobject.orient);
     matrix_model *= scale_matrix(loaded_map.mainobject.scale);
     shader.gl_bind_matrix4fv("matrix_model", 1, matrix_model.ptr());

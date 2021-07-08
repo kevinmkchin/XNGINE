@@ -131,7 +131,7 @@ void debug_render_line()
 
 void debug_render_pointlight(shader_t& shader, point_light_t& plight)
 {
-    float att_radius = plight.get_radius();
+    float att_radius = plight.get_radius() / 2.5f;
     shader.gl_bind_4f("frag_colour", 1.f, 1.f, 1.f, 1.f);
     debug_render_sphere(shader, plight.position.x, plight.position.y, plight.position.z, att_radius);
     shader.gl_bind_4f("frag_colour", 1.f, 1.f, 0.f, 1.f);

@@ -1,5 +1,8 @@
 ## Development Log
 
+### 2021-07-08
+- Reimplemented directional shadows to deferred renderer.
+
 ### 2021-07-07
 - Light culling based on 16x16 tiles on the screen. If the tile is within range of 
   a point light, then for the fragments within that tile, we will accumulate light 

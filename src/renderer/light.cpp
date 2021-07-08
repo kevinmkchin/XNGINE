@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include "light.h"
 
-internal float ATTENUATION_FACTOR_TO_CALC_RANGE_FOR = 0.005f;
+internal float ATTENUATION_FACTOR_TO_CALC_RANGE_FOR = 0.010f;
 
 internal float calculate_attenuation_range(float c, float l, float q)
 {
