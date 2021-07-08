@@ -1,6 +1,8 @@
 ## Development Log
 
 ### 2021-07-08
+- Deferred directional shadow calculation to the tiled light shading compute shader.
+  This improves performance decent amount.
 - Reimplemented directional shadows to deferred renderer.
 
 ### 2021-07-07
