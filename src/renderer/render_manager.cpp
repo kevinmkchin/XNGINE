@@ -55,7 +55,7 @@ void render_manager::initialize()
 void render_manager::render()
 {
     render_pass_directional_shadow_map();
-    //render_pass_omnidirectional_shadow_map();
+    render_pass_omnidirectional_shadow_map();
     render_pass_main();
 }
 
@@ -82,16 +82,16 @@ void render_manager::render_pass_omnidirectional_shadow_map()
     temp_map_t& loaded_map = gs->loaded_map;
 
     shader_t::gl_use_shader(shader_omni_shadow_map);
-    for(int omniLightCount = 0; omniLightCount < loaded_map.pointlights.size() + loaded_map.spotlights.size(); ++omniLightCount)
+    for(int omniLightCount = 0; omniLightCount < omni_shadow_maps.size(); ++omniLightCount)
     {
         glViewport(0, 0, omni_shadow_maps[omniLightCount].CUBE_SHADOW_WIDTH, omni_shadow_maps[omniLightCount].CUBE_SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, omni_shadow_maps[omniLightCount].depthCubeMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
 
         shader_omni_shadow_map.gl_bind_matrix4fv("lightMatrices[0]", 6, (float*) omni_shadow_maps[omniLightCount].shadowTransforms.data());
-        vec3 lightPos = loaded_map.pointlights[omniLightCount].position;
+        vec3 lightPos = omni_shadow_maps[omniLightCount].owning_light->position;
         shader_omni_shadow_map.gl_bind_3f("lightPos", lightPos.x, lightPos.y, lightPos.z);
-        shader_omni_shadow_map.gl_bind_1f("farPlane", omni_shadow_maps[omniLightCount].depthCubeMapFarPlane);
+        shader_omni_shadow_map.gl_bind_1f("farPlane", omni_shadow_maps[omniLightCount].get_far_plane());
 
         render_scene(shader_omni_shadow_map);
 
@@ -141,27 +141,43 @@ void render_manager::render_pass_main()
 // 2. Compute shader pass - Light culling, shading, composition
 /////////////////////////////////////////////////////////////
     shader_t::gl_use_shader(shader_tiled_deferred_lighting);
-    glActiveTexture(GL_TEXTURE0);
     glBindImageTexture(0, tiled_deferred_shading_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, g_position_texture);
-    shader_tiled_deferred_lighting.gl_bind_1i("gPosition", 0);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, g_normal_texture);
-    shader_tiled_deferred_lighting.gl_bind_1i("gNormal", 1);
+    glBindTexture(GL_TEXTURE_2D, g_position_texture);
+    shader_tiled_deferred_lighting.gl_bind_1i("gPosition", 1);
     glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, g_albedo_texture);
-    shader_tiled_deferred_lighting.gl_bind_1i("gAlbedo", 2);
+    glBindTexture(GL_TEXTURE_2D, g_normal_texture);
+    shader_tiled_deferred_lighting.gl_bind_1i("gNormal", 2);
     glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, g_specular_shininess_texture);
-    shader_tiled_deferred_lighting.gl_bind_1i("gSpecularAndShininess", 3);
+    glBindTexture(GL_TEXTURE_2D, g_albedo_texture);
+    shader_tiled_deferred_lighting.gl_bind_1i("gAlbedo", 3);
 
-    glActiveTexture(GL_TEXTURE4);
-    glBindTexture(GL_TEXTURE_2D, directional_shadow_map.directionalShadowMapTexture);
-    shader_tiled_deferred_lighting.gl_bind_1i("directional_shadow_map", 4);
-    shader_tiled_deferred_lighting.gl_bind_matrix4fv("directional_light_transform", 1,
-                                                     directional_shadow_map.directionalLightSpaceMatrix.ptr());
+    {
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, directional_shadow_map.directionalShadowMapTexture);
+        shader_tiled_deferred_lighting.gl_bind_1i("directional_shadow_map", 4);
+        shader_tiled_deferred_lighting.gl_bind_matrix4fv("directional_light_transform", 1,
+                                                         directional_shadow_map.directionalLightSpaceMatrix.ptr());
+    }
+    {
+        i32 omni_shadow_count = (i32) omni_shadow_maps.size();
+        shader_tiled_deferred_lighting.gl_bind_1i("omni_shadow_count", omni_shadow_count);
+        for(i32 omni_shadow_index = 0; omni_shadow_index < omni_shadow_count; ++omni_shadow_index)
+        {
+            glActiveTexture(GL_TEXTURE5 + omni_shadow_index);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, omni_shadow_maps[omni_shadow_index].depthCubeMapTexture);
+
+            char name_buffer[128] = {'\0'};
+            stbsp_snprintf(name_buffer, sizeof(name_buffer), "omni_shadows[%d].light_index", omni_shadow_index);
+            i32 plight_address_offset = (i32)(omni_shadow_maps[omni_shadow_index].owning_light - loaded_map.pointlights.data());
+            shader_tiled_deferred_lighting.gl_bind_1i(name_buffer, plight_address_offset);
+            stbsp_snprintf(name_buffer, sizeof(name_buffer), "omni_shadows[%d].shadow_cube", omni_shadow_index);
+            shader_tiled_deferred_lighting.gl_bind_1i(name_buffer, 5 + omni_shadow_index);
+            stbsp_snprintf(name_buffer, sizeof(name_buffer), "omni_shadows[%d].far_plane", omni_shadow_index);
+            shader_tiled_deferred_lighting.gl_bind_1f(name_buffer, omni_shadow_maps[omni_shadow_index].get_far_plane());
+        }
+    }
 
     shader_tiled_deferred_lighting.gl_bind_3f("camera_pos", camera.position.x, camera.position.y, camera.position.z);
     {
@@ -183,12 +199,14 @@ void render_manager::render_pass_main()
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightsBuffer);
         glBufferData(GL_SHADER_STORAGE_BUFFER, plights.size() * sizeof(point_light_t), nullptr, GL_DYNAMIC_COPY);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-    }
 
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, lightsBuffer);
-    GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
-    memcpy(p, plights.data(), plights.size() * sizeof(point_light_t));
-    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        // NOTE: THIS IS THE BIGGEST SLOWDOWN - NOT DOING THIS EVERY FRAME INCREASED FRAMERATE FROM 250 to 500 FPS
+        // HAVING THIS MEMCPY HAPPEN EVERY FRAME NOT ONLY REDUCES FRAMERATE BUT ALSO CAUSES MASSIVE INCONSISTENT DIPS
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, lightsBuffer);
+        GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+        memcpy(p, plights.data(), plights.size() * sizeof(point_light_t));
+        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    }
 
     shader_tiled_deferred_lighting.gl_bind_matrix4fv("projection_matrix", 1, camera.matrix_perspective.ptr());
     shader_tiled_deferred_lighting.gl_bind_matrix4fv("view_matrix", 1, camera.matrix_view.ptr());
@@ -200,27 +218,6 @@ void render_manager::render_pass_main()
     glDispatchCompute(dispatch_width, dispatch_height, 1);
 
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-//    {
-//        glActiveTexture(GL_TEXTURE2);
-//        glBindTexture(GL_TEXTURE_2D, directional_shadow_map.directionalShadowMapTexture);
-//        shader_common.gl_bind_1i("directionalShadowMap", 2);
-//        shader_common.gl_bind_matrix4fv("directionalLightTransform", 1, directional_shadow_map.directionalLightSpaceMatrix.ptr());
-//    }
-//
-//    {
-//        for(int omniLightCount = 0; omniLightCount < loaded_map.pointlights.size() + loaded_map.spotlights.size(); ++omniLightCount)
-//        {
-//            glActiveTexture(GL_TEXTURE3 + omniLightCount);
-//            glBindTexture(GL_TEXTURE_CUBE_MAP, omni_shadow_maps[omniLightCount].depthCubeMapTexture);
-//
-//            char name_buffer[128] = {'\0'};
-//            stbsp_snprintf(name_buffer, sizeof(name_buffer), "omniShadowMaps[%d].shadowMap", omniLightCount);
-//            shader_common.gl_bind_1i(name_buffer, 3 + omniLightCount);
-//            stbsp_snprintf(name_buffer, sizeof(name_buffer), "omniShadowMaps[%d].farPlane", omniLightCount);
-//            shader_common.gl_bind_1f(name_buffer, omni_shadow_maps[omniLightCount].depthCubeMapFarPlane);
-//        }
-//    }
 
 /////////////////////////////////////////////////////////////
 // 3. Final image rendering pass
@@ -362,6 +359,7 @@ void render_manager::temp_create_shadow_maps()
 {
     temp_map_t& loaded_map = gs->loaded_map;
 
+// direct
     glGenFramebuffers(1, &directional_shadow_map.directionalShadowMapFBO);
 
     glGenTextures(1, &directional_shadow_map.directionalShadowMapTexture);
@@ -387,47 +385,62 @@ void render_manager::temp_create_shadow_maps()
             //* view_matrix_look_at(make_vec3(-2.0f, 4.0f, -1.0f), make_vec3(0.f, 0.f, 0.f), make_vec3(0.f,1.f,0.f)); // TODO make up 0,0,1 if light is straight up or down
             * view_matrix_look_at(make_vec3(-47.44f, 66.29f, 9.65f), make_vec3(-47.44f, 66.29f, 9.65f) + orientation_to_direction(loaded_map.directionallight.orientation), make_vec3(0.f,1.f,0.f)); // TODO make up 0,0,1 if light is straight up or down
 
-//    for(int omniLightCount = 0; omniLightCount < loaded_map.pointlights.size() + loaded_map.spotlights.size(); ++omniLightCount)
-//    {
-//        glGenFramebuffers(1, &omni_shadow_maps[omniLightCount].depthCubeMapFBO);
-//
-//        glGenTextures(1, &omni_shadow_maps[omniLightCount].depthCubeMapTexture);
-//        glBindTexture(GL_TEXTURE_CUBE_MAP, omni_shadow_maps[omniLightCount].depthCubeMapTexture);
-//        for (unsigned int i = 0; i < 6; ++i)
-//        {
-//            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT,
-//                         omni_shadow_maps[omniLightCount].CUBE_SHADOW_WIDTH, omni_shadow_maps[omniLightCount].CUBE_SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-//        }
-//        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-//        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-//        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-//        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-//        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-//
-//        glBindFramebuffer(GL_FRAMEBUFFER, omni_shadow_maps[omniLightCount].depthCubeMapFBO);
-//        glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, omni_shadow_maps[omniLightCount].depthCubeMapTexture, 0);
-//        glDrawBuffer(GL_NONE);
-//        glReadBuffer(GL_NONE);
-//        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-//
-//        float aspect = (float)omni_shadow_maps[omniLightCount].CUBE_SHADOW_WIDTH/(float)omni_shadow_maps[omniLightCount].CUBE_SHADOW_HEIGHT;
-//        float nearPlane = 1.0f;
-//        mat4 shadowProj = projection_matrix_perspective(90.f * KC_DEG2RAD, aspect, nearPlane, omni_shadow_maps[omniLightCount].depthCubeMapFarPlane);
-//
-//        vec3 lightPos = loaded_map.pointlights[omniLightCount].position;
-//        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
-//                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_FORWARD_VECTOR, WORLD_DOWN_VECTOR));
-//        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
-//                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_BACKWARD_VECTOR, WORLD_DOWN_VECTOR));
-//        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
-//                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_UP_VECTOR, WORLD_RIGHT_VECTOR));
-//        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
-//                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_DOWN_VECTOR, WORLD_LEFT_VECTOR));
-//        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
-//                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_RIGHT_VECTOR, WORLD_DOWN_VECTOR));
-//        omni_shadow_maps[omniLightCount].shadowTransforms.push_back(
-//                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_LEFT_VECTOR, WORLD_DOWN_VECTOR));
-//    }
+
+// omni
+    omni_shadow_maps.clear();
+    size_t num_omni_lights = loaded_map.pointlights.size();
+    for(int omniLightCount = 0; omniLightCount < num_omni_lights; ++omniLightCount)
+    {
+        point_light_t& point_light = loaded_map.pointlights[omniLightCount];
+        if(point_light.is_b_cast_shadow() == false)
+        {
+            continue;
+        }
+
+        omni_shadow_map_t shadow_map;
+        shadow_map.owning_light = &point_light;
+
+        glGenFramebuffers(1, &shadow_map.depthCubeMapFBO);
+
+        glGenTextures(1, &shadow_map.depthCubeMapTexture);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, shadow_map.depthCubeMapTexture);
+        for (unsigned int i = 0; i < 6; ++i)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT,
+                         shadow_map.CUBE_SHADOW_WIDTH, shadow_map.CUBE_SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+        }
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, shadow_map.depthCubeMapFBO);
+        glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadow_map.depthCubeMapTexture, 0);
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        float aspect = (float)shadow_map.CUBE_SHADOW_WIDTH/(float)shadow_map.CUBE_SHADOW_HEIGHT;
+        float nearPlane = 1.0f;
+        mat4 shadowProj = projection_matrix_perspective(90.f * KC_DEG2RAD, aspect, nearPlane, shadow_map.get_far_plane());
+
+        vec3 lightPos = loaded_map.pointlights[omniLightCount].position;
+        shadow_map.shadowTransforms.push_back(
+                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_FORWARD_VECTOR, WORLD_DOWN_VECTOR));
+        shadow_map.shadowTransforms.push_back(
+                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_BACKWARD_VECTOR, WORLD_DOWN_VECTOR));
+        shadow_map.shadowTransforms.push_back(
+                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_UP_VECTOR, WORLD_RIGHT_VECTOR));
+        shadow_map.shadowTransforms.push_back(
+                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_DOWN_VECTOR, WORLD_LEFT_VECTOR));
+        shadow_map.shadowTransforms.push_back(
+                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_RIGHT_VECTOR, WORLD_DOWN_VECTOR));
+        shadow_map.shadowTransforms.push_back(
+                shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_LEFT_VECTOR, WORLD_DOWN_VECTOR));
+
+        omni_shadow_maps.push_back(shadow_map);
+    }
 }
 
 void render_manager::temp_create_geometry_buffer()
@@ -457,15 +470,8 @@ void render_manager::temp_create_geometry_buffer()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, g_albedo_texture, 0);
 
-    glGenTextures(1, &g_specular_shininess_texture);
-    glBindTexture(GL_TEXTURE_2D, g_specular_shininess_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, back_buffer_width, back_buffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, g_specular_shininess_texture, 0);
-
-    u32 color_attachments[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
-    glDrawBuffers(4, color_attachments);
+    u32 color_attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+    glDrawBuffers(3, color_attachments);
 
     glGenRenderbuffers(1, &g_depth_RBO);
     glBindRenderbuffer(GL_RENDERBUFFER, g_depth_RBO);
@@ -480,7 +486,5 @@ void render_manager::temp_create_geometry_buffer()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glBindTexture(GL_TEXTURE_2D, 0);
 }

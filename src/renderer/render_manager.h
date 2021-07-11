@@ -3,6 +3,8 @@
 #include "../gamedefine.h"
 #include "shader.h"
 #include "../core/kc_math.h"
+#include "light.h"
+#include "../debugging/console.h"
 
 struct game_state;
 
@@ -21,7 +23,21 @@ struct omni_shadow_map_t
     const i32 CUBE_SHADOW_HEIGHT = 1024;
     u32 depthCubeMapTexture = 0;
     u32 depthCubeMapFBO = 0;
-    float depthCubeMapFarPlane = 25.f;
+
+    float get_far_plane() const
+    {
+        if(owning_light)
+        {
+            return 25.f;//owning_light->get_radius();
+        }
+        else
+        {
+            console_printf("Attempting to get_far_plane of an omni shadow map without an owning light source.\n");
+            return 0.f;
+        }
+    }
+
+    point_light_t* owning_light;
     std::vector<mat4> shadowTransforms;
 };
 
@@ -43,6 +59,10 @@ struct render_manager
     vec2i get_buffer_size();
 
     void update_buffer_size(i32 new_width, i32 new_height);
+
+    void register_lights();
+
+    void register_new_light();
 
     void temp_create_shadow_maps();
 
@@ -79,13 +99,12 @@ private:
     shader_t    shader_tiled_deferred_lighting;
 
     directional_shadow_map_t directional_shadow_map;
-    omni_shadow_map_t omni_shadow_maps[42];
+    std::vector<omni_shadow_map_t> omni_shadow_maps;
 
     u32 g_buffer_FBO = 0;
     u32 g_position_texture = 0;
     u32 g_normal_texture = 0;
     u32 g_albedo_texture = 0;
-    u32 g_specular_shininess_texture = 0;
     u32 g_depth_RBO = 0;
 
     u32 tiled_deferred_shading_texture = 0;

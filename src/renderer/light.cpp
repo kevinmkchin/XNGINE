@@ -64,6 +64,36 @@ void point_light_t::set_att_quadratic(float att_quadratic)
     update_radius();
 }
 
+bool point_light_t::is_b_static() const
+{
+    return b_static;
+}
+
+void point_light_t::set_b_static(bool b_static)
+{
+    point_light_t::b_static = b_static;
+}
+
+bool point_light_t::is_b_cast_shadow() const
+{
+    return b_cast_shadow;
+}
+
+void point_light_t::set_b_cast_shadow(bool b_cast_shadow)
+{
+    point_light_t::b_cast_shadow = b_cast_shadow;
+}
+
+bool point_light_t::is_b_prebaked_shadow() const
+{
+    return b_prebaked_shadow;
+}
+
+void point_light_t::set_b_prebaked_shadow(bool b_prebaked_shadow)
+{
+    point_light_t::b_prebaked_shadow = b_prebaked_shadow;
+}
+
 void spot_light_t::set_cutoff_in_degrees(float degrees)
 {
     cos_cutoff = cosf(degrees * KC_DEG2RAD);
