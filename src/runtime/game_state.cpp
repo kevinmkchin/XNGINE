@@ -39,7 +39,6 @@ void game_state::temp_initialize()
     loaded_map.pointlights.push_back(lm0pl);
 
     debug_set_pointlights(loaded_map.pointlights.data(),(u8) loaded_map.pointlights.size());
-    debug_set_spotlights(loaded_map.spotlights.data(),(u8) loaded_map.spotlights.size());
 }
 
 void game_state::update()

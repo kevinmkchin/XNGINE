@@ -27,6 +27,12 @@ struct point_light_t
     float       att_constant;
     float       att_linear;
     float       att_quadratic;
+    bool        b_static;
+    bool        b_cast_shadow;
+    bool        b_prebaked_shadow;
+    bool        b_spotlight;
+    vec3        direction;
+    float       cutoff;
 };
 struct omni_shadow_map_t
 {
@@ -40,10 +46,6 @@ layout(std430, binding = 1) buffer point_lights_buffer
 {
     point_light_t       all_point_lights[];
 };
-// layout(std430, binding = 2) buffer omni_shadow_maps_buffer
-// {
-//     omni_shadow_map_t   all_omni_shadow_maps[];
-// };
 
 uniform int point_light_count;
 uniform omni_shadow_map_t omni_shadows[MAX_OMNI_SHADOWS];
@@ -107,7 +109,10 @@ vec3(0, 1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0, 1, -1)
 );
 float calculate_omnidirectional_shadow(point_light_t light, uint light_index)
 {
-    //if light doesnt cast shadows, return 0
+    if(light.b_cast_shadow == false)
+    {
+        return 0.f;
+    }
 
     for(int omni_shadow_index = 0; omni_shadow_index < omni_shadow_count; ++omni_shadow_index)
     {
@@ -177,7 +182,22 @@ vec4 calculate_light()
 
         float distance = length(raw_direction);
         float attenuation = 1.f / (light.att_constant + light.att_linear * distance + light.att_quadratic * distance * distance);
-        light_accumulation += point_light_contribution * attenuation;
+        vec4 current_light_contribution = point_light_contribution * attenuation;
+
+        if(false) //light.b_spotlight == false
+        {
+            light_accumulation += current_light_contribution;
+        }
+        else
+        {
+            vec3 to_frag_vector = normalize(raw_direction);
+            float cos_angle_to_frag = dot(to_frag_vector, normalize(light.direction));
+            if(cos_angle_to_frag > light.cutoff)
+            {
+                float spotlight_edge_factor = 1 - ((1 - cos_angle_to_frag) / (1 - light.cutoff));
+                light_accumulation += current_light_contribution * spotlight_edge_factor;
+            }
+        }
     }
 
     return light_accumulation;

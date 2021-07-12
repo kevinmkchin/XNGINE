@@ -94,12 +94,32 @@ void point_light_t::set_b_prebaked_shadow(bool b_prebaked_shadow)
     point_light_t::b_prebaked_shadow = b_prebaked_shadow;
 }
 
-void spot_light_t::set_cutoff_in_degrees(float degrees)
+bool point_light_t::is_b_spotlight() const
+{
+    return b_spotlight;
+}
+
+void point_light_t::set_b_spotlight(bool32 b_spotlight)
+{
+    point_light_t::b_spotlight = b_spotlight;
+}
+
+const vec3& point_light_t::get_direction() const
+{
+    return direction;
+}
+
+void point_light_t::set_direction(const vec3& direction)
+{
+    point_light_t::direction = direction;
+}
+
+void point_light_t::set_cutoff_in_degrees(float degrees)
 {
     cos_cutoff = cosf(degrees * KC_DEG2RAD);
 }
 
-void spot_light_t::set_cutoff_in_radians(float radians)
+void point_light_t::set_cutoff_in_radians(float radians)
 {
     cos_cutoff = radians;
 }

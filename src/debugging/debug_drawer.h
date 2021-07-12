@@ -7,7 +7,6 @@ struct mesh_t;
 struct camera_t;
 struct shader_t;
 struct point_light_t;
-struct spot_light_t;
 
 
 int debug_drawer_get_level();
@@ -25,11 +24,8 @@ void debug_render_cone(shader_t& shader,
                        quaternion orientation);
 void debug_render_line();
 void debug_render_pointlight(shader_t& shader, point_light_t& plight);
-void debug_render_spotlight(shader_t& shader, spot_light_t& slight);
 void debug_initialize();
 void debug_render(shader_t& debug_shader, camera_t camera);
 void debug_set_pointlights(point_light_t* point_lights_array, u8 count);
 void debug_toggle_debug_pointlights();
-void debug_set_spotlights(spot_light_t* spot_lights_array, u8 count);
-void debug_toggle_debug_spotlights();
 void debug_set_debug_level(int level);

@@ -1,9 +1,6 @@
 /** OpenGL 3D Renderer
 
 TODO:
-    - Spot lights for Deferred Renderer
-    - Omni-directional shadows for Deferred renderer (only allow up to a set number per scene/view)
-    ~~~
     - Skybox
     - BUG console command bug - commands get cut off when entered - could be a memory bug?
     - kc_truetypeassembler.h

@@ -196,17 +196,13 @@ void render_manager::render_pass_main()
     local_persist u32 lightsBuffer = 0;
     if (lightsBuffer == 0) {
         glGenBuffers(1, &lightsBuffer);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightsBuffer);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, plights.size() * sizeof(point_light_t), nullptr, GL_DYNAMIC_COPY);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-        // NOTE: THIS IS THE BIGGEST SLOWDOWN - NOT DOING THIS EVERY FRAME INCREASED FRAMERATE FROM 250 to 500 FPS
-        // HAVING THIS MEMCPY HAPPEN EVERY FRAME NOT ONLY REDUCES FRAMERATE BUT ALSO CAUSES MASSIVE INCONSISTENT DIPS
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, lightsBuffer);
-        GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
-        memcpy(p, plights.data(), plights.size() * sizeof(point_light_t));
-        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
     }
+
+    // todo only update changed data? glBufferSubData
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightsBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, plights.size() * sizeof(point_light_t), plights.data(), GL_DYNAMIC_COPY);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     shader_tiled_deferred_lighting.gl_bind_matrix4fv("projection_matrix", 1, camera.matrix_perspective.ptr());
     shader_tiled_deferred_lighting.gl_bind_matrix4fv("view_matrix", 1, camera.matrix_view.ptr());

@@ -179,7 +179,7 @@ vec4 calc_spot_lights()
     for(int i = 0; i < spot_light_count; ++i)
     {
         vec3 to_frag_vector = normalize(frag_pos - spot_light[i].plight.position);
-        float cos_angle_to_frag = dot(to_frag_vector, spot_light[i].direction);
+        float cos_angle_to_frag = dot(to_frag_vector, normalize(spot_light[i].direction));
         if(cos_angle_to_frag > spot_light[i].cutoff)
         {
             float f = 1 - ((1 - cos_angle_to_frag) / (1 - spot_light[i].cutoff));

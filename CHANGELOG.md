@@ -1,5 +1,9 @@
 ## Development Log
 
+### 2021-07-11
+- Spotlights for deferred renderer.
+- Omnidirectional shadows for deferred renderer.
+
 ### 2021-07-08
 - Deferred directional shadow calculation to the tiled light shading compute shader.
   This improves performance decent amount.
