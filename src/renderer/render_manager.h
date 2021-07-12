@@ -28,7 +28,7 @@ struct omni_shadow_map_t
     {
         if(owning_light)
         {
-            return 25.f;//owning_light->get_radius();
+            return owning_light->get_radius();
         }
         else
         {

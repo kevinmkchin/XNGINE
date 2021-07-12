@@ -3,32 +3,34 @@
 #include "../gamedefine.h"
 #include "../core/kc_math.h"
 
-struct light_t
+struct directional_light_t
 {
     vec3    colour = { 1.f, 1.f, 1.f };
     float   diffuse_intensity = 1.0f;
-};
-
-struct directional_light_t : light_t
-{
     float   ambient_intensity = 0.2f;
     quaternion orientation = { 0.7071068f, 0.f, 0.f, 0.7071068f };
 };
 
-struct point_light_t : light_t
+struct point_light_t
 {
-    vec3        position = { 0.f, 0.f, 0.f };
+    vec3    colour = { 1.f, 1.f, 1.f };
+    float   diffuse_intensity = 1.0f;
+    vec3    position = { 0.f, 0.f, 0.f };
 
 private:
     float       radius;
+
     // Attenuation coefficients
     float       att_constant;
     float       att_linear;
     float       att_quadratic;
-    bool        b_static;
-    bool        b_cast_shadow;
-    bool        b_prebaked_shadow; // only if b_static is true
-    bool        : 8;
+    bool32      b_static;
+    bool32      b_cast_shadow;
+    bool32      b_prebaked_shadow; // only if b_static is true
+    bool32      b_spotlight;
+    bool32      :32;
+    vec3        direction = { -1.f, -1.f, 1.f };// { 0.f, -1.f, 0.f };
+    float       cos_cutoff = 0.866f;
 
 public:
     point_light_t()
@@ -40,8 +42,9 @@ public:
         radius = update_radius();
 
         b_static = true;
-        b_cast_shadow = true;
+        b_cast_shadow = false;
         b_prebaked_shadow = false;
+        b_spotlight = true;
     }
 
     float get_radius() const;
@@ -64,18 +67,18 @@ public:
     bool is_b_prebaked_shadow() const;
     void set_b_prebaked_shadow(bool b_prebaked_shadow);
 
-private:
-    float update_radius();
-};
+    bool is_b_spotlight() const;
 
-struct spot_light_t : point_light_t
-{
-    quaternion orientation = { 0.7071068f, 0.f, 0.f, 0.7071068f };
+    void set_b_spotlight(bool32 b_spotlight);
+
+    const vec3& get_direction() const;
+
+    void set_direction(const vec3& direction);
 
     void set_cutoff_in_degrees(float degrees);
     void set_cutoff_in_radians(float radians);
-    float cosine_cutoff() { return cos_cutoff; }
+    float cosine_cutoff() const { return cos_cutoff; }
 
 private:
-    float cos_cutoff = 0.866f;
+    float update_radius();
 };
