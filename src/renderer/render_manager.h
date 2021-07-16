@@ -81,6 +81,8 @@ private:
 
     void render_pass_main();
 
+    void deferred_render_to_quad_pass();
+
     void render_scene(shader_t& shader);
 
     void copy_depth_from_gbuffer_to_defaultbuffer() const;
@@ -89,10 +91,9 @@ private:
     i32 back_buffer_width = -1;
     i32 back_buffer_height = -1;
 
-    shader_t    shader_common;
     shader_t    shader_deferred_geometry_pass;
     shader_t    shader_tiled_deferred_lighting;
-    shader_t    shader_deferred_lighting_pass;
+    shader_t    shader_deferred_render_to_quad_pass;
     shader_t    shader_directional_shadow_map;
     shader_t    shader_omni_shadow_map;
     shader_t    shader_debug_dir_shadow_map;
@@ -114,4 +115,8 @@ private:
     u32 tiled_deferred_shading_texture = 0;
 
     SINGLETON(render_manager)
+
+    void deferred_lighting_and_composition_pass();
+
+    void deferred_geometry_pass();
 };

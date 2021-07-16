@@ -23,7 +23,7 @@ void game_state::temp_initialize()
     loaded_map.pointlights.push_back(lm0pl);
     lm0pl.colour = { 0.0f, 0.0f, 1.0f };
     lm0pl.position = { 10.f, -2.0f, 4.0f };
-    lm0pl.set_b_cast_shadow(true);
+    lm0pl.set_b_cast_shadow(false);
     loaded_map.pointlights.push_back(lm0pl);
     lm0pl.colour = { 0.0f, 0.0f, 1.0f };
     lm0pl.position = { -20.f, -2.0f, 4.0f };
@@ -31,11 +31,11 @@ void game_state::temp_initialize()
     loaded_map.pointlights.push_back(lm0pl);
     lm0pl.colour = { 0.0f, 1.0f, 0.0f };
     lm0pl.position = { -36.f, -2.0f, 4.0f };
-    lm0pl.set_b_cast_shadow(true);
+    lm0pl.set_b_cast_shadow(false);
     loaded_map.pointlights.push_back(lm0pl);
     lm0pl.colour = { 0.0f, 1.0f, 0.0f };
     lm0pl.position = { 20.f, -2.0f, 4.0f };
-    lm0pl.set_b_cast_shadow(true);
+    lm0pl.set_b_cast_shadow(false);
     loaded_map.pointlights.push_back(lm0pl);
 
     debug_set_pointlights(loaded_map.pointlights.data(),(u8) loaded_map.pointlights.size());
