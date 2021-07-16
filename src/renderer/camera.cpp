@@ -71,7 +71,7 @@ void camera_t::calculate_perspective_matrix()
 #if 0
     matrix_perspective = projection_matrix_orthographic(-30.0f, 30.0f, -30.0f, 30.0f, 0.1f, 100.f);
 #else
-    matrix_perspective = projection_matrix_perspective((fov/2.f)*KC_DEG2RAD, aspect_ratio, 0.1f, 1000.f);
+    matrix_perspective = projection_matrix_perspective((fov/2.f)*KC_DEG2RAD, aspect_ratio, nearclip, farclip);
 #endif
 }
 

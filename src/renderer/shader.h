@@ -19,6 +19,10 @@ struct shader_t
 
     static void gl_create_shader_program(shader_t& shader, const char* vertex_shader_str, const char* geometry_shader_str, const char* fragment_shader_str);
 
+    static void gl_load_compute_shader_program_from_file(shader_t& shader, const char* compute_path);
+
+    static void gl_create_compute_shader_program(shader_t& shader, const char* compute_shader_str);
+
     void gl_bind_1i(const char* uniform_name, GLint v0);
     void gl_bind_2i(const char* uniform_name, GLint v0, GLint v1);
     void gl_bind_3i(const char* uniform_name, GLint v0, GLint v1, GLint v2);

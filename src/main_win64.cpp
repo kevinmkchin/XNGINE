@@ -1,25 +1,26 @@
 /** OpenGL 3D Renderer
 
 TODO:
-    - Deferred rendering https://www.guerrilla-games.com/read/deferred-rendering-in-killzone-2
-        - https://gamedevelopment.tutsplus.com/articles/forward-rendering-vs-deferred-rendering--gamedev-12342
-    - Allow omnidirectional lights to disable shadows - no shadows for them by default
-    - option to completely disable shadows (test if we return to pre-shadows performance)
     - Skybox
-    - refactor member functions to use m_ prefix
     - BUG console command bug - commands get cut off when entered - could be a memory bug?
-    - Modify kc_truetypeassembler.h documentation to say that one can use translation and scaling matrices with the resulting
-      vertices in order to transform them on the screen (e.g. animate the text).
-
-Backlog:
-    - Baked shadow maps for static lights?
-    - Memory management / custom memory allocator / replace all mallocs and callocs
-    - Remove all STL usage
-    - Default to not using index buffer (IBO) so that we can have flat normals on flat surfaces
-    - Ditch SDL and implement windows, input, file io myself
+    - kc_truetypeassembler.h
+        - clean up - allocate all memory on init and deallocate all memory on clean up
+        - documentation to say that one can use translation and scaling matrices with the resulting
+          vertices in order to transform them on the screen (e.g. animate the text).
+    ~~~
+    - STATIC and DYNAMIC lights and STATIC and DYNAMIC objects/casters
+        - DYNAMIC lights need to be marked dirty to update shaders etc. (don't update shaders with light info every frame)
+        - for dynamic objects, render the shadow map on-top of the existing shadow map e.g. add more dark spots
     - CASCADED SHADOW MAPS https://developer.download.nvidia.com/SDK/10.5/opengl/src/cascaded_shadow_maps/doc/cascaded_shadow_maps.pdf
         - make a test map for CSM. (e.g. field of trees or cubes all with shadows)
-    - option to completely disable shadows (test if we return to pre-shadows performance)
+
+Backlog:
+    - Resource manager / load resources asynchronously so the game isn't frozen while loading?
+    - Memory management / custom memory allocator / replace all mallocs and callocs
+    - Baked shadow maps for static lights?
+    - Remove all STL usage
+    - Load opengl extensions manually - Ditch GLEW https://apoorvaj.io/loading-opengl-without-glew/
+    - Ditch SDL and implement windows, input, file io myself
     - Map Editor:
         - console command 'editor' to enter
         - quits the game inside the gamemode, and simply loads the map into the editor (keep camera in same transformation)
@@ -29,12 +30,10 @@ Backlog:
             - maybe keep loaded maps in memory? until we explicitly call unload? or there are too many maps loaded?
                 - so that we can switch between maps without losing the map data in memory
                     - then we can have a "palette" map with a collection of loaded model objs that we can copy instead of finding on disk
-            - use console commands to create geometry? or is that retarded?
+            - use console commands to create geometry?
         - texture blending - store the bitmap in memory, and we can write it to map data or an actual bitmap whatever
             - brush system like in unity/unreal where you paint textures, and behind the scenes we can edit the blend map in memory
-    - Implement GJK EPA collisions in a clone of this repo
-    - option for some console messages to be displayed to game screen.
-    - Memory management / custom memory allocator / replace all mallocs and callocs
+    - GJK EPA collision system
     - Arrow rendering for debugging
         - in the future arrow can also be used for translation gizmo
     - add SIMD for kc_math library
@@ -44,6 +43,7 @@ Backlog:
         - Build simple polygons and shapes, and the textures get wrapped
           automatically(1 unit in vertices is 1 unit in texture uv)
     - Console:
+        - option for some console messages to be displayed to game screen.
         - remember previously entered commands
         - shader hotloading/compiling during runtime - pause all update / render while shaders are being recompiled
         - mouse picking entities
@@ -139,7 +139,7 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
 
     i_game_state.temp_initialize();
     i_render_manager->temp_create_shadow_maps();
-
+    i_render_manager->temp_create_geometry_buffer();
 
     // Game Loop
     i64 perf_counter_frequency = timer::counter_frequency();
