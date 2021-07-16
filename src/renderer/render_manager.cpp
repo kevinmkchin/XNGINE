@@ -10,9 +10,6 @@
 
 SINGLETON_INIT(render_manager)
 
-static const char* forward_vs_path = "shaders/forward/default_phong.vert";
-static const char* forward_fs_path = "shaders/forward/default_phong.frag";
-
 static const char* deferred_geometry_vs_path = "shaders/deferred/deferred_geometry_pass.vert";
 static const char* deferred_geometry_fs_path = "shaders/deferred/deferred_geometry_pass.frag";
 static const char* deferred_tiled_cs_path = "shaders/deferred/tiled_deferred_lighting.comp";
@@ -336,7 +333,6 @@ void render_manager::render_scene(shader_t& shader)
 
 void render_manager::load_shaders()
 {
-    shader_t::gl_load_shader_program_from_file(shader_common, forward_vs_path, forward_fs_path);
     shader_t::gl_load_shader_program_from_file(shader_deferred_geometry_pass, deferred_geometry_vs_path, deferred_geometry_fs_path);
     shader_t::gl_load_shader_program_from_file(shader_deferred_lighting_pass, deferred_final_vs_path, deferred_final_fs_path);
     shader_t::gl_load_shader_program_from_file(shader_directional_shadow_map, "shaders/shadow_mapping/directional_shadow_map.vert", "shaders/shadow_mapping/directional_shadow_map.frag");

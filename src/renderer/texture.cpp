@@ -71,7 +71,7 @@ void texture_t::gl_delete(texture_t& texture)
     }
     glDeleteTextures(1, &texture.texture_id);
 
-    // todo find texture from loaded textures and delete
+    // TODO find texture from loaded textures and delete
 
     texture.texture_id = 0;
     texture.width = 0;

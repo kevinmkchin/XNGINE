@@ -26,77 +26,46 @@ void shader_t::gl_delete_shader(shader_t& shader)
 
 void shader_t::gl_create_shader_program(shader_t& shader, const char* vertex_shader_str, const char* fragment_shader_str)
 {
-    // Create an empty shader program and get the id
-    shader.id_shader_program = glCreateProgram();
+    shader.id_shader_program = glCreateProgram(); // Create an empty shader program and get the id
     if (!shader.id_shader_program)
     {
         console_printf("Failed to create shader program! Aborting.\n");
         return;
     }
-    // Compile and attach the shaders
-    gl_compile_shader(shader.id_shader_program, vertex_shader_str, GL_VERTEX_SHADER);
+    gl_compile_shader(shader.id_shader_program, vertex_shader_str, GL_VERTEX_SHADER); // Compile and attach the shaders
     gl_compile_shader(shader.id_shader_program, fragment_shader_str, GL_FRAGMENT_SHADER);
-    // Actually create the exectuable shader program on the graphics card
-    glLinkProgram(shader.id_shader_program);
+    glLinkProgram(shader.id_shader_program); // Actually create the exectuable shader program on the graphics card
 
-    GLint result = 0;
-    GLchar eLog[1024] = {};
-    glGetProgramiv(shader.id_shader_program, GL_LINK_STATUS, &result); // Make sure the program was created
-    if (!result)
+#if INTERNAL_BUILD
+    if (gl_check_error_and_validate(shader.id_shader_program))
     {
-        glGetProgramInfoLog(shader.id_shader_program, sizeof(eLog), nullptr, eLog);
-        console_printf("Error linking program: '%s'! Aborting.\n", eLog);
         return;
     }
-
-    // Validate the program will work
-    // glValidateProgram(shader.id_shader_program);
-    // glGetProgramiv(shader.id_shader_program, GL_VALIDATE_STATUS, &result);
-    // if (!result)
-    // {
-    //     glGetProgramInfoLog(shader.id_shader_program, sizeof(eLog), nullptr, eLog);
-    //     console_printf("Error validating program: '%s'! Aborting.\n", eLog);
-    //     return;
-    // }
+#endif
 
     shader_t::cache_uniform_locations(shader);
 }
 
 void shader_t::gl_create_shader_program(shader_t& shader, const char* vertex_shader_str, const char* geometry_shader_str, const char* fragment_shader_str)
 {
-    // Create an empty shader program and get the id
-    shader.id_shader_program = glCreateProgram();
+
+    shader.id_shader_program = glCreateProgram(); // Create an empty shader program and get the id
     if (!shader.id_shader_program)
     {
         console_printf("Failed to create shader program! Aborting.\n");
         return;
     }
-    // Compile and attach the shaders
-    gl_compile_shader(shader.id_shader_program, vertex_shader_str, GL_VERTEX_SHADER);
+    gl_compile_shader(shader.id_shader_program, vertex_shader_str, GL_VERTEX_SHADER); // Compile and attach the shaders
     gl_compile_shader(shader.id_shader_program, geometry_shader_str, GL_GEOMETRY_SHADER);
     gl_compile_shader(shader.id_shader_program, fragment_shader_str, GL_FRAGMENT_SHADER);
-    // Actually create the exectuable shader program on the graphics card
-    glLinkProgram(shader.id_shader_program);
-    // Error checking in shader code
-    GLint result = 0;
-    GLchar eLog[1024] = {};
-    glGetProgramiv(shader.id_shader_program, GL_LINK_STATUS, &result); // Make sure the program was created
-    if (!result)
+    glLinkProgram(shader.id_shader_program); // Actually create the exectuable shader program on the graphics card
+
+#if INTERNAL_BUILD
+    if (gl_check_error_and_validate(shader.id_shader_program))
     {
-        glGetProgramInfoLog(shader.id_shader_program, sizeof(eLog), nullptr, eLog);
-        console_printf("Error linking program: '%s'! Aborting.\n", eLog);
         return;
     }
-
-    // Validate the program will work
-//    glValidateProgram(shader.id_shader_program);
-//    glGetProgramiv(shader.id_shader_program, GL_VALIDATE_STATUS, &result);
-//    if (!result)
-//    {
-//        glGetProgramInfoLog(shader.id_shader_program, sizeof(eLog), nullptr, eLog);
-//        console_printf("Error validating program: '%s'! Aborting.\n", eLog);
-//        return;
-//    }
+#endif
 
     shader_t::cache_uniform_locations(shader);
 }
@@ -111,29 +80,41 @@ void shader_t::gl_create_compute_shader_program(shader_t& shader, const char* co
         return;
     }
     gl_compile_shader(shader.id_shader_program, compute_shader_str, GL_COMPUTE_SHADER);
-
     glLinkProgram(shader.id_shader_program);
+
+#if INTERNAL_BUILD
+    if (gl_check_error_and_validate(shader.id_shader_program))
+    {
+        return;
+    }
+#endif
+
+    shader_t::cache_uniform_locations(shader);
+}
+
+bool shader_t::gl_check_error_and_validate(GLuint program_id)
+{
+#if INTERNAL_BUILD
     GLint result = 0;
     GLchar eLog[1024] = {};
-    glGetProgramiv(shader.id_shader_program, GL_LINK_STATUS, &result); // Make sure the program was created
+    glGetProgramiv(program_id, GL_LINK_STATUS, &result); // Make sure the program was created
     if (!result)
     {
-        glGetProgramInfoLog(shader.id_shader_program, sizeof(eLog), nullptr, eLog);
+        glGetProgramInfoLog(program_id, sizeof(eLog), nullptr, eLog);
         console_printf("Error linking program: '%s'! Aborting.\n", eLog);
-        return;
+        return true;
     }
 
     // Validate the program will work
-//    glValidateProgram(shader.id_shader_program);
-//    glGetProgramiv(shader.id_shader_program, GL_VALIDATE_STATUS, &result);
-//    if (!result)
-//    {
-//        glGetProgramInfoLog(shader.id_shader_program, sizeof(eLog), nullptr, eLog);
-//        console_printf("Error validating program: '%s'! Aborting.\n", eLog);
-//        return;
-//    }
-
-    shader_t::cache_uniform_locations(shader);
+    glValidateProgram(program_id);
+    glGetProgramiv(program_id, GL_VALIDATE_STATUS, &result);
+    if (!result)
+    {
+        glGetProgramInfoLog(program_id, sizeof(eLog), nullptr, eLog);
+        console_printf("Error validating program %u: %s", program_id, eLog);
+    }
+#endif
+    return false;
 }
 
 void shader_t::gl_load_shader_program_from_file(shader_t& shader, const char* vertex_path, const char* fragment_path)
@@ -165,7 +146,7 @@ void shader_t::cache_uniform_locations(shader_t &shader)
     GLint number_of_uniforms;
     glGetProgramiv(shader.id_shader_program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &longest_uniform_name_length);
     glGetProgramiv(shader.id_shader_program, GL_ACTIVE_UNIFORMS, &number_of_uniforms);
-    console_printf("number of active uniforms for shader %d:  %d\n", shader.id_shader_program, number_of_uniforms);
+    //console_printf("number of active uniforms for shader %d:  %d\n", shader.id_shader_program, number_of_uniforms);
 
     GLint readlength;
     GLint size;
@@ -178,7 +159,6 @@ void shader_t::cache_uniform_locations(shader_t &shader)
     */
     for (GLint i = 0; i < number_of_uniforms; ++i)
     {
-        // TODO NOTE glGetActiveUniform won't work with non-struct arrays https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glGetActiveUniform.xhtml
         glGetActiveUniform(shader.id_shader_program, i, longest_uniform_name_length, &readlength, &size, &type, uniform_name);
         cache_uniform_location(shader, uniform_name);
     }
