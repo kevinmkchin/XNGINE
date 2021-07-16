@@ -1,0 +1,293 @@
+#version 430
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+const int MAX_NUM_LIGHTS = 1024;
+const int MAX_OMNI_SHADOWS = 16;
+const int MAX_LIGHTS_PER_TILE = 256;
+const int WORK_GROUP_SIZE = 16;
+
+uniform sampler2D gPosition;
+uniform sampler2D gNormal;
+uniform sampler2D gAlbedo;
+
+struct directional_light_t
+{
+    vec3        colour;
+    float       diffuse_intensity;
+    float       ambient_intensity;
+    vec3        direction;
+};
+struct point_light_t
+{
+    vec3        colour;
+    float       diffuse_intensity;
+    vec3        position;
+    float       radius;
+    float       att_constant;
+    float       att_linear;
+    float       att_quadratic;
+    bool        b_static;
+    bool        b_cast_shadow;
+    bool        b_prebaked_shadow;
+    bool        b_spotlight;
+    vec3        direction;
+    float       cutoff;
+};
+struct omni_shadow_map_t
+{
+    int         light_index;
+    samplerCube shadow_cube;
+    float       far_plane;
+};
+
+layout(rgba32f, binding = 0) uniform writeonly image2D img_output;
+layout(std430, binding = 1) buffer point_lights_buffer
+{
+    point_light_t       all_point_lights[];
+};
+
+uniform int point_light_count;
+uniform omni_shadow_map_t omni_shadows[MAX_OMNI_SHADOWS];
+uniform int omni_shadow_count;
+uniform directional_light_t directional_light;
+uniform vec3 camera_pos; // camera
+uniform mat4 projection_matrix;
+uniform mat4 view_matrix;
+uniform vec2 camera_near_far; // x is near clip, y is far clip
+
+// shared list of indices INTO the buffer of all point lights - these are the only point lights used for this tile/workgroup
+shared uint s_visible_light_indices[MAX_NUM_LIGHTS];
+shared int s_num_visible_lights;
+
+vec3 frag_pos;
+vec3 surface_normal;
+vec3 albedo_colour;
+float specular_intensity;
+float shininess;
+
+uniform mat4 directional_light_transform;
+uniform sampler2D directional_shadow_map;
+
+float calculate_directional_shadow()
+{
+    vec4 directional_light_space_pos = directional_light_transform * vec4(frag_pos, 1.0);
+
+    vec3 proj_coords = directional_light_space_pos.xyz / directional_light_space_pos.w;
+    proj_coords = (proj_coords * 0.5) + 0.5;
+
+    float current = proj_coords.z;
+    float bias = 0.005f;
+    float shadow = 0.0;
+
+    vec2 texel_size = 1.0 / textureSize(directional_shadow_map, 0);
+    for(int x = -1; x <= 1; ++x)
+    {
+        for(int y = -1; y <= 1; ++y)
+        {
+            float pcf_depth = texture(directional_shadow_map, proj_coords.xy + vec2(x,y)*texel_size).r;
+            shadow += current - bias > pcf_depth ? 1.0 : 0.0;
+        }
+    }
+    shadow /= 9;
+
+    if(current > 1.0)
+    {
+        shadow = 0.0;
+    }
+
+    return shadow;
+}
+
+vec3 grid_sampling_disk[20] = vec3[]
+(
+vec3(1, 1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1, 1,  1),
+vec3(1, 1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1, 1, -1),
+vec3(1, 1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1, 1,  0),
+vec3(1, 0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1, 0, -1),
+vec3(0, 1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0, 1, -1)
+);
+float calculate_omnidirectional_shadow(point_light_t light, uint light_index)
+{
+    if(light.b_cast_shadow == false)
+    {
+        return 0.f;
+    }
+
+    for(int omni_shadow_index = 0; omni_shadow_index < omni_shadow_count; ++omni_shadow_index)
+    {
+        if(light_index == omni_shadows[omni_shadow_index].light_index)
+        {
+            vec3 frag_to_light = frag_pos - light.position;
+            float current_depth = length(frag_to_light);
+
+            int num_samples = 20;
+            float bias = 0.15f;
+
+            float shadow = 0.0f;
+            float view_distance = length(camera_pos - frag_pos);
+            float disk_radius = (1.0 + (view_distance / omni_shadows[omni_shadow_index].far_plane)) / 25.0;
+            for(int sample_iterator = 0; sample_iterator < num_samples; ++sample_iterator)
+            {
+                float closestDepth = texture(omni_shadows[omni_shadow_index].shadow_cube, frag_to_light + grid_sampling_disk[sample_iterator] * disk_radius).r;
+                closestDepth *= omni_shadows[omni_shadow_index].far_plane;
+                if(current_depth - bias > closestDepth)
+                shadow += 1.0;
+            }
+            shadow /= float(num_samples);
+
+            return shadow;
+        }
+    }
+
+    return 0.f;
+}
+
+vec4 calculate_light()
+{
+    vec4 light_accumulation;
+    
+    vec3 direction = -normalize(directional_light.direction);
+    vec4 ambient_colour = vec4(directional_light.colour * directional_light.ambient_intensity, 1.0f);
+    float diffuse_factor = max(0.f, dot(normalize(surface_normal), direction));
+    vec4 diffuse_colour = vec4(directional_light.colour * directional_light.diffuse_intensity * diffuse_factor, 1.0f);
+    vec4 specular_colour = vec4(0.f,0.f,0.f,0.f);
+    if(diffuse_factor > 0.f && directional_light.diffuse_intensity > 0.f)
+    {
+        vec3 observer_vec = normalize(camera_pos - frag_pos);
+        vec3 reflection_vec = normalize(reflect(direction, normalize(surface_normal)));
+        float specular_factor = max(0.f, pow(dot(observer_vec, reflection_vec), shininess));
+        specular_colour = vec4(directional_light.colour * specular_intensity * specular_factor, 1.0f);
+    }
+    light_accumulation = ambient_colour + ((1.0 - calculate_directional_shadow()) * (diffuse_colour + specular_colour));
+
+    for(int i = 0; i < s_num_visible_lights; ++i)
+    {
+        uint light_index = s_visible_light_indices[i];
+        point_light_t light = all_point_lights[light_index];
+
+        vec3 raw_direction = frag_pos - light.position;
+        direction = -normalize(raw_direction);
+        diffuse_factor = max(0.f, dot(normalize(surface_normal), direction));
+        diffuse_colour = vec4(light.colour * light.diffuse_intensity * diffuse_factor, 1.0f);
+        specular_colour = vec4(0.f,0.f,0.f,0.f);
+        if(diffuse_factor > 0.f && light.diffuse_intensity > 0.f)
+        {
+            vec3 observer_vec = normalize(camera_pos - frag_pos);
+            vec3 reflection_vec = normalize(reflect(direction, normalize(surface_normal)));
+            float specular_factor = max(0.f, pow(dot(observer_vec, reflection_vec), shininess));
+            specular_colour = vec4(light.colour * specular_intensity * specular_factor, 1.0f);
+        }
+        vec4 point_light_contribution = (1.0 - calculate_omnidirectional_shadow(light, light_index)) * (diffuse_colour + specular_colour);
+
+        float distance = length(raw_direction);
+        float attenuation = 1.f / (light.att_constant + light.att_linear * distance + light.att_quadratic * distance * distance);
+        vec4 current_light_contribution = point_light_contribution * attenuation;
+
+        if(false) //light.b_spotlight == false
+        {
+            light_accumulation += current_light_contribution;
+        }
+        else
+        {
+            vec3 to_frag_vector = normalize(raw_direction);
+            float cos_angle_to_frag = dot(to_frag_vector, normalize(light.direction));
+            if(cos_angle_to_frag > light.cutoff)
+            {
+                float spotlight_edge_factor = 1 - ((1 - cos_angle_to_frag) / (1 - light.cutoff));
+                light_accumulation += current_light_contribution * spotlight_edge_factor;
+            }
+        }
+    }
+
+    return light_accumulation;
+}
+
+void main()
+{
+    if(gl_LocalInvocationIndex == 0)
+    {
+        s_num_visible_lights = 0;   
+    }
+
+    barrier();
+
+    ivec2 img_output_size = imageSize(img_output);
+    vec2 fimg_output_size = vec2(img_output_size);
+    ivec2 pixel_coord = ivec2(gl_GlobalInvocationID.xy);
+    vec2 fpixel_coord = vec2(pixel_coord);
+    vec2 tex_uv_coord = fpixel_coord / fimg_output_size;
+
+// Frustum construction
+
+    vec2 center = fimg_output_size / float(2 * WORK_GROUP_SIZE); // Location of the middle work group
+    vec2 offset = center - vec2(gl_WorkGroupID.xy);
+
+    // Extract the viewing frustum planes (normals)
+    // https://gamedev.stackexchange.com/questions/156743/finding-the-normals-of-the-planes-of-a-view-frustum
+    // https://gamedev.stackexchange.com/questions/79172/checking-if-a-vector-is-contained-inside-a-viewing-frustum
+    vec4 column0 = vec4(-projection_matrix[0][0] * center.x, projection_matrix[0][1], offset.x, projection_matrix[0][3]);
+    vec4 column1 = vec4(projection_matrix[1][0], -projection_matrix[1][1] * center.y, offset.y, projection_matrix[1][3]);
+    vec4 column3 = vec4(projection_matrix[3][0], projection_matrix[3][1], -1.0f, projection_matrix[3][3]);
+
+    vec4 frustumPlanes[4];
+    frustumPlanes[0] = column3 + column0; // Left
+    frustumPlanes[1] = column3 - column0; // Right
+    frustumPlanes[2] = column3 - column1; // Top
+    frustumPlanes[3] = column3 + column1; // Bottom
+    for (int i = 0; i < 4; ++i)
+    {
+        frustumPlanes[i] /= length(frustumPlanes[i].xyz); // normalize
+    }
+
+// Light culling
+
+    int num_threads = WORK_GROUP_SIZE * WORK_GROUP_SIZE;
+    int num_passes = (point_light_count + num_threads - 1) / num_threads;
+    for(int pass = 0; pass < num_passes; ++pass)
+    {
+        uint light_index = pass * num_threads + gl_LocalInvocationIndex;
+        if(light_index > point_light_count - 1)
+        {
+            break;
+        }
+
+        point_light_t point_light = all_point_lights[light_index];
+        bool inFrustum = true;
+        for (int frustum_side = 0; frustum_side < 4 && inFrustum; ++frustum_side)
+        {
+            float distance_of_light_from_plane = dot(frustumPlanes[frustum_side], view_matrix * vec4(point_light.position, 1.0f));
+            inFrustum = -point_light.radius <= distance_of_light_from_plane;
+        }
+        if (inFrustum)
+        {
+            int memory_index = atomicAdd(s_num_visible_lights, 1);
+            s_visible_light_indices[memory_index] = light_index;
+        }
+    }
+
+    barrier();
+
+// Shading
+
+    vec4 position_specular_sample = texture(gPosition, tex_uv_coord);
+    frag_pos = position_specular_sample.rgb;
+    specular_intensity = position_specular_sample.a;
+    vec4 normal_shininess_sample = texture(gNormal, tex_uv_coord);
+    surface_normal = normal_shininess_sample.rgb;
+    shininess = normal_shininess_sample.a;
+    vec4 albedo_sample = texture(gAlbedo, tex_uv_coord);
+    albedo_colour = albedo_sample.rgb;
+
+    vec4 pixel = vec4(albedo_colour, 1.f) * calculate_light();
+
+// Debug view of tiles
+//    if((gl_LocalInvocationID.x > 0 && gl_LocalInvocationID.x < 15)
+//    && (gl_LocalInvocationID.y > 0 && gl_LocalInvocationID.y < 15))
+//    {
+//        float rg = (float(s_num_visible_lights) / float(100));
+//        pixel *= vec4(rg,rg,1.f,1.f);
+//    }
+
+    imageStore(img_output, pixel_coord, pixel);
+}

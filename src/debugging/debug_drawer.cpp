@@ -14,10 +14,6 @@ int debug_drawer_get_level()
 internal bool debugger_b_debug_pointlights = true;
 internal point_light_t* debugger_point_lights = nullptr;
 internal u8 debugger_point_lights_count = 0;
-internal bool debugger_b_debug_spotlights = true;
-internal spot_light_t* debugger_spot_lights = nullptr;
-internal u8 debugger_spot_lights_count = 0;
-internal float ATTENUATION_FACTOR_TO_CALC_RANGE_FOR = 0.1f;
 
 internal mesh_t debug_sphere_mesh;
 internal mesh_t debug_cone_mesh;
@@ -130,40 +126,23 @@ void debug_render_line()
     // TODO
 }
 
-float debug_calculate_attenuation_range(float c, float l, float q)
-{
-    c -= 1.f / ATTENUATION_FACTOR_TO_CALC_RANGE_FOR;
-    float discriminant = l * l - 4 * q * c;
-    if (discriminant >= 0) 
-    {
-        float root1 = (-l + sqrt(discriminant)) / (2 * q);
-        float root2 = (-l - sqrt(discriminant)) / (2 * q);
-        float att_range = max(root1, root2);
-        return att_range;
-    }
-    else
-    {
-        return 0.f;
-    }
-}
-
 void debug_render_pointlight(shader_t& shader, point_light_t& plight)
 {
-    float att_radius = debug_calculate_attenuation_range(plight.att_constant, plight.att_linear, plight.att_quadratic);
+    float att_radius = plight.get_radius() / 2.5f;
     shader.gl_bind_4f("frag_colour", 1.f, 1.f, 1.f, 1.f);
     debug_render_sphere(shader, plight.position.x, plight.position.y, plight.position.z, att_radius);
     shader.gl_bind_4f("frag_colour", 1.f, 1.f, 0.f, 1.f);
     debug_render_sphere(shader, plight.position.x, plight.position.y, plight.position.z, 0.05f);
 }
 
-void debug_render_spotlight(shader_t& shader, spot_light_t& slight)
+void debug_render_spotlight(shader_t& shader, point_light_t& slight)
 {
-    float att_radius = debug_calculate_attenuation_range(slight.att_constant, slight.att_linear, slight.att_quadratic);
+    float att_radius = slight.get_radius();
     shader.gl_bind_4f("frag_colour", 1.f, 1.f, 1.f, 1.f);
     float base_radius = att_radius * tanf(acosf(slight.cosine_cutoff()));
     float height = att_radius / slight.cosine_cutoff();
     debug_render_cone(shader, slight.position.x, slight.position.y, slight.position.z,
-                      height, base_radius, slight.orientation);
+                      height, base_radius, direction_to_orientation(slight.get_direction()));
     shader.gl_bind_4f("frag_colour", 1.f, 1.f, 0.f, 1.f);
     debug_render_sphere(shader, slight.position.x, slight.position.y, slight.position.z, 0.05f);
 }
@@ -191,18 +170,16 @@ void debug_render(shader_t& debug_shader, camera_t camera)
             {
                 for(size_t i = 0; i < debugger_point_lights_count; ++i)
                 {
-                    debug_render_pointlight(debug_shader, debugger_point_lights[i]);
+                    if(debugger_point_lights[i].is_b_spotlight())
+                    {
+                        debug_render_spotlight(debug_shader, debugger_point_lights[i]);
+                    }
+                    else
+                    {
+                        debug_render_pointlight(debug_shader, debugger_point_lights[i]);
+                    }
                 }
             }
-
-            if(debugger_b_debug_spotlights)
-            {
-                for(size_t i = 0; i < debugger_spot_lights_count; ++i)
-                {
-                    debug_render_spotlight(debug_shader, debugger_spot_lights[i]);
-                }
-            }
-
         }
 
     glUseProgram(0);
@@ -217,17 +194,6 @@ void debug_set_pointlights(point_light_t* point_lights_array, u8 count)
 void debug_toggle_debug_pointlights()
 {
     debugger_b_debug_pointlights = !debugger_b_debug_pointlights;
-}
-
-void debug_set_spotlights(spot_light_t* spot_lights_array, u8 count)
-{
-    debugger_spot_lights = spot_lights_array;
-    debugger_spot_lights_count = count;
-}
-
-void debug_toggle_debug_spotlights()
-{
-    debugger_b_debug_spotlights = !debugger_b_debug_spotlights;
 }
 
 void debug_set_debug_level(int level)

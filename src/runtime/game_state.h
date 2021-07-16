@@ -29,7 +29,6 @@ struct temp_map_t
 
     // prob going to stay
     std::vector<point_light_t> pointlights;
-    std::vector<spot_light_t> spotlights;
     directional_light_t directionallight;
 };
 
