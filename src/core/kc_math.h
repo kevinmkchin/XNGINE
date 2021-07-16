@@ -208,6 +208,7 @@ inline vec3 make_vec3(float inx, float iny, float inz);
 inline vec4 make_vec4(float inx, float iny, float inz, float inw);
 
 inline mat3 identity_mat3();
+inline mat3 make_mat3(const mat4& from);
 inline mat4 identity_mat4();
 inline mat4 make_mat4(const mat3& from);
 
@@ -455,6 +456,21 @@ inline mat3 identity_mat3()
     ret[0][0] = 1.f;
     ret[1][1] = 1.f;
     ret[2][2] = 1.f;
+    return ret;
+}
+
+inline mat3 make_mat3(const mat4& from)
+{
+    mat3 ret;
+    ret[0][0] = from[0][0];
+    ret[0][1] = from[0][1];
+    ret[0][2] = from[0][2];
+    ret[1][0] = from[1][0];
+    ret[1][1] = from[1][1];
+    ret[1][2] = from[1][2];
+    ret[2][0] = from[2][0];
+    ret[2][1] = from[2][1];
+    ret[2][2] = from[2][2];
     return ret;
 }
 

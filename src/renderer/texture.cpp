@@ -8,8 +8,8 @@ internal std::unordered_map<std::string, texture_t> gpu_loaded_textures;
 
 void texture_t::gl_create_from_bitmap(texture_t&        texture,
                                       unsigned char*    bitmap,
-                                      u32            bitmap_width,
-                                      u32            bitmap_height,
+                                      u32               bitmap_width,
+                                      u32               bitmap_height,
                                       GLenum            target_format,
                                       GLenum            source_format)
 {
@@ -83,4 +83,29 @@ void texture_t::gl_use_texture() const
 {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture_id);
+}
+
+
+
+void cubemap_t::gl_create_from_files(cubemap_t& cubemap, const std::vector<std::string>& faces_paths)
+{
+    glGenTextures(1, &cubemap.texture_id);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap.texture_id);
+
+    for(size_t i = 0; i < 6; ++i)
+    {
+        bitmap_handle_t face_handle;
+        read_image(face_handle, faces_paths[i].c_str());
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, face_handle.width, face_handle.height,
+                     0,(face_handle.bit_depth == 3 ? GL_RGB : GL_RGBA), GL_UNSIGNED_BYTE, face_handle.memory);
+        free_image(face_handle);
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 }
