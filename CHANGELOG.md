@@ -1,5 +1,9 @@
 ## Development Log
 
+### 2021-07-15
+- Copying depth buffer from G-buffer to default buffer so that we can forward render
+  with the correct depths after deferred rendering.
+
 ### 2021-07-11
 - Spotlights for deferred renderer.
 - Omnidirectional shadows for deferred renderer.
