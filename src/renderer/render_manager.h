@@ -5,6 +5,8 @@
 #include "../core/kc_math.h"
 #include "light.h"
 #include "../debugging/console.h"
+#include "texture.h"
+#include "mesh.h"
 
 struct game_state;
 
@@ -82,6 +84,8 @@ private:
 
     void render_scene(shader_t& shader);
 
+    void render_skybox();
+
     void copy_depth_from_gbuffer_to_defaultbuffer() const;
 
     // Width and Height of writable buffer
@@ -90,6 +94,7 @@ private:
 
     shader_t    shader_common;
     shader_t    shader_deferred_geometry_pass;
+    shader_t    shader_tiled_deferred_lighting;
     shader_t    shader_deferred_lighting_pass;
     shader_t    shader_directional_shadow_map;
     shader_t    shader_omni_shadow_map;
@@ -97,11 +102,14 @@ private:
     shader_t    shader_text;
     shader_t    shader_ui;
     shader_t    shader_simple;
+    shader_t    shader_skybox;
 
-    shader_t    shader_tiled_deferred_lighting;
 
     directional_shadow_map_t directional_shadow_map;
     std::vector<omni_shadow_map_t> omni_shadow_maps;
+
+    cubemap_t   skybox_cubemap;
+    mesh_t      skybox_mesh;
 
     u32 g_buffer_FBO = 0;
     u32 g_position_texture = 0;

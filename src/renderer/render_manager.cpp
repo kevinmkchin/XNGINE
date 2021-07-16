@@ -50,6 +50,47 @@ void render_manager::initialize()
 
     update_buffer_size(back_buffer_width, back_buffer_height);
     matrix_projection_ortho = projection_matrix_orthographic_2d(0.0f, (float)back_buffer_width, (float)back_buffer_height, 0.0f);
+
+    std::vector<std::string> skybox_faces_paths;
+    skybox_faces_paths.push_back("data/textures/skybox/cupertin-lake_rt.tga");
+    skybox_faces_paths.push_back("data/textures/skybox/cupertin-lake_lf.tga");
+    skybox_faces_paths.push_back("data/textures/skybox/cupertin-lake_up.tga");
+    skybox_faces_paths.push_back("data/textures/skybox/cupertin-lake_dn.tga");
+    skybox_faces_paths.push_back("data/textures/skybox/cupertin-lake_bk.tga");
+    skybox_faces_paths.push_back("data/textures/skybox/cupertin-lake_ft.tga");
+    cubemap_t::gl_create_from_files(skybox_cubemap, skybox_faces_paths);
+    u32 skybox_indices[] = {
+            // front
+            0, 1, 2,
+            2, 1, 3,
+            // right
+            2, 3, 5,
+            5, 3, 7,
+            // back
+            5, 7, 4,
+            4, 7, 6,
+            // left
+            4, 6, 0,
+            0, 6, 1,
+            // top
+            4, 0, 5,
+            5, 0, 2,
+            // bottom
+            1, 6, 3,
+            3, 6, 7
+    };
+    float skybox_vertices[] = {
+            -1.0f, 1.0f, -1.0f,
+            -1.0f, -1.0f, -1.0f,
+            1.0f, 1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            -1.0f, 1.0f, 1.0f,
+            1.0f, 1.0f, 1.0f,
+            -1.0f, -1.0f, 1.0f,
+            1.0f, -1.0f, 1.0f
+    };
+    mesh_t::gl_create_mesh(skybox_mesh, skybox_vertices, skybox_indices, array_count(skybox_vertices),
+                           array_count(skybox_indices), 3, 0, 0);
 }
 
 void render_manager::render()
@@ -216,7 +257,7 @@ void render_manager::render_pass_main()
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 /////////////////////////////////////////////////////////////
-// 3. Deferred lighting and composition pass
+// 3. Render Deferred Composition to Screen     Quad
 /////////////////////////////////////////////////////////////
     shader_t::gl_use_shader(shader_deferred_lighting_pass);
     {
@@ -246,6 +287,8 @@ void render_manager::render_pass_main()
     glUseProgram(0);
 
     copy_depth_from_gbuffer_to_defaultbuffer();
+
+    render_skybox();
 
 // ALPHA BLENDED
     glEnable(GL_BLEND);
@@ -301,6 +344,24 @@ void render_manager::copy_depth_from_gbuffer_to_defaultbuffer() const
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void render_manager::render_skybox()
+{
+    camera_t& camera = gs->m_camera;
+
+    shader_t::gl_use_shader(shader_skybox);
+
+    mat4 skybox_view_matrix = make_mat4(make_mat3(camera.matrix_view));
+    shader_skybox.gl_bind_matrix4fv("matrix_view", 1, skybox_view_matrix.ptr());
+    shader_skybox.gl_bind_matrix4fv("matrix_proj_perspective", 1, camera.matrix_perspective.ptr());
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, skybox_cubemap.texture_id);
+
+    skybox_mesh.gl_render_mesh();
+
+    glUseProgram(0);
+}
+
 void render_manager::render_scene(shader_t& shader)
 {
     temp_map_t& loaded_map = gs->loaded_map;
@@ -334,6 +395,7 @@ render_manager::load_shaders()
     shader_t::gl_load_shader_program_from_file(shader_text, text_vs_path, text_fs_path);
     shader_t::gl_load_shader_program_from_file(shader_ui, ui_vs_path, ui_fs_path);
     shader_t::gl_load_shader_program_from_file(shader_simple, simple_vs_path, simple_fs_path);
+    shader_t::gl_load_shader_program_from_file(shader_skybox, "shaders/skybox.vert", "shaders/skybox.frag");
 
     shader_t::gl_load_compute_shader_program_from_file(shader_tiled_deferred_lighting, deferred_tiled_cs_path);
 }

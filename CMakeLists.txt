@@ -23,8 +23,7 @@ add_executable(${PROJECT_NAME}
         src/core/display_SDL.cpp
         src/renderer/render_manager.cpp
         src/runtime/game_state.cpp
-        src/renderer/shader.cpp
-        src/renderer/shader.h)
+        src/renderer/shader.cpp)
 # add WIN32 after ${PROJECT_NAME} if compile for SUBSYSTEM:WINDOWS
 
 # Compile time preprocessor definitions
