@@ -25,7 +25,7 @@ The following image shows a scene with 4000 light sources running at an acceptab
 Debug drawer for point lights and spot lights. Frametime and FPS profiler.
 ![debug drawer](https://user-images.githubusercontent.com/44921110/126014963-42449bb3-927d-4c33-a3e4-b9337e83bcef.png)
 
-## More Screenshots
+## Additional Screenshots
 ![8 - 1000 lights lost empire](https://user-images.githubusercontent.com/44921110/126014655-f0277696-a468-4054-abf9-23307c682c69.png)
 ![9 - vokselia](https://user-images.githubusercontent.com/44921110/126014662-e9eec1c4-03e5-4318-b6a8-4e82be243621.png)
 ![11 - tracks](https://user-images.githubusercontent.com/44921110/126014674-797d737a-1540-4983-90a5-7f0e15a4bf15.png)
