@@ -182,7 +182,7 @@ struct mat4
 {
     vec4 e[4] = { 0.f };
 
-    float* ptr() { return((float*)this); }
+    float* ptr() const { return((float*)this); }
 
     vec4& operator[] (int col) { return e[col]; }
     const vec4& operator[] (int col) const { return e[col]; }
