@@ -49,12 +49,12 @@ void render_manager::initialize()
     matrix_projection_ortho = projection_matrix_orthographic_2d(0.0f, (float)back_buffer_width, (float)back_buffer_height, 0.0f);
 
     std::vector<std::string> skybox_faces_paths;
-    skybox_faces_paths.push_back("data/textures/skybox/cupertin-lake_rt.tga");
-    skybox_faces_paths.push_back("data/textures/skybox/cupertin-lake_lf.tga");
-    skybox_faces_paths.push_back("data/textures/skybox/cupertin-lake_up.tga");
-    skybox_faces_paths.push_back("data/textures/skybox/cupertin-lake_dn.tga");
-    skybox_faces_paths.push_back("data/textures/skybox/cupertin-lake_bk.tga");
-    skybox_faces_paths.push_back("data/textures/skybox/cupertin-lake_ft.tga");
+    skybox_faces_paths.push_back("data/textures/skyboxes/sky/skybox_px.jpg");
+    skybox_faces_paths.push_back("data/textures/skyboxes/sky/skybox_nx.jpg");
+    skybox_faces_paths.push_back("data/textures/skyboxes/sky/skybox_py.jpg");
+    skybox_faces_paths.push_back("data/textures/skyboxes/sky/skybox_ny.jpg");
+    skybox_faces_paths.push_back("data/textures/skyboxes/sky/skybox_pz.jpg");
+    skybox_faces_paths.push_back("data/textures/skyboxes/sky/skybox_nz.jpg");
     cubemap_t::gl_create_from_files(m_skybox_renderer.skybox_cubemap, skybox_faces_paths);
     m_skybox_renderer.init();
 }
@@ -333,7 +333,7 @@ void render_manager::render_scene(shader_t& shader)
         shader.gl_bind_1f("material.specular_intensity", material_dull.specular_intensity);
         shader.gl_bind_1f("material.shininess", material_dull.shininess);
     }
-    mat4 matrix_model = identity_mat4();
+    mat4 matrix_model;
     matrix_model = identity_mat4();
     matrix_model *= translation_matrix(loaded_map.mainobject.pos);
     matrix_model *= rotation_matrix(loaded_map.mainobject.orient);

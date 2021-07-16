@@ -13,7 +13,7 @@ int debug_drawer_get_level()
 
 internal bool debugger_b_debug_pointlights = true;
 internal point_light_t* debugger_point_lights = nullptr;
-internal u8 debugger_point_lights_count = 0;
+internal u32 debugger_point_lights_count = 0;
 
 internal mesh_t debug_sphere_mesh;
 internal mesh_t debug_cone_mesh;
@@ -185,7 +185,7 @@ void debug_render(shader_t& debug_shader, camera_t camera)
     glUseProgram(0);
 }
 
-void debug_set_pointlights(point_light_t* point_lights_array, u8 count)
+void debug_set_pointlights(point_light_t* point_lights_array, u32 count)
 {
     debugger_point_lights = point_lights_array;
     debugger_point_lights_count = count;

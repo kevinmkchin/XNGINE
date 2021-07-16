@@ -44,7 +44,7 @@ public:
         b_static = true;
         b_cast_shadow = false;
         b_prebaked_shadow = false;
-        b_spotlight = true;
+        b_spotlight = false;
     }
 
     float get_radius() const;

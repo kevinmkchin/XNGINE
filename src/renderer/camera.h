@@ -17,11 +17,11 @@ struct camera_t
     mat4   matrix_perspective   = { 0.f }; // Perspective projection matrix
     mat4   matrix_view          = { 0.f }; // Last calculated view matrix
 
-    float movespeed             = 12.f;
+    float movespeed             = 50.f;
     float turnspeed             = 0.17f;
 
     float nearclip              = 0.1f;
-    float farclip               = 1000.f;
+    float farclip               = 2000.f;
 
     void update_camera();
 

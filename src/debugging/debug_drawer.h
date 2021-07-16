@@ -26,6 +26,6 @@ void debug_render_line();
 void debug_render_pointlight(shader_t& shader, point_light_t& plight);
 void debug_initialize();
 void debug_render(shader_t& debug_shader, camera_t camera);
-void debug_set_pointlights(point_light_t* point_lights_array, u8 count);
+void debug_set_pointlights(point_light_t* point_lights_array, u32 count);
 void debug_toggle_debug_pointlights();
 void debug_set_debug_level(int level);
