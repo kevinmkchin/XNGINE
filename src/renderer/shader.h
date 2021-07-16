@@ -48,4 +48,7 @@ private:
 
     // Create shader on GPU and compile shader
     static void gl_compile_shader(u32 program_id, const char* shader_code, GLenum shader_type);
+
+    // Return true if there was a compile error
+    static bool gl_check_error_and_validate(GLuint program_id);
 };

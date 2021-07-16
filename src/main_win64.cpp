@@ -1,7 +1,7 @@
 /** OpenGL 3D Renderer
 
 TODO:
-    - Skybox
+    - Reference count texture resources
     - BUG console command bug - commands get cut off when entered - could be a memory bug?
     - kc_truetypeassembler.h
         - clean up - allocate all memory on init and deallocate all memory on clean up
