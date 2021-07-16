@@ -128,9 +128,67 @@ void render_manager::render_pass_main()
 
     camera.calculate_view_matrix();
 
-/////////////////////////////////////////////////////////////
-// 1. Geometry pass
-/////////////////////////////////////////////////////////////
+    // 1. Geometry pass
+    deferred_geometry_pass();
+    // 2. Compute shader pass - Light culling, shading, composition
+    deferred_lighting_and_composition_pass();
+    // 3. Render Deferred Composition to Screen Quad
+    deferred_render_to_quad_pass();
+
+    copy_depth_from_gbuffer_to_defaultbuffer();
+
+    m_skybox_renderer.render(camera);
+
+// ALPHA BLENDED
+    glEnable(GL_BLEND);
+    debug_render(shader_simple, camera);
+
+// NOT DEPTH TESTED
+    glDisable(GL_DEPTH_TEST);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+#if INTERNAL_BUILD
+    if(input::get_instance()->g_keystate[SDL_SCANCODE_F3])
+    {
+        local_persist mesh_t quad;
+        local_persist bool meshmade = false;
+        if(!meshmade)
+        {
+            meshmade = true;
+
+            u32 quadindices[6] = {
+                    0, 1, 3,
+                    0, 3, 2
+            };
+            GLfloat quadvertices[16] = {
+                    //  x     y        u    v
+                    -1.f, -1.f,   -0.1f, -0.1f,
+                    1.f, -1.f,    1.1f, -0.1f,
+                    -1.f, 1.f,    -0.1f, 1.1f,
+                    1.f, 1.f,     1.1f, 1.1f
+            };
+            mesh_t::gl_create_mesh(quad, quadvertices, quadindices, 16, 6, 2, 2, 0);
+        }
+        shader_t::gl_use_shader(shader_debug_dir_shadow_map);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, directional_shadow_map.directionalShadowMapTexture);
+        quad.gl_render_mesh();
+        glUseProgram(0);
+    }
+#endif
+
+    profiler_render(&shader_ui, &shader_text);
+    console_render(&shader_ui, &shader_text);
+
+    // Enable depth test before swapping buffers
+    // (NOTE: if we don't enable depth test before swap, the shadow map shows up as blank white texture on the quad.)
+    glEnable(GL_DEPTH_TEST);
+}
+
+void render_manager::deferred_geometry_pass()
+{
+    camera_t& camera = gs->m_camera;
+
     glBindFramebuffer(GL_FRAMEBUFFER, g_buffer_FBO);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -141,12 +199,14 @@ void render_manager::render_pass_main()
     shader_deferred_geometry_pass.gl_bind_1i("texture_sampler_0", 1);
 
     render_scene(shader_deferred_geometry_pass);
-
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
 
-/////////////////////////////////////////////////////////////
-// 2. Compute shader pass - Light culling, shading, composition
-/////////////////////////////////////////////////////////////
+void render_manager::deferred_lighting_and_composition_pass()
+{
+    camera_t& camera = gs->m_camera;
+    temp_map_t& loaded_map = gs->loaded_map;
+
     shader_t::gl_use_shader(shader_tiled_deferred_lighting);
     glBindImageTexture(0, tiled_deferred_shading_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
@@ -204,12 +264,12 @@ void render_manager::render_pass_main()
     if (lightsBuffer == 0) {
         glGenBuffers(1, &lightsBuffer);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, lightsBuffer);
-    }
 
-    // todo only update changed data? glBufferSubData
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightsBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, plights.size() * sizeof(point_light_t), plights.data(), GL_DYNAMIC_COPY);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        // todo only update changed data? glBufferSubData
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightsBuffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, plights.size() * sizeof(point_light_t), plights.data(), GL_DYNAMIC_COPY);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    }
 
     shader_tiled_deferred_lighting.gl_bind_matrix4fv("projection_matrix", 1, camera.matrix_perspective.ptr());
     shader_tiled_deferred_lighting.gl_bind_matrix4fv("view_matrix", 1, camera.matrix_view.ptr());
@@ -221,11 +281,11 @@ void render_manager::render_pass_main()
     glDispatchCompute(dispatch_width, dispatch_height, 1);
 
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+}
 
-/////////////////////////////////////////////////////////////
-// 3. Render Deferred Composition to Screen     Quad
-/////////////////////////////////////////////////////////////
-    shader_t::gl_use_shader(shader_deferred_lighting_pass);
+void render_manager::deferred_render_to_quad_pass()
+{
+    shader_t::gl_use_shader(shader_deferred_render_to_quad_pass);
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glActiveTexture(GL_TEXTURE0);
@@ -251,55 +311,6 @@ void render_manager::render_pass_main()
         quad.gl_render_mesh();
     }
     glUseProgram(0);
-
-    copy_depth_from_gbuffer_to_defaultbuffer();
-
-    m_skybox_renderer.render(camera);
-
-// ALPHA BLENDED
-    glEnable(GL_BLEND);
-    debug_render(shader_simple, camera);
-
-// NOT DEPTH TESTED
-    glDisable(GL_DEPTH_TEST);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-#if INTERNAL_BUILD
-    if(input::get_instance()->g_keystate[SDL_SCANCODE_F3])
-    {
-        local_persist mesh_t quad;
-        local_persist bool meshmade = false;
-        if(!meshmade)
-        {
-            meshmade = true;
-
-            u32 quadindices[6] = {
-                    0, 1, 3,
-                    0, 3, 2
-            };
-            GLfloat quadvertices[16] = {
-                    //  x     y        u    v
-                    -1.f, -1.f,   -0.1f, -0.1f,
-                    1.f, -1.f,    1.1f, -0.1f,
-                    -1.f, 1.f,    -0.1f, 1.1f,
-                    1.f, 1.f,     1.1f, 1.1f
-            };
-            mesh_t::gl_create_mesh(quad, quadvertices, quadindices, 16, 6, 2, 2, 0);
-        }
-        shader_t::gl_use_shader(shader_debug_dir_shadow_map);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, directional_shadow_map.directionalShadowMapTexture);
-        quad.gl_render_mesh();
-        glUseProgram(0);
-    }
-#endif
-
-    profiler_render(&shader_ui, &shader_text);
-    console_render(&shader_ui, &shader_text);
-
-    // Enable depth test before swapping buffers
-    // (NOTE: if we don't enable depth test before swap, the shadow map shows up as blank white texture on the quad.)
-    glEnable(GL_DEPTH_TEST);
 }
 
 void render_manager::copy_depth_from_gbuffer_to_defaultbuffer() const
@@ -334,27 +345,36 @@ void render_manager::render_scene(shader_t& shader)
 void render_manager::load_shaders()
 {
     shader_t::gl_load_shader_program_from_file(shader_deferred_geometry_pass, deferred_geometry_vs_path, deferred_geometry_fs_path);
-    shader_t::gl_load_shader_program_from_file(shader_deferred_lighting_pass, deferred_final_vs_path, deferred_final_fs_path);
+    shader_t::gl_load_compute_shader_program_from_file(shader_tiled_deferred_lighting, deferred_tiled_cs_path);
+    shader_t::gl_load_shader_program_from_file(shader_deferred_render_to_quad_pass, deferred_final_vs_path, deferred_final_fs_path);
+
     shader_t::gl_load_shader_program_from_file(shader_directional_shadow_map, "shaders/shadow_mapping/directional_shadow_map.vert", "shaders/shadow_mapping/directional_shadow_map.frag");
     shader_t::gl_load_shader_program_from_file(shader_omni_shadow_map, "shaders/shadow_mapping/omni_shadow_map.vert", "shaders/shadow_mapping/omni_shadow_map.geom", "shaders/shadow_mapping/omni_shadow_map.frag");
     shader_t::gl_load_shader_program_from_file(shader_debug_dir_shadow_map, "shaders/debug_directional_shadow_map.vert", "shaders/debug_directional_shadow_map.frag");
+
     shader_t::gl_load_shader_program_from_file(shader_text, text_vs_path, text_fs_path);
     shader_t::gl_load_shader_program_from_file(shader_ui, ui_vs_path, ui_fs_path);
     shader_t::gl_load_shader_program_from_file(shader_simple, simple_vs_path, simple_fs_path);
-
-    shader_t::gl_load_compute_shader_program_from_file(shader_tiled_deferred_lighting, deferred_tiled_cs_path);
 }
 
 void render_manager::clean_up()
 {
-    shader_t::gl_delete_shader(shader_common);
+    shader_t::gl_delete_shader(shader_deferred_geometry_pass);
+    shader_t::gl_delete_shader(shader_tiled_deferred_lighting);
+    shader_t::gl_delete_shader(shader_deferred_render_to_quad_pass);
+
+    shader_t::gl_delete_shader(shader_directional_shadow_map);
+    shader_t::gl_delete_shader(shader_omni_shadow_map);
+    shader_t::gl_delete_shader(shader_debug_dir_shadow_map);
+
     shader_t::gl_delete_shader(shader_text);
     shader_t::gl_delete_shader(shader_ui);
+    shader_t::gl_delete_shader(shader_simple);
 }
 
 vec2i render_manager::get_buffer_size()
 {
-    vec2i retval = {back_buffer_width, back_buffer_height };
+    vec2i retval = { back_buffer_width, back_buffer_height };
     return retval;
 }
 

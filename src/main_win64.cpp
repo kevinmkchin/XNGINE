@@ -8,11 +8,11 @@ TODO:
         - documentation to say that one can use translation and scaling matrices with the resulting
           vertices in order to transform them on the screen (e.g. animate the text).
     ~~~
+    - CASCADED SHADOW MAPS https://developer.download.nvidia.com/SDK/10.5/opengl/src/cascaded_shadow_maps/doc/cascaded_shadow_maps.pdf
+        - make a test map for CSM. (e.g. field of trees or cubes all with shadows)
     - STATIC and DYNAMIC lights and STATIC and DYNAMIC objects/casters
         - DYNAMIC lights need to be marked dirty to update shaders etc. (don't update shaders with light info every frame)
         - for dynamic objects, render the shadow map on-top of the existing shadow map e.g. add more dark spots
-    - CASCADED SHADOW MAPS https://developer.download.nvidia.com/SDK/10.5/opengl/src/cascaded_shadow_maps/doc/cascaded_shadow_maps.pdf
-        - make a test map for CSM. (e.g. field of trees or cubes all with shadows)
 
 Backlog:
     - Resource manager / load resources asynchronously so the game isn't frozen while loading?

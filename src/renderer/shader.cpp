@@ -18,7 +18,7 @@ void shader_t::gl_delete_shader(shader_t& shader)
 {
     if (shader.id_shader_program == 0)
     {
-        console_printf("WARNING: Passed an unloaded shader program to gl_delete_shader! Aboring.\n");
+        console_printf("WARNING: Passed an unloaded shader program to gl_delete_shader! Aborting.\n");
         return;
     }
     glDeleteProgram(shader.id_shader_program);
