@@ -18,9 +18,15 @@ uniform sampler2D texture_sampler_0;
 
 void main()
 {
+    vec4 diffuse_texture_sample = texture(texture_sampler_0, tex_coord);
+    if(diffuse_texture_sample.a < 0.5f)
+    {
+        discard;
+    }
+
     gPosition.rgb = frag_pos;
     gPosition.a = material.specular_intensity;
     gNormal.rgb = normalize(normal);
     gNormal.a = material.shininess;
-    gAlbedo.rgb = texture(texture_sampler_0, tex_coord).rgb;
+    gAlbedo.rgb = diffuse_texture_sample.rgb;
 }
