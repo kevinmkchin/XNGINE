@@ -184,7 +184,7 @@ vec4 calculate_light()
         float attenuation = 1.f / (light.att_constant + light.att_linear * distance + light.att_quadratic * distance * distance);
         vec4 current_light_contribution = point_light_contribution * attenuation;
 
-        if(false) //light.b_spotlight == false
+        if(light.b_spotlight == false)
         {
             light_accumulation += current_light_contribution;
         }

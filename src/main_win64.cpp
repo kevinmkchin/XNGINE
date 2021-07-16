@@ -1,4 +1,4 @@
-/** OpenGL 3D Renderer
+/** XNGINE
 
 TODO:
     - Reference count texture resources

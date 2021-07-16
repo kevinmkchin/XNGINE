@@ -1,11 +1,11 @@
-# opengl-3d-renderer (WORK IN PROGRESS)
-3D graphics render engine using OpenGL in mostly C with some C++
+# XNGINE - 3D Game Engine
+3D Game engine written in C++ with OpenGL.
 
 ![sponza atrium no shadows](https://i.imgur.com/rghBOau.jpg)
 
-[GLEW](http://glew.sourceforge.net/) for OpenGL interface.
-[SDL](https://www.libsdl.org/) for window creation and input.
-[Open Asset Importer](https://www.assimp.org/) for importing 3D models.
+- [GLEW](http://glew.sourceforge.net/) for OpenGL interface.
+- [SDL](https://www.libsdl.org/) for window creation and input.
+- [Open Asset Importer](https://www.assimp.org/) for importing 3D models.
 
 ## How to Build and Run
 ### Windows
