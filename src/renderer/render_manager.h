@@ -82,6 +82,8 @@ private:
 
     void render_scene(shader_t& shader);
 
+    void copy_depth_from_gbuffer_to_defaultbuffer() const;
+
     // Width and Height of writable buffer
     i32 back_buffer_width = -1;
     i32 back_buffer_height = -1;

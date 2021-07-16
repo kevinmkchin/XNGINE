@@ -216,7 +216,7 @@ void render_manager::render_pass_main()
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 /////////////////////////////////////////////////////////////
-// 3. Final image rendering pass
+// 3. Deferred lighting and composition pass
 /////////////////////////////////////////////////////////////
     shader_t::gl_use_shader(shader_deferred_lighting_pass);
     {
@@ -245,15 +245,16 @@ void render_manager::render_pass_main()
     }
     glUseProgram(0);
 
+    copy_depth_from_gbuffer_to_defaultbuffer();
+
 // ALPHA BLENDED
     glEnable(GL_BLEND);
-    // todo this is being hidden behind deferred rendered quad    debug_render(shader_simple, camera);
+    debug_render(shader_simple, camera);
 
 // NOT DEPTH TESTED
     glDisable(GL_DEPTH_TEST);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    debug_render(shader_simple, camera);
 #if INTERNAL_BUILD
     if(input::get_instance()->g_keystate[SDL_SCANCODE_F3])
     {
@@ -290,6 +291,14 @@ void render_manager::render_pass_main()
     // Enable depth test before swapping buffers
     // (NOTE: if we don't enable depth test before swap, the shadow map shows up as blank white texture on the quad.)
     glEnable(GL_DEPTH_TEST);
+}
+
+void render_manager::copy_depth_from_gbuffer_to_defaultbuffer() const
+{
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, g_buffer_FBO);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, back_buffer_width, back_buffer_height, 0, 0, back_buffer_width, back_buffer_height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void render_manager::render_scene(shader_t& shader)
