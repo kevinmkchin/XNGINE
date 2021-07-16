@@ -319,8 +319,8 @@ render_manager::load_shaders()
     shader_t::gl_load_shader_program_from_file(shader_common, forward_vs_path, forward_fs_path);
     shader_t::gl_load_shader_program_from_file(shader_deferred_geometry_pass, deferred_geometry_vs_path, deferred_geometry_fs_path);
     shader_t::gl_load_shader_program_from_file(shader_deferred_lighting_pass, deferred_final_vs_path, deferred_final_fs_path);
-    shader_t::gl_load_shader_program_from_file(shader_directional_shadow_map, "shaders/directional_shadow_map.vert", "shaders/directional_shadow_map.frag");
-    shader_t::gl_load_shader_program_from_file(shader_omni_shadow_map, "shaders/omni_shadow_map.vert", "shaders/omni_shadow_map.geom", "shaders/omni_shadow_map.frag");
+    shader_t::gl_load_shader_program_from_file(shader_directional_shadow_map, "shaders/shadow_mapping/directional_shadow_map.vert", "shaders/shadow_mapping/directional_shadow_map.frag");
+    shader_t::gl_load_shader_program_from_file(shader_omni_shadow_map, "shaders/shadow_mapping/omni_shadow_map.vert", "shaders/shadow_mapping/omni_shadow_map.geom", "shaders/shadow_mapping/omni_shadow_map.frag");
     shader_t::gl_load_shader_program_from_file(shader_debug_dir_shadow_map, "shaders/debug_directional_shadow_map.vert", "shaders/debug_directional_shadow_map.frag");
     shader_t::gl_load_shader_program_from_file(shader_text, text_vs_path, text_fs_path);
     shader_t::gl_load_shader_program_from_file(shader_ui, ui_vs_path, ui_fs_path);
