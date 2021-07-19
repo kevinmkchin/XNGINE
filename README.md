@@ -22,6 +22,9 @@ The following image shows a scene with 4000 light sources running at an acceptab
 ### 40+ model file formats support
 ![7 - doomguy](https://user-images.githubusercontent.com/44921110/126013697-6ab89220-723b-482f-ad42-b812bac8eefe.png)
 ### Debugging
+In-game console for developer commands and debugging.
+![console](https://github.com/kevinmkchin/TrueTypeAssembler/blob/main/misc/console.gif?raw=true)
+
 Debug drawer for point lights and spot lights. Frametime and FPS profiler.
 ![debug drawer](https://user-images.githubusercontent.com/44921110/126014963-42449bb3-927d-4c33-a3e4-b9337e83bcef.png)
 
