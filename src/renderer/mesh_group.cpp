@@ -33,7 +33,7 @@ void mesh_group_t::clear()
     }
 }
 
-void mesh_group_t::assimp_load(const char* file_name)
+mesh_group_t mesh_group_t::assimp_load(const char* file_name)
 {
     timer::timestamp();
 
@@ -68,20 +68,24 @@ void mesh_group_t::assimp_load(const char* file_name)
     if(!scene)
     {
         console_printf("Model '%s' failed to load: %s\n", file_name, importer.GetErrorString());
-        return;
+        return {};
     }
     console_printf("took %f seconds to Importer::ReadFile\n", timer::timestamp());
 
-    meshes.resize(scene->mNumMeshes);
-    mesh_to_texture.resize(scene->mNumMeshes);
-    textures.resize(scene->mNumMaterials);
+    mesh_group_t retval;
 
-    console_printf("took %f seconds to resize 3 vectors\n", timer::timestamp());
+    retval.meshes = std::vector<mesh_t>(scene->mNumMeshes);
+    retval.textures = std::vector<texture_t>(scene->mNumMaterials);
+    retval.mesh_to_texture = std::vector<u16>(scene->mNumMeshes);
+
+    console_printf("took %f seconds to set sizes of 3 vectors\n", timer::timestamp());
 
     // Unpack meshes
     for(size_t i = 0; i < scene->mNumMeshes; ++i)
     {
-        assimp_load_mesh_helper(i, scene->mMeshes[i]);
+        aiMesh* mesh_node = scene->mMeshes[i];
+        retval.meshes[i] = assimp_load_mesh_helper(i, mesh_node);
+        retval.mesh_to_texture[i] = mesh_node->mMaterialIndex;
     }
 
     console_printf("took %f seconds to unpack all the meshes\n", timer::timestamp());
@@ -102,15 +106,17 @@ void mesh_group_t::assimp_load(const char* file_name)
                 model_file_directory = model_file_directory.substr(0, idx + 1);
 
                 std::string tex_path = model_file_directory + texture_file_name;
-                texture_t::gl_create_from_file(textures[i], tex_path.c_str());
+                texture_t::gl_create_from_file(retval.textures[i], tex_path.c_str());
             }
         }
     }
 
     console_printf("took %f seconds to load all the textures\n", timer::timestamp());
+
+    return retval;
 }
 
-void mesh_group_t::assimp_load_mesh_helper(size_t mesh_index, aiMesh* mesh_node)
+mesh_t mesh_group_t::assimp_load_mesh_helper(size_t mesh_index, aiMesh* mesh_node)
 {
     const u8 vb_entries_per_vertex = 8;
     std::vector<float> vb(mesh_node->mNumVertices * vb_entries_per_vertex);
@@ -158,6 +164,5 @@ void mesh_group_t::assimp_load_mesh_helper(size_t mesh_index, aiMesh* mesh_node)
 
     mesh_t mesh;
     mesh_t::gl_create_mesh(mesh, &vb[0], &ib[0], (u32)vb.size(), (u32)ib.size());
-    meshes[mesh_index] = mesh;
-    mesh_to_texture[mesh_index] = mesh_node->mMaterialIndex;
+    return mesh;
 }

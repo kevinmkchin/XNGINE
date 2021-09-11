@@ -86,19 +86,17 @@ void render_manager::render_pass_directional_shadow_map()
 
 void render_manager::render_pass_omnidirectional_shadow_map()
 {
-    temp_map_t& loaded_map = gs->loaded_map;
-
     shader_t::gl_use_shader(shader_omni_shadow_map);
-    for(int omniLightCount = 0; omniLightCount < omni_shadow_maps.size(); ++omniLightCount)
+    for(auto & omni_shadow_map : omni_shadow_maps)
     {
-        glViewport(0, 0, omni_shadow_maps[omniLightCount].CUBE_SHADOW_WIDTH, omni_shadow_maps[omniLightCount].CUBE_SHADOW_HEIGHT);
-        glBindFramebuffer(GL_FRAMEBUFFER, omni_shadow_maps[omniLightCount].depthCubeMapFBO);
+        glViewport(0, 0, omni_shadow_map.CUBE_SHADOW_WIDTH, omni_shadow_map.CUBE_SHADOW_HEIGHT);
+        glBindFramebuffer(GL_FRAMEBUFFER, omni_shadow_map.depthCubeMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
 
-        shader_omni_shadow_map.gl_bind_matrix4fv("lightMatrices[0]", 6, (float*) omni_shadow_maps[omniLightCount].shadowTransforms.data());
-        vec3 lightPos = omni_shadow_maps[omniLightCount].owning_light->position;
+        shader_omni_shadow_map.gl_bind_matrix4fv("lightMatrices[0]", 6, (float*) omni_shadow_map.shadowTransforms.data());
+        vec3 lightPos = omni_shadow_map.owning_light->position;
         shader_omni_shadow_map.gl_bind_3f("lightPos", lightPos.x, lightPos.y, lightPos.z);
-        shader_omni_shadow_map.gl_bind_1f("farPlane", omni_shadow_maps[omniLightCount].get_far_plane());
+        shader_omni_shadow_map.gl_bind_1f("farPlane", omni_shadow_map.get_far_plane());
 
         render_scene(shader_omni_shadow_map);
 
@@ -109,7 +107,6 @@ void render_manager::render_pass_omnidirectional_shadow_map()
 void render_manager::render_pass_main()
 {
     camera_t& camera = gs->m_camera;
-    temp_map_t& loaded_map = gs->loaded_map;
 
     glViewport(0, 0, back_buffer_width, back_buffer_height);
     //glClearColor(0.39f, 0.582f, 0.926f, 1.f);
@@ -205,7 +202,6 @@ void render_manager::deferred_geometry_pass()
 void render_manager::deferred_lighting_and_composition_pass()
 {
     camera_t& camera = gs->m_camera;
-    temp_map_t& loaded_map = gs->loaded_map;
 
     shader_t::gl_use_shader(shader_tiled_deferred_lighting);
     glBindImageTexture(0, tiled_deferred_shading_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
@@ -237,7 +233,7 @@ void render_manager::deferred_lighting_and_composition_pass()
 
             char name_buffer[128] = {'\0'};
             stbsp_snprintf(name_buffer, sizeof(name_buffer), "omni_shadows[%d].light_index", omni_shadow_index);
-            i32 plight_address_offset = (i32)(omni_shadow_maps[omni_shadow_index].owning_light - loaded_map.pointlights.data());
+            i32 plight_address_offset = (i32)(omni_shadow_maps[omni_shadow_index].owning_light - gs->pointlights.data());
             shader_tiled_deferred_lighting.gl_bind_1i(name_buffer, plight_address_offset);
             stbsp_snprintf(name_buffer, sizeof(name_buffer), "omni_shadows[%d].shadow_cube", omni_shadow_index);
             shader_tiled_deferred_lighting.gl_bind_1i(name_buffer, 5 + omni_shadow_index);
@@ -248,7 +244,7 @@ void render_manager::deferred_lighting_and_composition_pass()
 
     shader_tiled_deferred_lighting.gl_bind_3f("camera_pos", camera.position.x, camera.position.y, camera.position.z);
     {
-        directional_light_t light = loaded_map.directionallight;
+        directional_light_t light = gs->directionallight;
         shader_tiled_deferred_lighting.gl_bind_3f("directional_light.colour", light.colour.x, light.colour.y,
                                                   light.colour.z);
         shader_tiled_deferred_lighting.gl_bind_1f("directional_light.ambient_intensity", light.ambient_intensity);
@@ -257,7 +253,7 @@ void render_manager::deferred_lighting_and_composition_pass()
         shader_tiled_deferred_lighting.gl_bind_3f("directional_light.direction", direction.x, direction.y, direction.z);
     }
 
-    std::vector<point_light_t> plights = loaded_map.pointlights;
+    std::vector<point_light_t> plights = gs->pointlights;
     shader_tiled_deferred_lighting.gl_bind_1i("point_light_count", plights.size());
 
     local_persist u32 lightsBuffer = 0;
@@ -323,8 +319,6 @@ void render_manager::copy_depth_from_gbuffer_to_defaultbuffer() const
 
 void render_manager::render_scene(shader_t& shader)
 {
-    temp_map_t& loaded_map = gs->loaded_map;
-
     /** We could simply update the game object's position, rotation, scale fields,
         then construct the model matrix in game_render based on those fields.
     */
@@ -334,12 +328,16 @@ void render_manager::render_scene(shader_t& shader)
         shader.gl_bind_1f("material.shininess", material_dull.shininess);
     }
     mat4 matrix_model;
-    matrix_model = identity_mat4();
-    matrix_model *= translation_matrix(loaded_map.mainobject.pos);
-    matrix_model *= rotation_matrix(loaded_map.mainobject.orient);
-    matrix_model *= scale_matrix(loaded_map.mainobject.scale);
-    shader.gl_bind_matrix4fv("matrix_model", 1, matrix_model.ptr());
-    loaded_map.mainobject.model.render();
+
+    for(auto& game_object : gs->game_objects)
+    {
+        matrix_model = identity_mat4();
+        matrix_model *= translation_matrix(game_object.pos);
+        matrix_model *= rotation_matrix(game_object.orient);
+        matrix_model *= scale_matrix(game_object.scale);
+        shader.gl_bind_matrix4fv("matrix_model", 1, matrix_model.ptr());
+        game_object.model.render();
+    }
 }
 
 void render_manager::load_shaders()
@@ -389,7 +387,6 @@ void render_manager::update_buffer_size(i32 new_width, i32 new_height)
 
 void render_manager::temp_create_shadow_maps()
 {
-    temp_map_t& loaded_map = gs->loaded_map;
 
 // direct
     glGenFramebuffers(1, &directional_shadow_map.directionalShadowMapFBO);
@@ -415,15 +412,15 @@ void render_manager::temp_create_shadow_maps()
     directional_shadow_map.directionalLightSpaceMatrix = lightProjection
             //* view_matrix_look_at(-orientation_to_direction(loaded_maps[0].directionallight.orientation) + make_vec3(-47.f, 66.f, 0.f), make_vec3(-47.f, 66.f, 0.f), make_vec3(0.f,1.f,0.f)); // TODO make up 0,0,1 if light is straight up or down
             //* view_matrix_look_at(make_vec3(-2.0f, 4.0f, -1.0f), make_vec3(0.f, 0.f, 0.f), make_vec3(0.f,1.f,0.f)); // TODO make up 0,0,1 if light is straight up or down
-            * view_matrix_look_at(make_vec3(-47.44f, 66.29f, 9.65f), make_vec3(-47.44f, 66.29f, 9.65f) + orientation_to_direction(loaded_map.directionallight.orientation), make_vec3(0.f,1.f,0.f)); // TODO make up 0,0,1 if light is straight up or down
+            * view_matrix_look_at(make_vec3(-47.44f, 66.29f, 9.65f), make_vec3(-47.44f, 66.29f, 9.65f) + orientation_to_direction(gs->directionallight.orientation), make_vec3(0.f,1.f,0.f)); // TODO make up 0,0,1 if light is straight up or down
 
 
 // omni
     omni_shadow_maps.clear();
-    size_t num_omni_lights = loaded_map.pointlights.size();
+    size_t num_omni_lights = gs->pointlights.size();
     for(int omniLightCount = 0; omniLightCount < num_omni_lights; ++omniLightCount)
     {
-        point_light_t& point_light = loaded_map.pointlights[omniLightCount];
+        point_light_t& point_light = gs->pointlights[omniLightCount];
         if(point_light.is_b_cast_shadow() == false)
         {
             continue;
@@ -457,7 +454,7 @@ void render_manager::temp_create_shadow_maps()
         float nearPlane = 1.0f;
         mat4 shadowProj = projection_matrix_perspective(90.f * KC_DEG2RAD, aspect, nearPlane, shadow_map.get_far_plane());
 
-        vec3 lightPos = loaded_map.pointlights[omniLightCount].position;
+        vec3 lightPos = gs->pointlights[omniLightCount].position;
         shadow_map.shadowTransforms.push_back(
                 shadowProj * view_matrix_look_at(lightPos, lightPos + WORLD_FORWARD_VECTOR, WORLD_DOWN_VECTOR));
         shadow_map.shadowTransforms.push_back(

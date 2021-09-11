@@ -1,12 +1,16 @@
 /** XNGINE
 
 TODO:
-    - Reference count texture resources
     - BUG console command bug - commands get cut off when entered - could be a memory bug?
     - kc_truetypeassembler.h
         - clean up - allocate all memory on init and deallocate all memory on clean up
         - documentation to say that one can use translation and scaling matrices with the resulting
           vertices in order to transform them on the screen (e.g. animate the text).
+    ~~~
+    - Memory management / custom memory allocator / replace all mallocs and callocs
+    - Resource manager / load resources asynchronously so the game isn't frozen while loading?
+    - Reference count texture resources
+    - Game state or scene system
     ~~~
     - CASCADED SHADOW MAPS https://developer.download.nvidia.com/SDK/10.5/opengl/src/cascaded_shadow_maps/doc/cascaded_shadow_maps.pdf
         - make a test map for CSM. (e.g. field of trees or cubes all with shadows)
@@ -15,8 +19,6 @@ TODO:
         - for dynamic objects, render the shadow map on-top of the existing shadow map e.g. add more dark spots
 
 Backlog:
-    - Resource manager / load resources asynchronously so the game isn't frozen while loading?
-    - Memory management / custom memory allocator / replace all mallocs and callocs
     - Baked shadow maps for static lights?
     - Remove all STL usage
     - Load opengl extensions manually - Ditch GLEW https://apoorvaj.io/loading-opengl-without-glew/
