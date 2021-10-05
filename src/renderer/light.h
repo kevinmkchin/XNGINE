@@ -35,9 +35,13 @@ private:
 public:
     point_light_t()
     {
-        att_constant = 0.3f;
-        att_linear = 0.2f;
-        att_quadratic = 0.1f;
+        // https://wiki.ogre3d.org/-Point+Light+Attenuation
+//        att_constant = 0.3f;
+//        att_linear = 0.2f;
+//        att_quadratic = 0.1f;
+        att_constant = 1.0f;
+        att_linear = 0.007f;
+        att_quadratic = 0.0002f;
 
         radius = update_radius();
 

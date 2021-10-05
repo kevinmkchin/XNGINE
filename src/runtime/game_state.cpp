@@ -3,25 +3,29 @@
 #include "../debugging/console.h"
 
 
-void game_state::temp_initialize()
+void game_state::temp_initialize_Sponza_Pointlight()
 {
     directionallight.orientation = euler_to_quat(make_vec3(0.f, 30.f, -47.f) * KC_DEG2RAD);
-    directionallight.ambient_intensity = 0.35f;
-    directionallight.diffuse_intensity = 0.8f;
+    directionallight.ambient_intensity = 0.01f;
+    directionallight.diffuse_intensity = 0.0f;
     directionallight.colour = { 1.f, 1.f, 1.f };
 
     game_objects.emplace_back();
-    game_objects[0].model = mesh_group_t::assimp_load("data/models/vokselia_spawn/vokselia_spawn.obj");
+    game_objects[0].model = mesh_group_t::assimp_load("data/models/sponza/sponza.obj");
     game_objects[0].pos = make_vec3(0.f, -6.f, 0.f);
-    //loaded_map.mainobject.scale = make_vec3(0.04f, 0.04f, 0.04f);
-    //loaded_map.mainobject.scale = make_vec3(0.25f, 0.25f, 0.25f);
-    game_objects[0].scale = make_vec3(25.f, 25.f, 25.f);
+    game_objects[0].scale = make_vec3(0.04f, 0.04f, 0.04f);
+
     cam_start_pos = make_vec3(26.f, 0.f, 0.f);
     cam_start_rot = make_vec3(0.f, 180.f, 0.f);
     m_camera.position = cam_start_pos;
     m_camera.rotation = cam_start_rot;
     m_camera.update_camera();
+
     point_light_t lm0pl;
+    lm0pl.diffuse_intensity = 0.9f;
+    lm0pl.position = { 0, 19.f, 0 };
+    lm0pl.set_b_cast_shadow(true);
+    pointlights.push_back(lm0pl);
 //    for(int i = 0; i < 4096; ++i)
 //    {
 //        float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);

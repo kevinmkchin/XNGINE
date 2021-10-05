@@ -139,7 +139,7 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
 
     i_render_manager->load_shaders();
 
-    i_game_state.temp_initialize();
+    i_game_state.temp_initialize_Sponza_Pointlight();
     i_render_manager->temp_create_shadow_maps();
     i_render_manager->temp_create_geometry_buffer();
 
