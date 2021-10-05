@@ -18,7 +18,7 @@ struct gameobject_t
 
 struct game_state
 {
-    void temp_initialize();
+    void temp_initialize_Sponza_Pointlight();
 
     void update();
 
