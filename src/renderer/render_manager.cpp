@@ -204,22 +204,15 @@ void render_manager::deferred_lighting_and_composition_pass()
     camera_t& camera = gs->m_camera;
 
     shader_t::gl_use_shader(shader_tiled_deferred_lighting);
-    glBindImageTexture(0, tiled_deferred_shading_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, g_position_texture);
-    shader_tiled_deferred_lighting.gl_bind_1i("gPosition", 1);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, g_normal_texture);
-    shader_tiled_deferred_lighting.gl_bind_1i("gNormal", 2);
-    glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, g_albedo_texture);
-    shader_tiled_deferred_lighting.gl_bind_1i("gAlbedo", 3);
+    glBindImageTexture(0, g_position_texture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
+    glBindImageTexture(1, g_normal_texture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
+    glBindImageTexture(2, g_albedo_texture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
+    glBindImageTexture(3, tiled_deferred_shading_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
     {
-        glActiveTexture(GL_TEXTURE4);
+        glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, directional_shadow_map.directionalShadowMapTexture);
-        shader_tiled_deferred_lighting.gl_bind_1i("directional_shadow_map", 4);
+        shader_tiled_deferred_lighting.gl_bind_1i("directional_shadow_map", 1);
         shader_tiled_deferred_lighting.gl_bind_matrix4fv("directional_light_transform", 1,
                                                          directional_shadow_map.directionalLightSpaceMatrix.ptr());
     }
@@ -259,7 +252,7 @@ void render_manager::deferred_lighting_and_composition_pass()
     local_persist u32 lightsBuffer = 0;
     if (lightsBuffer == 0) {
         glGenBuffers(1, &lightsBuffer);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, lightsBuffer);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, lightsBuffer);
 
         // todo only update changed data? glBufferSubData
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, lightsBuffer);
@@ -494,7 +487,7 @@ void render_manager::temp_create_geometry_buffer()
 
     glGenTextures(1, &g_albedo_texture);
     glBindTexture(GL_TEXTURE_2D, g_albedo_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, back_buffer_width, back_buffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, back_buffer_width, back_buffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, g_albedo_texture, 0);

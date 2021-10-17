@@ -7,10 +7,6 @@ const int MAX_OMNI_SHADOWS = 16;
 const int MAX_LIGHTS_PER_TILE = 256;
 const int WORK_GROUP_SIZE = 16;
 
-uniform sampler2D gPosition;
-uniform sampler2D gNormal;
-uniform sampler2D gAlbedo;
-
 struct directional_light_t
 {
     vec3        colour;
@@ -41,8 +37,11 @@ struct omni_shadow_map_t
     float       far_plane;
 };
 
-layout(rgba32f, binding = 0) uniform writeonly image2D img_output;
-layout(std430, binding = 1) buffer point_lights_buffer
+layout(binding=0, rgba16f) uniform readonly image2D gPosition;
+layout(binding=1, rgba16f) uniform readonly image2D gNormal;
+layout(binding=2, rgba8) uniform readonly image2D gAlbedo;
+layout(binding=3, rgba32f) uniform writeonly image2D img_output;
+layout(std430, binding = 4) buffer point_lights_buffer
 {
     point_light_t       all_point_lights[];
 };
@@ -270,13 +269,13 @@ void main()
 
 // Shading
 
-    vec4 position_specular_sample = texture(gPosition, tex_uv_coord);
+    vec4 position_specular_sample = imageLoad(gPosition, pixel_coord);
+    vec4 normal_shininess_sample = imageLoad(gNormal, pixel_coord);
+    vec4 albedo_sample = imageLoad(gAlbedo, pixel_coord);
     frag_pos = position_specular_sample.rgb;
     specular_intensity = position_specular_sample.a;
-    vec4 normal_shininess_sample = texture(gNormal, tex_uv_coord);
     surface_normal = normal_shininess_sample.rgb;
     shininess = normal_shininess_sample.a;
-    vec4 albedo_sample = texture(gAlbedo, tex_uv_coord);
     albedo_colour = albedo_sample.rgb;
 
     vec4 pixel = vec4(albedo_colour, 1.f) * calculate_light();
