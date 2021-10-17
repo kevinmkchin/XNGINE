@@ -1,10 +1,10 @@
 /** XNGINE
 
 TODO:
-    - output image looks so fucking pixelated - 4 screen pixels forming 1 fragment/pixel right now
-    - Game state or scene system
+    - Improve Game state and RenderManager relationship
     - RenderManager needs to be split up into several renderers:
-        - make a scene renderer for all the scene related rendering (deferred rendering of scene, shadows)
+        - make a scene renderer for all the scene related rendering (deferred rendering of scene, shadows, skybox)
+        - UI renderer for all UI
     ~~~
     - Memory management / custom memory allocator / replace all mallocs and callocs
     - Resource manager / load resources asynchronously so the game isn't frozen while loading?
