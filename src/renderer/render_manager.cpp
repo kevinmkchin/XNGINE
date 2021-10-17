@@ -207,7 +207,7 @@ void render_manager::deferred_lighting_and_composition_pass()
     glBindImageTexture(0, g_position_texture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
     glBindImageTexture(1, g_normal_texture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
     glBindImageTexture(2, g_albedo_texture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
-    glBindImageTexture(3, tiled_deferred_shading_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindImageTexture(3, deferred_composition_output_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
     {
         glActiveTexture(GL_TEXTURE1);
@@ -278,7 +278,7 @@ void render_manager::deferred_render_to_quad_pass()
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, tiled_deferred_shading_texture);
+        glBindTexture(GL_TEXTURE_2D, deferred_composition_output_texture);
 
         local_persist mesh_t quad;
         local_persist bool meshmade = false;
@@ -501,8 +501,8 @@ void render_manager::temp_create_geometry_buffer()
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, g_depth_RBO);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glGenTextures(1, &tiled_deferred_shading_texture);
-    glBindTexture(GL_TEXTURE_2D, tiled_deferred_shading_texture);
+    glGenTextures(1, &deferred_composition_output_texture);
+    glBindTexture(GL_TEXTURE_2D, deferred_composition_output_texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, back_buffer_width, back_buffer_height, 0, GL_RGBA, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
