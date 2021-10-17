@@ -4,21 +4,18 @@
 
 void game_object::update()
 {
-    ASSERT(false)
+
 }
 
 void game_object::render(const shader_t* render_shader, const mat4* parent_model_matrix)
 {
     bind_material_data(render_shader);
-
     mat4 model_matrix = *parent_model_matrix;
     model_matrix *= translation_matrix(pos);
     model_matrix *= rotation_matrix(orient);
     model_matrix *= scale_matrix(scale);
-
     bind_model_matrix_data(render_shader, &model_matrix);
-
-    get_render_model().render();
+    render();
 
     for(auto& child : children)
     {
@@ -44,6 +41,15 @@ void game_object::bind_material_data(const shader_t* render_shader)
 void game_object::bind_model_matrix_data(const shader_t* render_shader, const mat4* model_matrix)
 {
     render_shader->gl_bind_matrix4fv("matrix_model", 1, (*model_matrix).ptr());
+}
+
+void game_object::render() const
+{
+    mesh_group_t* model = get_render_model();
+    if(model)
+    {
+        model->render();
+    }
 }
 
 game_object* game_object::get_parent() const
@@ -99,12 +105,12 @@ bool game_object::has_child(game_object *child)
     return false;
 }
 
-void game_object::set_render_model(mesh_group_t new_model)
+void game_object::set_render_model(mesh_group_t* new_model)
 {
-    render_model = std::move(new_model);
+    render_model = new_model;
 }
 
-mesh_group_t game_object::get_render_model()
+mesh_group_t* game_object::get_render_model() const
 {
     return render_model;
 }
