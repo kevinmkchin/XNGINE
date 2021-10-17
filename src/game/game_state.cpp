@@ -11,9 +11,18 @@ void game_state::temp_initialize_Sponza_Pointlight()
     directionallight.colour = { 1.f, 1.f, 1.f };
 
     game_objects.emplace_back();
-    game_objects[0].model = mesh_group_t::assimp_load("data/models/sponza/sponza.obj");
+
+    mesh_group_t* temp_model_mem_leak_lol = new mesh_group_t();
+    *temp_model_mem_leak_lol = mesh_group_t::assimp_load("data/models/sponza/sponza.obj");
+    game_objects[0].set_render_model(*temp_model_mem_leak_lol);
     game_objects[0].pos = make_vec3(0.f, -6.f, 0.f);
     game_objects[0].scale = make_vec3(0.04f, 0.04f, 0.04f);
+
+    game_object* child_obj = new game_object();
+    child_obj->set_render_model(*temp_model_mem_leak_lol);
+    child_obj->pos = make_vec3(3300.f, -60.f, 0.f);
+    //child_obj->scale = make_vec3(0.5f,0.5f,0.5f);
+    game_objects[0].add_child(child_obj);
 
     cam_start_pos = make_vec3(26.f, 0.f, 0.f);
     cam_start_rot = make_vec3(0.f, 180.f, 0.f);
@@ -44,12 +53,23 @@ void game_state::temp_initialize_Sponza_Pointlight()
     debug_set_pointlights(pointlights.data(), pointlights.size());
 }
 
-void game_state::update()
+void game_state::update_scene()
 {
     m_camera.update_camera();
 }
 
+void game_state::render_scene(shader_t *render_shader)
+{
+    // TODO Kevin specific order of rendering might be important sometimes
+    mat4 scene_model_matrix = identity_mat4();
+    for(auto& game_object : game_objects)
+    {
+        game_object.render(render_shader, &scene_model_matrix);
+    }
+}
+
 void game_state::switch_map(const char* map_file_path)
 {
+    console_printf("WARNING: UNIMPLEMENTED");
     console_printf("Loading map: %s\n", map_file_path);
 }
