@@ -111,8 +111,7 @@ private:
     u32 g_normal_texture = 0;
     u32 g_albedo_texture = 0;
     u32 g_depth_RBO = 0;
-
-    u32 tiled_deferred_shading_texture = 0;
+    u32 deferred_composition_output_texture = 0;
 
     SINGLETON(render_manager)
 
