@@ -13,7 +13,7 @@
 #include "../renderer/shader.h"
 #include "../renderer/render_manager.h"
 #include "../core/timer.h"
-#include "../runtime/game_state.h"
+#include "../game/game_state.h"
 
 /**
 
@@ -91,9 +91,6 @@ internal mesh_t        console_messages_vaos[CONSOLE_ROWS_MAX] = {}; // one vao 
 
 void console_initialize(tta_font_t* in_console_font_handle, texture_t in_console_font_atlas)
 {
-    // ADD COMMANDS
-    console_register_commands();
-
     console_font_handle = in_console_font_handle;
     console_font_atlas = in_console_font_atlas;
 

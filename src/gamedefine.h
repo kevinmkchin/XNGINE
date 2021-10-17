@@ -96,7 +96,6 @@ typedef i32           bool32;
 //{
 //    UPDATEACTIVE = 1 << 0,
 //    COLLIDABLE   = 1 << 1,
-//
 //};
 
 #endif //__GAME_DEFINE__

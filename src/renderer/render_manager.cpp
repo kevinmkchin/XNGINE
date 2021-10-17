@@ -1,7 +1,6 @@
 #include "render_manager.h"
 #include <GL/glew.h>
-#include "material.h"
-#include "../runtime/game_state.h"
+#include "../game/game_state.h"
 #include "../stb/stb_sprintf.h"
 #include "../debugging/console.h"
 #include "../debugging/profiling/profiler.h"
@@ -25,10 +24,6 @@ static const char* simple_fs_path = "shaders/simple.frag";
 
 // Temporary
 bool g_b_wireframe = false;
-
-material_t material_shiny = {4.f, 128.f };
-material_t material_dull = {0.5f, 1.f };
-
 
 void render_manager::initialize()
 {
@@ -310,27 +305,9 @@ void render_manager::copy_depth_from_gbuffer_to_defaultbuffer() const
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void render_manager::render_scene(shader_t& shader)
+void render_manager::render_scene(shader_t& shader) const
 {
-    /** We could simply update the game object's position, rotation, scale fields,
-        then construct the model matrix in game_render based on those fields.
-    */
-    if(shader.get_cached_uniform_location("material.specular_intensity") >= 0)
-    {
-        shader.gl_bind_1f("material.specular_intensity", material_dull.specular_intensity);
-        shader.gl_bind_1f("material.shininess", material_dull.shininess);
-    }
-    mat4 matrix_model;
-
-    for(auto& game_object : gs->game_objects)
-    {
-        matrix_model = identity_mat4();
-        matrix_model *= translation_matrix(game_object.pos);
-        matrix_model *= rotation_matrix(game_object.orient);
-        matrix_model *= scale_matrix(game_object.scale);
-        shader.gl_bind_matrix4fv("matrix_model", 1, matrix_model.ptr());
-        game_object.model.render();
-    }
+    gs->render_scene(&shader);
 }
 
 void render_manager::load_shaders()
