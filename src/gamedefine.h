@@ -89,8 +89,8 @@ typedef i32           bool32;
 /** GAME SPECIFIC **/
 ////////////////////////////////////////////////////////////////////////////////////
 
-#define WIDTH 1792
-#define HEIGHT 1008
+#define WIDTH 1600
+#define HEIGHT 900
 
 //enum gameobject_flags
 //{
