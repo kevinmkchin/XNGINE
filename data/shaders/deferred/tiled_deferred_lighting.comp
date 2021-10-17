@@ -41,7 +41,7 @@ layout(binding=0, rgba16f) uniform readonly image2D gPosition;
 layout(binding=1, rgba16f) uniform readonly image2D gNormal;
 layout(binding=2, rgba8) uniform readonly image2D gAlbedo;
 layout(binding=3, rgba32f) uniform writeonly image2D img_output;
-layout(std430, binding = 4) buffer point_lights_buffer
+layout(binding=4, std430) buffer point_lights_buffer
 {
     point_light_t       all_point_lights[];
 };
@@ -54,6 +54,8 @@ uniform vec3 camera_pos; // camera
 uniform mat4 projection_matrix;
 uniform mat4 view_matrix;
 uniform vec2 camera_near_far; // x is near clip, y is far clip
+uniform mat4 directional_light_transform;
+uniform sampler2D directional_shadow_map;
 
 // shared list of indices INTO the buffer of all point lights - these are the only point lights used for this tile/workgroup
 shared uint s_visible_light_indices[MAX_NUM_LIGHTS];
@@ -64,9 +66,6 @@ vec3 surface_normal;
 vec3 albedo_colour;
 float specular_intensity;
 float shininess;
-
-uniform mat4 directional_light_transform;
-uniform sampler2D directional_shadow_map;
 
 float calculate_directional_shadow()
 {
@@ -213,9 +212,7 @@ void main()
 
     ivec2 img_output_size = imageSize(img_output);
     vec2 fimg_output_size = vec2(img_output_size);
-    ivec2 pixel_coord = ivec2(gl_GlobalInvocationID.xy);
-    vec2 fpixel_coord = vec2(pixel_coord);
-    vec2 tex_uv_coord = fpixel_coord / fimg_output_size;
+    ivec2 texel_space_tex_coords = ivec2(gl_GlobalInvocationID.xy);
 
 // Frustum construction
 
@@ -269,9 +266,9 @@ void main()
 
 // Shading
 
-    vec4 position_specular_sample = imageLoad(gPosition, pixel_coord);
-    vec4 normal_shininess_sample = imageLoad(gNormal, pixel_coord);
-    vec4 albedo_sample = imageLoad(gAlbedo, pixel_coord);
+    vec4 position_specular_sample = imageLoad(gPosition, texel_space_tex_coords);
+    vec4 normal_shininess_sample = imageLoad(gNormal, texel_space_tex_coords);
+    vec4 albedo_sample = imageLoad(gAlbedo, texel_space_tex_coords);
     frag_pos = position_specular_sample.rgb;
     specular_intensity = position_specular_sample.a;
     surface_normal = normal_shininess_sample.rgb;
@@ -288,5 +285,5 @@ void main()
 //        pixel *= vec4(rg,rg,1.f,1.f);
 //    }
 
-    imageStore(img_output, pixel_coord, pixel);
+    imageStore(img_output, texel_space_tex_coords, pixel);
 }
