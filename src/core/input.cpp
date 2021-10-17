@@ -1,6 +1,6 @@
 #include "input.h"
 #include <SDL.h>
-#include "../runtime/game_state.h"
+#include "../game/game_state.h"
 #include "../debugging/console.h"
 #include "../debugging/profiling/profiler.h"
 #include "display.h"

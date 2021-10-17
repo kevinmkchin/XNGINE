@@ -1,6 +1,6 @@
 #include <unordered_map>
 #include "texture.h"
-#include "../runtime/memory_handle.h"
+#include "../game/memory_handle.h"
 #include "../core/file_system.h"
 #include "../debugging/console.h"
 

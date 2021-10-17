@@ -3,7 +3,7 @@
 #include <cstdio>
 #include "display.h"
 #include "../debugging/console.h"
-#include "../runtime/game_state.h"
+#include "../game/game_state.h"
 #include "../renderer/render_manager.h"
 
 SINGLETON_INIT(display)

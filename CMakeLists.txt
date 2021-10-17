@@ -22,9 +22,10 @@ add_executable(${PROJECT_NAME}
         src/core/input.cpp
         src/core/display_SDL.cpp
         src/renderer/render_manager.cpp
-        src/runtime/game_state.cpp
+        src/game/game_state.cpp
         src/renderer/shader.cpp
-        src/renderer/skybox_renderer.cpp)
+        src/renderer/skybox_renderer.cpp
+        src/game/game_object.cpp)
 # add WIN32 after ${PROJECT_NAME} if compile for SUBSYSTEM:WINDOWS
 
 # Compile time preprocessor definitions

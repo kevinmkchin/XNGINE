@@ -1,21 +1,24 @@
 /** XNGINE
 
 TODO:
+    - Improve Game state and RenderManager relationship
+    - RenderManager needs to be split up into several renderers:
+        - make a scene renderer for all the scene related rendering (deferred rendering of scene, shadows, skybox)
+        - UI renderer for all UI
+    ~~~
+    - Memory management / custom memory allocator / replace all mallocs and callocs
+    - Resource manager / load resources asynchronously so the game isn't frozen while loading?
+    - Reference count texture resources
     - BUG console command bug - commands get cut off when entered - could be a memory bug?
     - kc_truetypeassembler.h
         - clean up - allocate all memory on init and deallocate all memory on clean up
         - documentation to say that one can use translation and scaling matrices with the resulting
           vertices in order to transform them on the screen (e.g. animate the text).
     ~~~
-    - Memory management / custom memory allocator / replace all mallocs and callocs
-    - Resource manager / load resources asynchronously so the game isn't frozen while loading?
-    - Reference count texture resources
-    - Game state or scene system
-    ~~~
     - CASCADED SHADOW MAPS https://developer.download.nvidia.com/SDK/10.5/opengl/src/cascaded_shadow_maps/doc/cascaded_shadow_maps.pdf
         - make a test map for CSM. (e.g. field of trees or cubes all with shadows)
     - STATIC and DYNAMIC lights and STATIC and DYNAMIC objects/casters
-        - DYNAMIC lights need to be marked dirty to update shaders etc. (don't update shaders with light info every frame)
+        - DYNAMIC lights need to be marked dirty to update shaders etc. (don't update_scene shaders with light info every frame)
         - for dynamic objects, render the shadow map on-top of the existing shadow map e.g. add more dark spots
 
 Backlog:
@@ -45,9 +48,10 @@ Backlog:
         - Build simple polygons and shapes, and the textures get wrapped
           automatically(1 unit in vertices is 1 unit in texture uv)
     - Console:
+        - MESSAGE TYPES: Regular, Warning, Error
         - option for some console messages to be displayed to game screen.
         - remember previously entered commands
-        - shader hotloading/compiling during runtime - pause all update / render while shaders are being recompiled
+        - shader hotloading/compiling during runtime - pause all update_scene / render while shaders are being recompiled
         - mouse picking entities
 
 Rules:
@@ -79,8 +83,7 @@ BUILD MODES
 #include "core/display.h"
 #include "core/input.h"
 #include "renderer/render_manager.h"
-#include "runtime/game_state.h"
-#include "renderer/texture.h"
+#include "game/game_state.h"
 #include "core/file_system.h"
 
 #define STB_SPRINTF_IMPLEMENTATION
@@ -91,6 +94,7 @@ BUILD MODES
 #include "stb/stb_image.h"
 #define KC_TRUETYPEASSEMBLER_IMPLEMENTATION
 #include "kc_truetypeassembler.h"
+#include "debugging/commands.h"
 
 // Fonts
 tta_font_t g_font_handle_c64;
@@ -130,6 +134,8 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     i_render_manager->initialize(); // OpenGL
     i_input_manager->initialize(); // e.g. Qt, SDL
 
+    console_register_commands();
+
     stbi_set_flip_vertically_on_load(true);
     kctta_setflags(KCTTA_CREATE_INDEX_BUFFER);
     win64_load_font(&g_font_handle_c64, g_font_atlas_c64, "data/fonts/SourceCodePro.ttf", 20); //CONSOLE_TEXT_SIZE
@@ -160,7 +166,7 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
         console_update();
         if(i_game_state.b_is_update_running)
         {
-            i_game_state.update();
+            i_game_state.update_scene();
         }
 
         i_render_manager->render();

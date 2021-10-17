@@ -197,7 +197,7 @@ void shader_t::gl_compile_shader(u32 program_id, const char* shader_code, GLenum
     glAttachShader(program_id, id_shader);
 }
 
-void shader_t::gl_bind_1i(const char* uniform_name, GLint v0)
+void shader_t::gl_bind_1i(const char* uniform_name, GLint v0) const
 {
     i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
@@ -210,7 +210,7 @@ void shader_t::gl_bind_1i(const char* uniform_name, GLint v0)
     }
 }
 
-void shader_t::gl_bind_2i(const char* uniform_name, GLint v0, GLint v1)
+void shader_t::gl_bind_2i(const char* uniform_name, GLint v0, GLint v1) const
 {
     i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
@@ -223,7 +223,7 @@ void shader_t::gl_bind_2i(const char* uniform_name, GLint v0, GLint v1)
     }
 }
 
-void shader_t::gl_bind_3i(const char* uniform_name, GLint v0, GLint v1, GLint v2)
+void shader_t::gl_bind_3i(const char* uniform_name, GLint v0, GLint v1, GLint v2) const
 {
     i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
@@ -236,7 +236,7 @@ void shader_t::gl_bind_3i(const char* uniform_name, GLint v0, GLint v1, GLint v2
     }
 }
 
-void shader_t::gl_bind_4i(const char* uniform_name, GLint v0, GLint v1, GLint v2, GLint v3)
+void shader_t::gl_bind_4i(const char* uniform_name, GLint v0, GLint v1, GLint v2, GLint v3) const
 {
     i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
@@ -249,7 +249,7 @@ void shader_t::gl_bind_4i(const char* uniform_name, GLint v0, GLint v1, GLint v2
     }
 }
 
-void shader_t::gl_bind_1f(const char* uniform_name, GLfloat v0)
+void shader_t::gl_bind_1f(const char* uniform_name, GLfloat v0) const
 {
     i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
@@ -262,7 +262,7 @@ void shader_t::gl_bind_1f(const char* uniform_name, GLfloat v0)
     }
 }
 
-void shader_t::gl_bind_2f(const char* uniform_name, GLfloat v0, GLfloat v1)
+void shader_t::gl_bind_2f(const char* uniform_name, GLfloat v0, GLfloat v1) const
 {
     i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
@@ -275,7 +275,7 @@ void shader_t::gl_bind_2f(const char* uniform_name, GLfloat v0, GLfloat v1)
     }
 }
 
-void shader_t::gl_bind_3f(const char* uniform_name, GLfloat v0, GLfloat v1, GLfloat v2)
+void shader_t::gl_bind_3f(const char* uniform_name, GLfloat v0, GLfloat v1, GLfloat v2) const
 {
     i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
@@ -288,7 +288,7 @@ void shader_t::gl_bind_3f(const char* uniform_name, GLfloat v0, GLfloat v1, GLfl
     }
 }
 
-void shader_t::gl_bind_4f(const char* uniform_name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3)
+void shader_t::gl_bind_4f(const char* uniform_name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3) const
 {
     i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
@@ -301,7 +301,7 @@ void shader_t::gl_bind_4f(const char* uniform_name, GLfloat v0, GLfloat v1, GLfl
     }
 }
 
-void shader_t::gl_bind_matrix3fv(const char* uniform_name, const GLsizei count, const GLfloat* value)
+void shader_t::gl_bind_matrix3fv(const char* uniform_name, const GLsizei count, const GLfloat* value) const
 {
     i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
@@ -314,7 +314,7 @@ void shader_t::gl_bind_matrix3fv(const char* uniform_name, const GLsizei count, 
     }
 }
 
-void shader_t::gl_bind_matrix4fv(const char* uniform_name, const GLsizei count, const GLfloat* value)
+void shader_t::gl_bind_matrix4fv(const char* uniform_name, const GLsizei count, const GLfloat* value) const
 {
     i32 location = get_cached_uniform_location(uniform_name);
     if(location >= 0)
@@ -327,7 +327,7 @@ void shader_t::gl_bind_matrix4fv(const char* uniform_name, const GLsizei count, 
     }
 }
 
-i32 shader_t::get_cached_uniform_location(const char* uniform_name)
+i32 shader_t::get_cached_uniform_location(const char* uniform_name) const
 {
     auto location_iter = uniform_locations.find(uniform_name);
     if(location_iter != uniform_locations.end())
