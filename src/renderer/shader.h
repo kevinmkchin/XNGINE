@@ -23,18 +23,18 @@ struct shader_t
 
     static void gl_create_compute_shader_program(shader_t& shader, const char* compute_shader_str);
 
-    void gl_bind_1i(const char* uniform_name, GLint v0);
-    void gl_bind_2i(const char* uniform_name, GLint v0, GLint v1);
-    void gl_bind_3i(const char* uniform_name, GLint v0, GLint v1, GLint v2);
-    void gl_bind_4i(const char* uniform_name, GLint v0, GLint v1, GLint v2, GLint v3);
-    void gl_bind_1f(const char* uniform_name, GLfloat v0);
-    void gl_bind_2f(const char* uniform_name, GLfloat v0, GLfloat v1);
-    void gl_bind_3f(const char* uniform_name, GLfloat v0, GLfloat v1, GLfloat v2);
-    void gl_bind_4f(const char* uniform_name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
-    void gl_bind_matrix3fv(const char* uniform_name, GLsizei count, const GLfloat* value);
-    void gl_bind_matrix4fv(const char* uniform_name, GLsizei count, const GLfloat* value);
+    void gl_bind_1i(const char* uniform_name, GLint v0) const;
+    void gl_bind_2i(const char* uniform_name, GLint v0, GLint v1) const;
+    void gl_bind_3i(const char* uniform_name, GLint v0, GLint v1, GLint v2) const;
+    void gl_bind_4i(const char* uniform_name, GLint v0, GLint v1, GLint v2, GLint v3) const;
+    void gl_bind_1f(const char* uniform_name, GLfloat v0) const;
+    void gl_bind_2f(const char* uniform_name, GLfloat v0, GLfloat v1) const;
+    void gl_bind_3f(const char* uniform_name, GLfloat v0, GLfloat v1, GLfloat v2) const;
+    void gl_bind_4f(const char* uniform_name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3) const;
+    void gl_bind_matrix3fv(const char* uniform_name, GLsizei count, const GLfloat* value) const;
+    void gl_bind_matrix4fv(const char* uniform_name, GLsizei count, const GLfloat* value) const;
 
-    i32 get_cached_uniform_location(const char* uniform_name);
+    i32 get_cached_uniform_location(const char* uniform_name) const;
 private:
     GLuint id_shader_program = 0; // id of this shader program in GPU memory
 

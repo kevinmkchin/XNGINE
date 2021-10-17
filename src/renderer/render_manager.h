@@ -83,7 +83,7 @@ private:
 
     void deferred_render_to_quad_pass();
 
-    void render_scene(shader_t& shader);
+    void render_scene(shader_t& shader) const;
 
     void copy_depth_from_gbuffer_to_defaultbuffer() const;
 

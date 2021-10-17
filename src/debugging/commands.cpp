@@ -24,9 +24,7 @@ std::map<std::string, console_command_meta_t> get_con_commands()
     return con_commands;
 }
 
-/**
-    CONSOLE COMMAND REGISTRATION MACROS
-*/
+#pragma region CONSOLE_COMMAND_REGISTRATION_MACROS
 #define ADD_COMMAND_NOARG(cmd_str, cmd_func) \
             { \
                 console_command_meta_t cmd_meta; \
@@ -268,17 +266,13 @@ void command_invoke(console_command_meta_t cmd_meta, std::vector<std::string> ar
         cmd_invokestage2(cmd_meta, argslist, str);
     }
 }
+#pragma endregion
 
-//void cmd_pause()
-//{
-//    b_is_update_running = false;
-//}
-//
-//void cmd_unpause()
-//{
-//    b_is_update_running = true;
-//}
-//
+
+
+// TODO Kevin KEEP A REFERENCE TO ACTIVE GAME STATE
+
+
 //void cmd_wireframe()
 //{
 //    g_b_wireframe = !g_b_wireframe;
@@ -299,14 +293,10 @@ void cmd_add(float x, float y)
 //    g_camera.movespeed = speed;
 //}
 //
-//void cmd_exit()
-//{
-//    b_is_game_running = false;
-//}
 
 void cmd_help()
 {
-    console_print("Commands in commmands.cpp\n");
+    console_print("Commands in commands.cpp\n");
     console_print("======\n");
     for(auto const& cmd : con_commands)
     {
@@ -398,9 +388,6 @@ void cmd_help()
 void console_register_commands()
 {
     ADD_COMMAND_NOARG("help", cmd_help);
-//    ADD_COMMAND_NOARG("exit", cmd_exit);
-//    ADD_COMMAND_NOARG("pause", cmd_pause);
-//    ADD_COMMAND_NOARG("unpause", cmd_unpause);
 //
 //    ADD_COMMAND_ONEARG("fullscreen", sdl_fullscreen, int);
 //    ADD_COMMAND_TWOARG("windowsize", sdl_set_window_size, int, int);
