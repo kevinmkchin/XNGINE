@@ -3,9 +3,9 @@
 rem run with argument "vs" if you want to start visual studio to debug
 
 IF "%1"=="vs" (
-    devenv build\debug\opengldemo.exe
+    devenv cmake-build-debug\xngine.exe
 ) ELSE (
-    pushd build\debug\
-    START /D ..\..\data opengldemo.exe
+    pushd cmake-build-debug
+    START /D ..\data xngine.exe
     popd
 )
