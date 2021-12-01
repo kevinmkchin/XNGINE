@@ -1,15 +1,15 @@
 /** XNGINE
 
 TODO:
-    - Improve Game state and RenderManager relationship
-    - RenderManager needs to be split up into several renderers:
-        - make a scene renderer for all the scene related rendering (deferred rendering of scene, shadows, skybox)
-        - UI renderer for all UI
-    ~~~
     - Memory management / custom memory allocator / replace all mallocs and callocs
-    - Resource manager / load resources asynchronously so the game isn't frozen while loading?
-    - Reference count texture resources
+    - Improve Game state and RenderManager relationship (esp w the lights)
     - BUG console command bug - commands get cut off when entered - could be a memory bug?
+    - Get console working again
+    - Multiple demo scenes
+    - Primitive polygon meshes and objects - basic Cube, Sphere, Cone, Cuboid, etc.
+    ~~~
+    - Reference count texture resources
+    - Resource manager / load resources asynchronously so the game isn't frozen while loading?
     - kc_truetypeassembler.h
         - clean up - allocate all memory on init and deallocate all memory on clean up
         - documentation to say that one can use translation and scaling matrices with the resulting
@@ -20,39 +20,6 @@ TODO:
     - STATIC and DYNAMIC lights and STATIC and DYNAMIC objects/casters
         - DYNAMIC lights need to be marked dirty to update shaders etc. (don't update_scene shaders with light info every frame)
         - for dynamic objects, render the shadow map on-top of the existing shadow map e.g. add more dark spots
-
-Backlog:
-    - Baked shadow maps for static lights?
-    - Remove all STL usage
-    - Load opengl extensions manually - Ditch GLEW https://apoorvaj.io/loading-opengl-without-glew/
-    - Ditch SDL and implement windows, input, file io myself
-    - Map Editor:
-        - console command 'editor' to enter
-        - quits the game inside the gamemode, and simply loads the map into the editor (keep camera in same transformation)
-        - use console to load and save
-            - 'save folder/path/name.map'
-            - 'load folder/path/name.map' load automatically saves current map
-            - maybe keep loaded maps in memory? until we explicitly call unload? or there are too many maps loaded?
-                - so that we can switch between maps without losing the map data in memory
-                    - then we can have a "palette" map with a collection of loaded model objs that we can copy instead of finding on disk
-            - use console commands to create geometry?
-        - texture blending - store the bitmap in memory, and we can write it to map data or an actual bitmap whatever
-            - brush system like in unity/unreal where you paint textures, and behind the scenes we can edit the blend map in memory
-    - GJK EPA collision system
-    - Arrow rendering for debugging
-        - in the future arrow can also be used for translation gizmo
-    - add SIMD for kc_math library
-    - Fixed timestep? for physics only?
-    - texture_t GL_NEAREST option
-    - texture_t do something like source engine
-        - Build simple polygons and shapes, and the textures get wrapped
-          automatically(1 unit in vertices is 1 unit in texture uv)
-    - Console:
-        - MESSAGE TYPES: Regular, Warning, Error
-        - option for some console messages to be displayed to game screen.
-        - remember previously entered commands
-        - shader hotloading/compiling during runtime - pause all update_scene / render while shaders are being recompiled
-        - mouse picking entities
 
 Rules:
      - unit vector (x: 1, y: 0, z: 0), aka positive X, is the "forward" direction for objects
@@ -170,7 +137,9 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
         }
 
         i_render_manager->render();
+        timer::timestamp();
         i_window_manager->swap_buffers();
+        printf("buffer swap took %fs\n", timer::timestamp());
     }
 
     i_render_manager->clean_up();

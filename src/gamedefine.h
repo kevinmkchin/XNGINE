@@ -48,6 +48,9 @@ typedef i32           bool32;
 #define array_count(arr) (sizeof(arr) / (sizeof(arr[0])))
 #define loop(x) for(int i=0;i<x;++i)
 
+#define kilobytes(value) ((value)*1024)
+#define megabytes(value) (kilobytes((unsigned long long int)value)*1024)
+#define gigabytes(value) (megabytes((unsigned long long int)value)*1024)
 
 /** Singletons
     TODO: don't "new" in get_instance - have a separate function for allocating singleton
