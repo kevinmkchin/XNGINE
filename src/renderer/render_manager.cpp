@@ -104,7 +104,7 @@ void render_manager::render_pass_main()
     camera_t& camera = gs->m_camera;
 
     glViewport(0, 0, back_buffer_width, back_buffer_height);
-    //glClearColor(0.39f, 0.582f, 0.926f, 1.f);
+    glClearColor(0.39f, 0.582f, 0.926f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear opengl context's buffer
 
 // NOT ALPHA BLENDED
@@ -387,8 +387,7 @@ void render_manager::temp_create_shadow_maps()
 
 // omni
     omni_shadow_maps.clear();
-    size_t num_omni_lights = gs->pointlights.size();
-    for(int omniLightCount = 0; omniLightCount < num_omni_lights; ++omniLightCount)
+    for(int omniLightCount = 0; omniLightCount < gs->pointlights.size(); ++omniLightCount)
     {
         point_light_t& point_light = gs->pointlights[omniLightCount];
         if(point_light.is_b_cast_shadow() == false)

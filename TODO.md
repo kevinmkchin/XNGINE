@@ -1,0 +1,32 @@
+Backlog:
+- Baked shadow maps for static lights?
+- Remove all STL usage
+- Load opengl extensions manually - Ditch GLEW https://apoorvaj.io/loading-opengl-without-glew/
+- Ditch SDL and implement windows, input, file io myself
+- Map Editor:
+  - console command 'editor' to enter
+  - quits the game inside the gamemode, and simply loads the map into the editor (keep camera in same transformation)
+  - use console to load and save
+    - 'save folder/path/name.map'
+    - 'load folder/path/name.map' load automatically saves current map
+    - maybe keep loaded maps in memory? until we explicitly call unload? or there are too many maps loaded?
+      - so that we can switch between maps without losing the map data in memory
+        - then we can have a "palette" map with a collection of loaded model objs that we can copy instead of finding on disk
+    - use console commands to create geometry?
+  - texture blending - store the bitmap in memory, and we can write it to map data or an actual bitmap whatever
+    - brush system like in unity/unreal where you paint textures, and behind the scenes we can edit the blend map in memory
+- GJK EPA collision system
+- Arrow rendering for debugging
+  - in the future arrow can also be used for translation gizmo
+- add SIMD for kc_math library
+- Fixed timestep? for physics only?
+- texture_t GL_NEAREST option
+- texture_t do something like source engine
+  - Build simple polygons and shapes, and the textures get wrapped
+  automatically(1 unit in vertices is 1 unit in texture uv)
+- Console:
+  - MESSAGE TYPES: Regular, Warning, Error
+  - option for some console messages to be displayed to game screen.
+  - remember previously entered commands
+  - shader hotloading/compiling during runtime - pause all update_scene / render while shaders are being recompiled
+  - mouse picking entities
