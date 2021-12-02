@@ -33,7 +33,7 @@ int main()
     float f;
     std::string s;
 
-    noclip::console c;
+    con c;
     c.bind_cvar("i", &i);
     c.bind_cvar("f", &f);
     c.bind_cvar("s", &s);
