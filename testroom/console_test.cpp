@@ -1,37 +1,54 @@
-#include <iostream>
 #include "kc_con.h"
 
-// float var;
-// float* addressofvar = &var;
+void printstuff()
+{
+    std::cout << "pog" << std::endl;
+    std::cout << "yellow" << std::endl;
+    std::cout << "arsenal" << std::endl;
+}
+
+struct somestruct
+{
+
+};
+
+struct A
+{
+    float x = 3.1415;
+
+    void f(int i)
+    {
+        std::cout << "A::f + " << x << std::endl;
+    }
+};
+
+void funcwithargs(const std::string& str, const int& i)
+{
+    std::cout << "called it" << str << i << std::endl;
+}
 
 int main()
 {
-    // std::string cmd;
-    // std::string cvar_id;
-    // float i = -1.f;
-    // std::cin >> cmd;
-    // std::cin >> cvar_id;
-    // std::cin >> i;
-    // *addressofvar = i;
-
-    // std::cout << var;
-
     int i;
     float f;
     std::string s;
 
-    con c;
+    noclip::console c;
     c.bind_cvar("i", &i);
     c.bind_cvar("f", &f);
     c.bind_cvar("s", &s);
+    c.bind_cmd("yolo", printstuff);
 
-    //std::cin >> i;
+    c.bind_cmd("yeah", funcwithargs);
+
+    A a;
+    c.bind_cvar("ax", &a.x);
+    c.bind_cmd("af", &A::f, &a);
 
     while(true)
     {
         c.execute(std::cin, std::cout);
     }
-
 
     return 0;
 }
