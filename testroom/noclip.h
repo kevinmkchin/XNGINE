@@ -3,7 +3,7 @@
 
 /*
 
-noclip.h
+noclip.h (WORK IN PROGRSS)
 
 By Kevin Chin 2021
 
@@ -116,15 +116,14 @@ namespace noclip
         void bind_cvar(const std::string& vid, T* vmem)
         {
             cvar_setter_lambdas[vid] =
-                [vid, vmem](std::istream& is, std::ostream& os)
+                [this, vid, vmem](std::istream& is, std::ostream& os)
                 {
-                    T read;
-                    is >> read;
+                    T read = this->evaluate_argument<T>(is, os);
 
                     if(is.fail())
                     {
                         const char* vt = typeid(T).name();
-                        os << "CONSOLE ERROR: Type mismatch. CVar '" << vid 
+                        os << "NOCLIP::CONSOLE ERROR: Type mismatch. CVar '" << vid 
                         << "' is of type '" << vt << "'." << std::endl;
 
                         is.clear();
@@ -158,8 +157,7 @@ namespace noclip
                 };
         }
 
-        /* Use :: syntax e.g. bind_cmd("name", &A::f, &a) */
-        template<typename O, typename ... Args>
+        template<typename O, typename ... Args> /* Use :: syntax e.g. bind_cmd("name", &A::f, &a) */
         void bind_cmd(const std::string& cid, void(O::*f_ptr)(Args ...), O* omem)
         {
             std::function<void(Args...)> std_fp =
@@ -212,7 +210,7 @@ namespace noclip
             auto cmd_iter = cmd_table.find(cmd_id);
             if(cmd_iter == cmd_table.end())
             {
-                output << "CONSOLE ERROR: Input '" << cmd_id << "' isn't a command." << std::endl;
+                output << "NOCLIP::CONSOLE ERROR: Input '" << cmd_id << "' isn't a command." << std::endl;
                 return;
             }
 
@@ -229,13 +227,19 @@ namespace noclip
     private:
         void read_arg(std::istream& is)
         {
-            // base case
+            /* base case */
         }
 
         template<typename T, typename ... Ts>
         void read_arg(std::istream& is, T& first, Ts &... rest)
         {
-            is >> first; // first is a reference to a parameter from read_args_and_execute
+            /*  Variadic template that recursively iterates each function 
+                argument type. For each arg type, parse the argument and
+                set value of first. First is a reference to a parameter 
+                of read_args_and_execute. */
+
+            std::ostringstream discard;
+            first = evaluate_argument<T>(is, discard);
             read_arg(is, rest ...);
         }
 
@@ -248,7 +252,7 @@ namespace noclip
             if(is.fail())
             {
                 is.clear();
-                os << "CONSOLE ERROR: Incorrect argument types." << std::endl;
+                os << "NOCLIP::CONSOLE ERROR: Incorrect argument types." << std::endl;
                 return;
             }
             f_ptr(temps...);
@@ -273,6 +277,39 @@ namespace noclip
             return T();
         } 
 
+        template<typename T>
+        T evaluate_argument(std::istream& is, std::ostream& os)
+        {
+            /*  Evaluate argument expressions e.g. set x (+ 3 7) */
+
+            while(isspace(is.peek()))
+            {
+                is.ignore();
+            }
+
+            if(is.peek() == '(')
+            {
+                is.ignore(); // '('
+                const int max_argument_size = 256;
+                char argument_buffer[max_argument_size];
+                is.get(argument_buffer, max_argument_size, ')');
+                is.ignore(); // ')'
+
+                std::ostringstream result;
+                execute(std::string(argument_buffer), result);
+
+                T read;
+                std::istringstream(result.str()) >> read;
+                return read;
+            }
+            else
+            {
+                T read;
+                is >> read;
+                return read;
+            }
+        }
+
         void bind_builtin_commands()
         {
             cmd_table["set"] = 
@@ -283,7 +320,7 @@ namespace noclip
                     auto v_iter = cvar_setter_lambdas.find(vid);
                     if(v_iter == cvar_setter_lambdas.end())
                     {
-                        os << "CONSOLE ERROR: There is no bound variable with id ''." << vid << std::endl;
+                        os << "NOCLIP::CONSOLE ERROR: There is no bound variable with id ''." << vid << std::endl;
                         return;
                     }
                     else
@@ -300,7 +337,7 @@ namespace noclip
                     auto v_iter = cvar_getter_lambdas.find(vid);
                     if(v_iter == cvar_getter_lambdas.end())
                     {
-                        os << "CONSOLE ERROR: There is no bound variable with id ''." << vid << std::endl;
+                        os << "NOCLIP::CONSOLE ERROR: There is no bound variable with id ''." << vid << std::endl;
                         return;
                     }
                     else
@@ -312,7 +349,27 @@ namespace noclip
             cmd_table["help"] =
                 [](std::istream& is, std::ostream& os)
                 {
-                    os << "-- Console Help --" << std::endl;
+                    os << "-- noclip::console help --" << std::endl;
+                    os << "Set and get bound variables with" << std::endl;
+                    os << "set <cvar id> <value>" << std::endl;
+                    os << "get <cvar id>" << std::endl;
+                    os << std::endl;
+                    os << "Call bound and compiled C++ functions with" << std::endl;
+                    os << "<cmd id> <arg 0> <arg 1> ... <arg n>" << std::endl;
+                    os << std::endl;
+                    os << "Get help" << std::endl;
+                    os << "help : outputs noclip::console help" << std::endl;
+                    os << "listcvars : outputs info about every bound console variable" << std::endl;
+                    os << "listcmd : outputs info about every bound console command" << std::endl;
+                    os << std::endl;
+                    os << "Perform arithematic and modulo operations" << std::endl;
+                    os << "(+, -, *, /, %) <lhs> <rhs>" << std::endl;
+                    os << std::endl;
+                    os << "You can pass expressions as arguments" << std::endl;
+                    os << "+ (- 3 2) (* 4 5)" << std::endl;
+                    os << "set x (get y)" << std::endl;
+                    os << "-------- end help --------" << std::endl;
+
                     /*
                     print help about the built in commands
 
@@ -322,15 +379,102 @@ namespace noclip
                     */
                 };
 
-            cmd_table["+"] =
+            cmd_table["listcvars"] =
                 [](std::istream& is, std::ostream& os)
                 {
-                    /*
-                    Read the next two inputs, sum them, then output the sum
-                    */
+
+                };
+
+            cmd_table["listcmd"] =
+                [](std::istream& is, std::ostream& os)
+                {
+
+                };
+
+            cmd_table["+"] =
+                [this](std::istream& is, std::ostream& os)
+                {
+                    float a = this->evaluate_argument<float>(is, os);
+                    float b = this->evaluate_argument<float>(is, os);
+                    os << a + b << std::endl;
+                };
+
+            cmd_table["-"] =
+                [this](std::istream& is, std::ostream& os)
+                {
+                    float a = this->evaluate_argument<float>(is, os);
+                    float b = this->evaluate_argument<float>(is, os);
+                    os << a - b << std::endl;
+                };
+
+            cmd_table["*"] =
+                [this](std::istream& is, std::ostream& os)
+                {
+                    float a = this->evaluate_argument<float>(is, os);
+                    float b = this->evaluate_argument<float>(is, os);
+                    os << a * b << std::endl;
+                };
+
+            cmd_table["/"] =
+                [this](std::istream& is, std::ostream& os)
+                {
+                    float a = this->evaluate_argument<float>(is, os);
+                    float b = this->evaluate_argument<float>(is, os);
+                    os << a / b << std::endl;
+                };
+
+            cmd_table["%"] =
+                [this](std::istream& is, std::ostream& os)
+                {
+                    int a = this->evaluate_argument<int>(is, os);
+                    int b = this->evaluate_argument<int>(is, os);
+                    os << a % b << std::endl;
                 };
         }
     };
 }
+
+
+/*
+------------------------------------------------------------------------------
+This software is available under 2 licenses -- choose whichever you prefer.
+------------------------------------------------------------------------------
+ALTERNATIVE A - MIT License
+Copyright (c) 2021 Kevin Chin
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+------------------------------------------------------------------------------
+ALTERNATIVE B - Public Domain (www.unlicense.org)
+This is free and unencumbered software released into the public domain.
+Anyone is free to copy, modify, publish, use, compile, sell, or distribute this
+software, either in source code form or as a compiled binary, for any purpose,
+commercial or non-commercial, and by any means.
+In jurisdictions that recognize copyright laws, the author or authors of this
+software dedicate any and all copyright interest in the software to the public
+domain. We make this dedication for the benefit of the public at large and to
+the detriment of our heirs and successors. We intend this dedication to be an
+overt act of relinquishment in perpetuity of all present and future rights to
+this software under copyright law.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+------------------------------------------------------------------------------
+*/
 
 #endif //NOCLIP_CONSOLE_H

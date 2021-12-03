@@ -22,6 +22,13 @@ void funcwithargs(const std::string& str, const int& i)
     std::cout << "called it" << str << i << std::endl;
 }
 
+int fib(int n)
+{
+    if (n <= 1)
+        return n;
+    return fib(n-1) + fib(n-2);
+}
+
 int main()
 {
     int i;
