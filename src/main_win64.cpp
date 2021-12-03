@@ -3,8 +3,6 @@
 TODO:
     - Memory management / custom memory allocator / replace all mallocs and callocs
     - Improve Game state and RenderManager relationship (esp w the lights)
-    - BUG console command bug - commands get cut off when entered - could be a memory bug?
-    - Get console working again
     - Multiple demo scenes
     - Primitive polygon meshes and objects - basic Cube, Sphere, Cone, Cuboid, etc.
     ~~~
@@ -29,7 +27,6 @@ Rules:
      - if quaternion is used to represent an orientation, then the quaternion represents the rotation from the WORLD FORWARD VECTOR
      - RIGHT HAND RULE for everything
      - size (unless using STL containers) means memory size, count means number of elements
-
 
 BUILD MODES
 
