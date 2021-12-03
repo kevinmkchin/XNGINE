@@ -8,8 +8,8 @@
 
 SINGLETON_INIT(display)
 
-internal SDL_Window* window = nullptr;
-internal SDL_GLContext opengl_context = nullptr;
+INTERNAL SDL_Window* window = nullptr;
+INTERNAL SDL_GLContext opengl_context = nullptr;
 
 void display::initialize()
 {

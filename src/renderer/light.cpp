@@ -1,9 +1,9 @@
 #include <cstdlib>
 #include "light.h"
 
-internal float ATTENUATION_FACTOR_TO_CALC_RANGE_FOR = 0.010f;
+INTERNAL float ATTENUATION_FACTOR_TO_CALC_RANGE_FOR = 0.010f;
 
-internal float calculate_attenuation_range(float c, float l, float q)
+INTERNAL float calculate_attenuation_range(float c, float l, float q)
 {
     c -= 1.f / ATTENUATION_FACTOR_TO_CALC_RANGE_FOR;
     float discriminant = l * l - 4 * q * c;

@@ -4,7 +4,7 @@
 #include "../core/file_system.h"
 #include "../debugging/console.h"
 
-internal std::unordered_map<std::string, texture_t> gpu_loaded_textures;
+INTERNAL std::unordered_map<std::string, texture_t> gpu_loaded_textures;
 
 void texture_t::gl_create_from_bitmap(texture_t&        texture,
                                       unsigned char*    bitmap,

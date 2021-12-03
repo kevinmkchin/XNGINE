@@ -9,17 +9,17 @@
 #include "../../core/kc_math.h"
 #include "../../renderer/render_manager.h"
 
-internal int    perf_profiler_level = 0;
-internal u8  PERF_TEXT_SIZE = 17;
-internal u16 PERF_DRAW_X = 4;
-internal u16 PERF_DRAW_Y = PERF_TEXT_SIZE + 3;
+INTERNAL int    perf_profiler_level = 0;
+INTERNAL u8  PERF_TEXT_SIZE = 17;
+INTERNAL u16 PERF_DRAW_X = 4;
+INTERNAL u16 PERF_DRAW_Y = PERF_TEXT_SIZE + 3;
 
 // Font
-internal tta_font_t*   perf_font_handle;
-internal texture_t     perf_font_atlas;
+INTERNAL tta_font_t*   perf_font_handle;
+INTERNAL texture_t     perf_font_atlas;
 
 // Meshes
-internal mesh_t        perf_frametime_vao;
+INTERNAL mesh_t        perf_frametime_vao;
 
 void profiler_set_level(int level)
 {
