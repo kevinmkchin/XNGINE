@@ -3,7 +3,7 @@
 
 /*
 
-noclip.h (WORK IN PROGRSS)
+noclip.h (WORK IN PROGRESS)
 
 By Kevin Chin 2021
 
