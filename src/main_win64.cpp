@@ -51,11 +51,11 @@ BUILD MODES
 #include "core/file_system.h"
 
 #define STB_SPRINTF_IMPLEMENTATION
-#include "stb/stb_sprintf.h"
+#include <stb_sprintf.h>
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "stb/stb_truetype.h"
+#include <stb_truetype.h>
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.h"
+#include <stb_image.h>
 #define KC_TRUETYPEASSEMBLER_IMPLEMENTATION
 #include "kc_truetypeassembler.h"
 

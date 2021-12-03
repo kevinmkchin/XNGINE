@@ -38,6 +38,8 @@ include_directories(${PROJECT_NAME}
     PUBLIC lib/GLEW/include
     PUBLIC lib/SDL/include
     PUBLIC lib/ASSIMP/include
+    PUBLIC lib/stb
+    PUBLIC lib/noclip
 )
 
 # Additional Library/Dependency Directories

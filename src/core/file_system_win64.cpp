@@ -1,8 +1,8 @@
 #include <fstream>
 #include <SDL.h>
+#include <stb_image.h>
 
 #include "file_system.h"
-#include "../stb/stb_image.h"
 #include "../debugging/console.h"
 
 /**

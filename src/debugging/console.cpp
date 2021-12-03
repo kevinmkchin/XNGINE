@@ -2,13 +2,13 @@
 #include <vector>
 #include <SDL.h>
 #include <GL/glew.h>
+#include <stb_sprintf.h>
 
 #include "console.h"
 #include "../core/kc_math.h"
 #include "../kc_truetypeassembler.h"
 #include "../renderer/texture.h"
 #include "../renderer/mesh.h"
-#include "../stb/stb_sprintf.h"
 #include "../renderer/shader.h"
 #include "../renderer/render_manager.h"
 #include "../core/timer.h"
