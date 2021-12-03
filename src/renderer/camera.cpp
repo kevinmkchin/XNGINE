@@ -10,7 +10,7 @@ void camera_t::update_camera()
 
     i32 g_mouse_delta_x = input::get_instance()->g_mouse_delta_x;
     i32 g_mouse_delta_y = input::get_instance()->g_mouse_delta_y;
-    if(abs(g_mouse_delta_x) < 50.f && abs(g_mouse_delta_y) < 50.f) // don't move if mouse delta is too big to be normal
+    if(kc_abs(g_mouse_delta_x) < 50.f && kc_abs(g_mouse_delta_y) < 50.f) // don't move if mouse delta is too big to be normal
     {
         rotation.y /*yaw*/ -= g_mouse_delta_x * turnspeed;
         rotation.z /*pitch*/ -= g_mouse_delta_y * turnspeed;

@@ -28,7 +28,7 @@ void create_circle_vertex_buffer(float* vertices, u32* indices,
 {
     const float rad_upper_bound = 1.5f;
     const float rad_lower_bound = 0.5f;
-    float rad_bound_percent = clamp((radius - rad_lower_bound) / (rad_upper_bound - rad_lower_bound), 0.f, 1.f);
+    float rad_bound_percent = kc_clamp((radius - rad_lower_bound) / (rad_upper_bound - rad_lower_bound), 0.f, 1.f);
     const float vertices_upper_bound = 128.f;
     const float vertices_lower_bound = 32.f;
     float angle_increment = (2.f*KC_PI)
