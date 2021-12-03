@@ -1,0 +1,3 @@
+[submodule "lib/noclip"]
+	path = lib/noclip
+	url = https://github.com/kevinmkchin/noclip.git

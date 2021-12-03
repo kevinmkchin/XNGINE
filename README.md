@@ -5,9 +5,14 @@
 
 ## How to Build and Run
 ### Windows
-- Run build-win64-cmake.bat (requires CMake)
-- Run run.bat (with argument "vs" if you want to launch Visual Studio to debug)
-- Profit
+```
+git clone https://github.com/kevinmkchin/XNGINE.git .
+git submodule init
+git submodule update
+build-win64-cmake.bat (requires CMake)
+run.bat (with argument "vs" if you want to launch Visual Studio to debug)
+```
+
 
 ![2 - sponza](https://user-images.githubusercontent.com/44921110/126013673-d96317e8-23d6-481d-a5f9-8f9b228be4be.png)
 ![3 - alduin](https://user-images.githubusercontent.com/44921110/126013678-28244454-2d34-4f92-b784-a8677adba201.png)
