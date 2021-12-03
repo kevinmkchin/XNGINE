@@ -3,34 +3,91 @@
 
 /*
 
-Name ideas:
-kon
-console
-konsol
-consol
-noclip
+noclip.h
 
-Uses C++11 features (e.g. parameter pack, lambdas)
-Uses iostream, sstream, functional, unordered_map from C++11 Standard Library
+By Kevin Chin 2021
 
+Single-header C++ library providing a console backend for parsing and
+interpreting commands and arguments from an input stream.
 
-Single header library
-Console backend for parsing and interpreting commands from an input stream.
+Uses C++11 features (e.g. parameter pack, lambdas) and a ton of standard
+library goodies: <iostream>, <sstream>, <functional>, <unordered_map> from 
+C++11 Standard Library.
 
-Interprets with side effects then outputs 
+noclip::console is essentially a shell for your programs to call functions
+or mutate variables based on input during runtime. The idea is to provide 
+a very easy interface to a sophisticated console backend (shell) which can 
+be used to build things like in-game drop-down consoles for games.
+Examples: 
+https://developer.valvesoftware.com/wiki/Developer_Console 
+https://quake.fandom.com/wiki/Console_(Q1)
+noclip::console can be used for any program, not just games. If you want to
+be able to change variables or call certain functions based on text input,
+noclip::console will be useful.
 
-Bind Variables and Functions during runtime. Once bound, these variables 
-can be mutated and these functions can be called all via commands from an
-input stream. e.g. std::cin or an input stream from a visual console GUI.
+QUICK INTERFACE:
+    function    | example
+    ------------|-----------------------------------------
+    bind_cvar   | console.bind_cvar("health", &health);
+                |
+    bind_cmd    | console.bind_cmd("command", someFunction);
+                | console.bind_cmd("command", &Object::memberFunc, &objectInstance);
+                | console.bind_cmd("command", [](std::istream& is, std::ostream& os){ lambda body });
+                |
+    unbind_cvar | console.unbind_cvar("health"); // useful if 'health' goes out of scope (i.e. dealloc'ed)
+                |
+    unbind_cmd  | console.unbind_cvar("command"); // useful if object owning 'command' goes out of scope
+                |
+    execute     | console.execute(std::cin, std::cout);
+                | console.execute("set health 99", std::cout);
 
-Leveraging the power of lambdas
-Uses function signature that takes input stream and output stream
-We can create lambdas of this function signature
+CREATING A CONSOLE:
+    noclip::console console;
 
-CVar https://en.wikipedia.org/wiki/CVAR
-Cmd  commands
+USAGE:
 
-Built in commands:
+All you need to understand is that there are CONSOLE VARIABLES 
+(CVar https://en.wikipedia.org/wiki/CVAR) and CONSOLE COMMANDS (Cmd). 
+Bind Variables and Functions to CVars and Cmds during runtime. Once bound, 
+these variables can be mutated and these functions can be called all via 
+commands from an input stream. e.g. std::cin or an input stream from a 
+visual console GUI.
+
+Consider the following:
+```
+int hp = 100;
+console.bind_cvar("health", &hp); // binds 'hp' as a CVar with id 'health'
+```
+then if we execute the command "set health 75", hp will change to 75.
+
+For input and output, noclip::console uses std::istream and std::ostream. This
+makes noclip::console very flexible for any kind of program. As long as there
+is an input stream and an output stream, noclip::console will work. You can 
+convert a string into a sstream (type of istream) and use that as the input.
+You can also grab the output stream and then convert that into a string. 
+You can even do something like:
+```
+while(true)
+{
+    console.execute(std::cin, std::cout);
+}
+```
+
+IMPLEMENTATION DETAILS:
+By leveraging the power of lambdas (anonymous functions) and templates, 
+this library manages to implement a very sophisticated backend in very
+few lines of code.
+
+By using lambdas, we can capture the behaviour of commands. We can 
+look up the lambda/behaviour associated with a given command id and then
+invoke that behaviour.
+
+Another way lambdas are used is to be able to set and get variables
+without knowing their type. Instead of storing the memory address of 
+a given variable, we instead store the behaviour (using a lambda) of 
+mutating that variable given an input. This way, we don't need to know 
+about the type of the variable when we want to mutate it - we just need 
+to give the stored behaviour an input to read from.
 
 */
 
