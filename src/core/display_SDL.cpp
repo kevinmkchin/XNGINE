@@ -121,7 +121,7 @@ void display::fullscreen(int fullscreen)
         case 1:{SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);}break;
         case 2:{SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);}break;
         default:{
-            console_print("Invalid fullscreen mode; 0 = windowed, 1 = fullscreen, 2 = fullscreen-windowed");
+            console_print("Invalid fullscreen mode; 0 = windowed, 1 = fullscreen, 2 = fullscreen-windowed\n");
         }break;
     }
 }
@@ -143,7 +143,7 @@ void display::vsync(int vsync)
         case 1:{SDL_GL_SetSwapInterval(1);}break;
         case 2:{if(SDL_GL_SetSwapInterval(-1)==-1) SDL_GL_SetSwapInterval(1);}break;
         default:{
-            console_print("Invalid vsync option; 0 = immediate, 1 = vsync, 2 = adaptive vsync");
+            console_print("Invalid vsync option; 0 = immediate, 1 = vsync, 2 = adaptive vsync\n");
         }break;
     }
 }
