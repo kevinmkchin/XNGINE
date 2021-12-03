@@ -1,16 +1,11 @@
-#include "kc_con.h"
+#include "noclip.h"
 
 void printstuff()
 {
     std::cout << "pog" << std::endl;
     std::cout << "yellow" << std::endl;
-    std::cout << "arsenal" << std::endl;
+    std::cout << "stuff" << std::endl;
 }
-
-struct somestruct
-{
-
-};
 
 struct A
 {
@@ -37,9 +32,9 @@ int main()
     c.bind_cvar("i", &i);
     c.bind_cvar("f", &f);
     c.bind_cvar("s", &s);
-    c.bind_cmd("yolo", printstuff);
+    c.bind_cmd("printstuff", printstuff);
 
-    c.bind_cmd("yeah", funcwithargs);
+    c.bind_cmd("yolo", funcwithargs);
 
     A a;
     c.bind_cvar("ax", &a.x);
