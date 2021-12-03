@@ -41,9 +41,9 @@ enum console_state_t
     CONSOLE_SHOWING,
     CONSOLE_SHOWN
 };
-internal GLuint console_background_vao_id = 0;
-internal GLuint console_background_vbo_id = 0;
-internal GLfloat console_background_vertex_buffer[] = {
+INTERNAL GLuint console_background_vao_id = 0;
+INTERNAL GLuint console_background_vbo_id = 0;
+INTERNAL GLfloat console_background_vertex_buffer[] = {
     0.f, 0.f, 0.f, 0.f,
     0.f, 400.f, 0.f, 1.f,
     1280.f, 400.f, 1.f, 1.f,
@@ -51,41 +51,41 @@ internal GLfloat console_background_vertex_buffer[] = {
     0.f, 0.f, 0.f, 0.f,
     1280.f, 400.f, 1.f, 1.f
 };
-internal GLuint console_line_vao_id = 0;
-internal GLuint console_line_vbo_id = 0;
-internal GLfloat console_line_vertex_buffer[] = {
+INTERNAL GLuint console_line_vao_id = 0;
+INTERNAL GLuint console_line_vbo_id = 0;
+INTERNAL GLfloat console_line_vertex_buffer[] = {
     0.f, 400.f,
     1280.f, 400.f
 };
 
-internal bool        console_b_initialized = false;
-internal console_state_t    console_state = CONSOLE_HIDDEN;
-internal float      console_y;
+INTERNAL bool        console_b_initialized = false;
+INTERNAL console_state_t    console_state = CONSOLE_HIDDEN;
+INTERNAL float      console_y;
 
-internal float       CONSOLE_HEIGHT = 400.f;
-internal u8       CONSOLE_TEXT_SIZE = 20;
-internal u8       CONSOLE_TEXT_PADDING_BOTTOM = 4;
-internal u16      CONSOLE_INPUT_DRAW_X = 4;
-internal u16      CONSOLE_INPUT_DRAW_Y = (u16) (CONSOLE_HEIGHT - (float) CONSOLE_TEXT_PADDING_BOTTOM);
+INTERNAL float       CONSOLE_HEIGHT = 400.f;
+INTERNAL u8       CONSOLE_TEXT_SIZE = 20;
+INTERNAL u8       CONSOLE_TEXT_PADDING_BOTTOM = 4;
+INTERNAL u16      CONSOLE_INPUT_DRAW_X = 4;
+INTERNAL u16      CONSOLE_INPUT_DRAW_Y = (u16) (CONSOLE_HEIGHT - (float) CONSOLE_TEXT_PADDING_BOTTOM);
 
 // Input character buffer
-internal char        console_input_buffer[CONSOLE_COLS_MAX];
-internal bool        console_b_input_buffer_dirty = false;
-internal u8       console_input_cursor = 0;
-internal u8       console_input_buffer_count = 0;
+INTERNAL char        console_input_buffer[CONSOLE_COLS_MAX];
+INTERNAL bool        console_b_input_buffer_dirty = false;
+INTERNAL u8       console_input_cursor = 0;
+INTERNAL u8       console_input_buffer_count = 0;
 
 // Hidden character buffer
-internal char        console_messages[CONSOLE_MAX_PRINT_MSGS] = {};
-internal u16      console_messages_read_cursor = 0;
-internal u16      console_messages_write_cursor = 0;
-internal bool        console_b_messages_dirty = false;
+INTERNAL char        console_messages[CONSOLE_MAX_PRINT_MSGS] = {};
+INTERNAL u16      console_messages_read_cursor = 0;
+INTERNAL u16      console_messages_write_cursor = 0;
+INTERNAL bool        console_b_messages_dirty = false;
 
 // Text visuals
-internal tta_font_t*   console_font_handle;
-internal texture_t     console_font_atlas;
+INTERNAL tta_font_t*   console_font_handle;
+INTERNAL texture_t     console_font_atlas;
 // Input text & Messages VAOs
-internal mesh_t        console_inputtext_vao; // console_inputtext_vao gets added to console_messages_vaos if user "returns" command
-internal mesh_t        console_messages_vaos[CONSOLE_ROWS_MAX] = {}; // one vao is one line
+INTERNAL mesh_t        console_inputtext_vao; // console_inputtext_vao gets added to console_messages_vaos if user "returns" command
+INTERNAL mesh_t        console_messages_vaos[CONSOLE_ROWS_MAX] = {}; // one vao is one line
 
 // TODO buffer to hold previous commands (max 20 commands)
 

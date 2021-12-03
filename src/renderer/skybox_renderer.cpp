@@ -1,7 +1,7 @@
 #include "skybox_renderer.h"
 #include "../core/kc_math.h"
 
-internal u32 skybox_indices[] = {
+INTERNAL u32 skybox_indices[] = {
         // front
         0, 1, 2,
         2, 1, 3,
@@ -22,7 +22,7 @@ internal u32 skybox_indices[] = {
         3, 6, 7
 };
 
-internal float skybox_vertices[] = {
+INTERNAL float skybox_vertices[] = {
         -1.0f, 1.0f, -1.0f,
         -1.0f, -1.0f, -1.0f,
         1.0f, 1.0f, -1.0f,

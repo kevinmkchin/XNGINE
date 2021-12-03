@@ -26,8 +26,8 @@ void game_object::render(const shader_t* render_shader, const mat4* parent_model
     }
 }
 
-internal material_t temp_material_shiny = {4.f, 128.f };
-internal material_t temp_material_dull = {0.5f, 1.f };
+INTERNAL material_t temp_material_shiny = {4.f, 128.f };
+INTERNAL material_t temp_material_dull = {0.5f, 1.f };
 
 void game_object::bind_material_data(const shader_t* render_shader)
 {

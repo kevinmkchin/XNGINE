@@ -5,18 +5,18 @@
 #include "../renderer/shader.h"
 #include "../renderer/camera.h"
 
-internal int debugger_level = 0;
+INTERNAL int debugger_level = 0;
 int debug_drawer_get_level()
 {
     return debugger_level;
 }
 
-internal bool debugger_b_debug_pointlights = true;
-internal point_light_t* debugger_point_lights = nullptr;
-internal u32 debugger_point_lights_count = 0;
+INTERNAL bool debugger_b_debug_pointlights = true;
+INTERNAL point_light_t* debugger_point_lights = nullptr;
+INTERNAL u32 debugger_point_lights_count = 0;
 
-internal mesh_t debug_sphere_mesh;
-internal mesh_t debug_cone_mesh;
+INTERNAL mesh_t debug_sphere_mesh;
+INTERNAL mesh_t debug_cone_mesh;
 
 // TODO debug show vertex normals
 // TODO debug forward vector (i.e. show direction of object)

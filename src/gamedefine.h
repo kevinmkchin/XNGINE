@@ -12,7 +12,7 @@
 This causes the compiler to treat them as intra-unit linkage and it doesn't ever have to even do the work
  of moving to the link phase. */
 
-#define internal        static  // functions or global variables marked static are internal to the translation unit
+#define INTERNAL        static  // functions or global variables marked static are internal to the translation unit
 #define local_persist   static  // local static variables are only accessible within the scope of its declaration
 
 typedef uint8_t       u8;
