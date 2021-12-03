@@ -2,6 +2,25 @@
 #include "../debugging/debug_drawer.h"
 #include "../debugging/console.h"
 
+game_state::game_state()
+{
+    get_console().bind_cmd("camstats", [this](std::istream& is, std::ostream& os){
+        console_printf("camera position x: %f, y: %f, z: %f \n", m_camera.position.x, m_camera.position.y, m_camera.position.z);
+        console_printf("camera rotation roll: %f, yaw: %f, pitch: %f \n", m_camera.rotation.x, m_camera.rotation.y, m_camera.rotation.z);
+        console_printf("camera speed: %f\n", m_camera.movespeed);
+        console_printf("camera sensitivity: %f\n", m_camera.turnspeed);
+    });
+
+    get_console().bind_cvar("camspeed", &m_camera.movespeed);
+    get_console().bind_cvar("sensitivity", &m_camera.turnspeed);
+}
+
+game_state::~game_state()
+{
+    get_console().unbind_cmd("camstats");
+    get_console().unbind_cvar("camspeed");
+    get_console().unbind_cvar("sensitivity");
+}
 
 void game_state::temp_initialize_Sponza_Pointlight()
 {

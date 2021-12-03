@@ -9,9 +9,13 @@ struct display
 
     void swap_buffers();
 
-    void display_size_changed();
+    void fullscreen(int mode);
+
+    void set_window_size(int w, int h);
 
     void vsync(int vsync);
+
+    void display_size_changed();
 
 private:
     

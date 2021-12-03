@@ -80,3 +80,8 @@ void camera_t::calculate_view_matrix()
 {
     matrix_view = view_matrix_look_at(position,position + calculated_direction, calculated_up);
 }
+
+void camera_t::set_movespeed(float speed)
+{
+    movespeed = speed;
+}

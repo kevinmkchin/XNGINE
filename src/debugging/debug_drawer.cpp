@@ -1,5 +1,6 @@
 #include "debug_drawer.h"
 #include "../gamedefine.h"
+#include "console.h"
 #include "../renderer/mesh.h"
 #include "../renderer/light.h"
 #include "../renderer/shader.h"
@@ -151,6 +152,9 @@ void debug_initialize()
 {
     debug_sphere_mesh = create_circle_mesh(0.f, 0.f, 0.f, 1.f);
     debug_cone_mesh = create_cone_mesh(0.f, 0.f, 0.f, 1.f, 1.f);
+
+    get_console().bind_cmd("debug", debug_set_debug_level);
+    get_console().bind_cmd("toggle_debug_pointlights", debug_toggle_debug_pointlights);
 }
 
 void debug_render(shader_t& debug_shader, camera_t camera)
