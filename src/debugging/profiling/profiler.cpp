@@ -1,6 +1,7 @@
 #include <string>
 #include "profiler.h"
 #include "../../gamedefine.h"
+#include "../console.h"
 #include "../../kc_truetypeassembler.h"
 #include "../../renderer/texture.h"
 #include "../../renderer/mesh.h"
@@ -38,6 +39,8 @@ void profiler_initialize(tta_font_t* in_perf_font_handle, texture_t in_perf_font
     mesh_t::gl_create_mesh(perf_frametime_vao, nullptr, nullptr,
                            0, 0, 2,
                            2, 0, GL_DYNAMIC_DRAW);
+
+    get_console().bind_cmd("profiler", profiler_set_level);
 }
 
 void profiler_render(shader_t* ui_shader, shader_t* text_shader)

@@ -25,6 +25,10 @@ public:
     // ...
 
 public:
+
+    game_state();
+    ~game_state();
+
     void temp_initialize_Sponza_Pointlight();
 
     void update_scene();

@@ -23,6 +23,8 @@ struct camera_t
     float nearclip              = 0.1f;
     float farclip               = 2000.f;
 
+    void set_movespeed(float speed);
+
     void update_camera();
 
     void calculate_perspective_matrix();

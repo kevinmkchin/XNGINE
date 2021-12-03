@@ -93,11 +93,10 @@ void display::initialize()
     vsync(0);
 
     display_size_changed();
-}
 
-void display::swap_buffers()
-{
-    SDL_GL_SwapWindow(window);
+    get_console().bind_cmd("fullscreen", &display::fullscreen, this);
+    get_console().bind_cmd("windowsize", &display::set_window_size, this);
+    get_console().bind_cmd("vsync", &display::vsync, this);
 }
 
 void display::clean_up()
@@ -105,6 +104,28 @@ void display::clean_up()
     SDL_DestroyWindow(window);
     SDL_GL_DeleteContext(opengl_context);
     SDL_Quit();
+
+    get_console().unbind_cmd("vsync");
+}
+
+void display::swap_buffers()
+{
+    SDL_GL_SwapWindow(window);
+}
+
+void display::fullscreen(int fullscreen)
+{
+    switch(fullscreen)
+    {
+        case 0:{SDL_SetWindowFullscreen(window, 0);}break;
+        case 1:{SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);}break;
+        case 2:{SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);}break;
+    }
+}
+
+void display::set_window_size(int w, int h)
+{
+    SDL_SetWindowSize(window, w, h);
 }
 
 void display::vsync(int vsync)
@@ -122,7 +143,6 @@ void display::vsync(int vsync)
             console_print("Invalid vsync option; 0 = immediate, 1 = vsync, 2 = adaptive vsync");
         }break;
     }
-
 }
 
 void display::display_size_changed()
