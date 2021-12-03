@@ -137,9 +137,7 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
         }
 
         i_render_manager->render();
-        timer::timestamp();
         i_window_manager->swap_buffers();
-        printf("buffer swap took %fs\n", timer::timestamp());
     }
 
     i_render_manager->clean_up();
