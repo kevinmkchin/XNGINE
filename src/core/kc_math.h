@@ -51,10 +51,10 @@ STANDARDS:
 #define KC_DEG2RAD 0.0174532925f  // in_degrees * KC_DEG2RAD = in_radians
 #define KC_RAD2DEG 57.2958f       // in_radians * KC_RAD2DEG = in_degrees
 
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#define max(a, b) ((a) > (b) ? (a) : (b))
-#define abs(a) ((a) < 0.f ? (-(a)) : (a))
-#define clamp(x, lower, upper) max((lower), min((upper), (x)))
+#define kc_min(a, b) ((a) < (b) ? (a) : (b))
+#define kc_max(a, b) ((a) > (b) ? (a) : (b))
+#define kc_abs(a) ((a) < 0.f ? (-(a)) : (a))
+#define kc_clamp(x, lower, upper) kc_max((lower), kc_min((upper), (x)))
 
 /** - Vectors -
     just floats
@@ -918,7 +918,7 @@ inline quaternion normalize(quaternion a)
 
 inline bool similar(quaternion a, quaternion b, float tolerance)
 {
-    return(abs(dot(a,b)-1.f) <= tolerance);
+    return(kc_abs(dot(a, b) - 1.f) <= tolerance);
 }
 
 inline quaternion cumulate_rotations(quaternion first_rotation, quaternion second_rotation)
@@ -1131,7 +1131,7 @@ inline mat4 make_mat4(quaternion q)
 
 inline quaternion slerp(const quaternion from, const quaternion to, const float ratio)
 {
-    float t = clamp(ratio, 0.f, 1.f);
+    float t = kc_clamp(ratio, 0.f, 1.f);
     quaternion start = normalize(from);
     quaternion end = normalize(to);
     quaternion d = end * inverse(from);

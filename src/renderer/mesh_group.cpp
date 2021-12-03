@@ -102,7 +102,7 @@ mesh_group_t mesh_group_t::assimp_load(const char* file_name)
                 int idx = (int)std::string(path.data).find_last_of("\\");
                 std::string texture_file_name = std::string(path.data).substr(idx+1);
                 std::string model_file_directory = std::string(file_name);
-                idx = max((int)model_file_directory.find_last_of("/"), (int)model_file_directory.find_last_of("\\"));
+                idx = kc_max((int)model_file_directory.find_last_of("/"), (int)model_file_directory.find_last_of("\\"));
                 model_file_directory = model_file_directory.substr(0, idx + 1);
 
                 std::string tex_path = model_file_directory + texture_file_name;

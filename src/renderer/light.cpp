@@ -11,7 +11,7 @@ INTERNAL float calculate_attenuation_range(float c, float l, float q)
     {
         float root1 = (-l + sqrtf(discriminant)) / (2 * q);
         float root2 = (-l - sqrtf(discriminant)) / (2 * q);
-        float att_range = max(root1, root2);
+        float att_range = kc_max(root1, root2);
         return att_range;
     }
     else
