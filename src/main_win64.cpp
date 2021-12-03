@@ -61,7 +61,6 @@ BUILD MODES
 #include "stb/stb_image.h"
 #define KC_TRUETYPEASSEMBLER_IMPLEMENTATION
 #include "kc_truetypeassembler.h"
-#include "debugging/commands.h"
 
 // Fonts
 tta_font_t g_font_handle_c64;
@@ -100,8 +99,6 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     i_window_manager->initialize(); // e.g. Qt, SDL
     i_render_manager->initialize(); // OpenGL
     i_input_manager->initialize(); // e.g. Qt, SDL
-
-    console_register_commands();
 
     stbi_set_flip_vertically_on_load(true);
     kctta_setflags(KCTTA_CREATE_INDEX_BUFFER);
