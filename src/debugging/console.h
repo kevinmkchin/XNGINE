@@ -2,6 +2,9 @@
 
 #include <SDL_events.h>
 #include "../gamedefine.h"
+#include "../../noclip/noclip.h"
+
+noclip::console& get_console();
 
 struct texture_t;
 struct shader_t;
