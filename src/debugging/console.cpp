@@ -4,7 +4,6 @@
 #include <GL/glew.h>
 
 #include "console.h"
-#include "commands.h"
 #include "../core/kc_math.h"
 #include "../kc_truetypeassembler.h"
 #include "../renderer/texture.h"
@@ -25,10 +24,16 @@
         console.h is the interface that the rest of the game uses to communicate with console.cpp,
         console.cpp handles the console visuals, inputs, outputs, and logic related to console messages
 
-    2.  command.h/cpp:
-        command.h/cpp handles the actual invocation of console commands
+    2.  noclip.h:
+        noclip.h is the backend of the console and handles executing commands
 
 */
+
+INTERNAL noclip::console console_backend;
+noclip::console& get_console()
+{
+    return console_backend;
+}
 
 #define CONSOLE_MAX_PRINT_MSGS 8096
 #define CONSOLE_SCROLL_SPEED 2000.f
@@ -183,9 +188,9 @@ void console_printf(const char* fmt, ...)
     console_print(message);
 }
 
-// TODO FUCKING MEMORY BUG TEXT_COMMAND GETS NULL TERMINATED EARLY SOMETIMES
 void console_command(char* text_command)
 {
+    // TODO (Check if this bug still exists after switching to noclip) - FUCKING MEMORY BUG TEXT_COMMAND GETS NULL TERMINATED EARLY SOMETIMES
     char text_command_buffer[CONSOLE_COLS_MAX];
     strcpy_s(text_command_buffer, CONSOLE_COLS_MAX, text_command);//because text_command might point to read-only data
 
@@ -195,44 +200,14 @@ void console_command(char* text_command)
     }
 
     std::string cmd = std::string(text_command_buffer);
-    cmd = ">" + cmd + "\n";
-    console_print(cmd.c_str());
+    std::string cmd_print_format = ">" + cmd + "\n";
+    console_print(cmd_print_format.c_str());
 
-    char* token_buff;
-    const char delim = ' ';
-    token_buff = strtok(text_command_buffer, &delim);
-    cmd = std::string(token_buff);
-    std::map<std::string, console_command_meta_t> con_commands = get_con_commands();
-    if (con_commands.find(cmd) != con_commands.end())
-    {
-        console_command_meta_t cmd_meta = con_commands.at(cmd);
+    std::istringstream cmd_input_str(cmd);
+    std::ostringstream cmd_output_str;
+    get_console().execute(cmd_input_str, cmd_output_str);
 
-        // get list of args
-        int argcount = 0;
-        std::vector<std::string> argslist;
-        token_buff = strtok(NULL, &delim);
-        while(token_buff != NULL && argcount < 4)
-        {
-            std::string arg = std::string(token_buff);
-            argslist.push_back(arg);
-            ++argcount;
-            token_buff = strtok(NULL, &delim);
-        }
-
-        // invoke command
-        if(cmd_meta.arg_types.size() == argcount)
-        {
-            command_invoke(cmd_meta, argslist);
-        }
-        else
-        {
-            console_printf("%s takes %zd arguments...\n", cmd.c_str(), cmd_meta.arg_types.size());
-        }
-    }
-    else
-    {
-        console_printf("'%s' is not a recognized command...\n", cmd.c_str());
-    }
+    console_print(cmd_output_str.str().c_str());
 }
 
 void console_toggle()
