@@ -18,7 +18,6 @@ add_executable(${PROJECT_NAME}
         src/debugging/profiling/profiler.cpp
         src/debugging/console.cpp
         src/debugging/debug_drawer.cpp
-        src/debugging/commands.cpp
         src/core/input.cpp
         src/core/display_SDL.cpp
         src/renderer/render_manager.cpp
