@@ -87,6 +87,8 @@ private:
 
     void copy_depth_from_gbuffer_to_defaultbuffer() const;
 
+    void temp_update_geometry_buffer_size();
+
     // Width and Height of writable buffer
     i32 back_buffer_width = -1;
     i32 back_buffer_height = -1;
@@ -112,10 +114,11 @@ private:
     u32 g_albedo_texture = 0;
     u32 g_depth_RBO = 0;
     u32 deferred_composition_output_texture = 0;
-
-    SINGLETON(render_manager)
+    bool flag_g_buffer_created = false;
 
     void deferred_lighting_and_composition_pass();
 
     void deferred_geometry_pass();
+
+    SINGLETON(render_manager)
 };

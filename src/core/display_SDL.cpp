@@ -120,6 +120,9 @@ void display::fullscreen(int fullscreen)
         case 0:{SDL_SetWindowFullscreen(window, 0);}break;
         case 1:{SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);}break;
         case 2:{SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);}break;
+        default:{
+            console_print("Invalid fullscreen mode; 0 = windowed, 1 = fullscreen, 2 = fullscreen-windowed");
+        }break;
     }
 }
 

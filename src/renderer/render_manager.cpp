@@ -353,6 +353,12 @@ void render_manager::update_buffer_size(i32 new_width, i32 new_height)
     glViewport(0, 0, back_buffer_width, back_buffer_height);
 
     console_printf("Viewport updated - x: %d y: %d\n", back_buffer_width, back_buffer_height);
+
+    // TODO(Kevin): recreate deferred render textures
+    if(flag_g_buffer_created)
+    {
+        temp_update_geometry_buffer_size();
+    }
 }
 
 void render_manager::temp_create_shadow_maps()
@@ -443,7 +449,6 @@ void render_manager::temp_create_shadow_maps()
 
 void render_manager::temp_create_geometry_buffer()
 {
-    // todo regenerate buffers when screen size change
     glGenFramebuffers(1, &g_buffer_FBO);
     glBindFramebuffer(GL_FRAMEBUFFER, g_buffer_FBO);
 
@@ -484,5 +489,25 @@ void render_manager::temp_create_geometry_buffer()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    flag_g_buffer_created = true;
+}
+
+void render_manager::temp_update_geometry_buffer_size()
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, g_buffer_FBO);
+    glBindTexture(GL_TEXTURE_2D, g_position_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, back_buffer_width, back_buffer_height, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glBindTexture(GL_TEXTURE_2D, g_normal_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, back_buffer_width, back_buffer_height, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glBindTexture(GL_TEXTURE_2D, g_albedo_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, back_buffer_width, back_buffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glBindRenderbuffer(GL_RENDERBUFFER, g_depth_RBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, back_buffer_width, back_buffer_height);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, deferred_composition_output_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, back_buffer_width, back_buffer_height, 0, GL_RGBA, GL_FLOAT, nullptr);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
