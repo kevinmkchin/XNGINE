@@ -1,7 +1,7 @@
-#include "render_manager.h"
 #include <GL/glew.h>
+
+#include "render_manager.h"
 #include "../game/game_state.h"
-#include "../stb/stb_sprintf.h"
 #include "../debugging/console.h"
 #include "../debugging/profiling/profiler.h"
 #include "../debugging/debug_drawer.h"

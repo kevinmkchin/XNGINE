@@ -1,8 +1,8 @@
 #pragma once
 
 #include <SDL_events.h>
+#include <noclip.h>
 #include "../gamedefine.h"
-#include "../../noclip/noclip.h"
 
 noclip::console& get_console();
 
