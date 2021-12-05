@@ -6,6 +6,7 @@
 #include "../debugging/profiling/profiler.h"
 #include "../debugging/debug_drawer.h"
 #include "../core/input.h"
+#include <stb_sprintf.h>
 
 SINGLETON_INIT(render_manager)
 
