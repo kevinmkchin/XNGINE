@@ -29,6 +29,7 @@ void game_state::temp_initialize_Sponza_Pointlight()
     directionallight.diffuse_intensity = 0.0f;
     directionallight.colour = { 1.f, 1.f, 1.f };
 
+    // TODO(Kevin): create a MeshGroup storage and management system so we dont need to new
     auto temp_model_MEM_LEAK_lol = new mesh_group_t();
     *temp_model_MEM_LEAK_lol = mesh_group_t::assimp_load("data/models/sponza/sponza.obj");
 

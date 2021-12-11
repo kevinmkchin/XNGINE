@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../gamedefine.h"
+#include "../game_defines.h"
 #include "shader.h"
 #include "../core/kc_math.h"
 #include "light.h"
@@ -47,7 +47,7 @@ struct display_settings_t
     //todo
 };
 
-struct render_manager
+struct deferred_renderer
 {
     void initialize();
 
@@ -119,6 +119,4 @@ private:
     void deferred_lighting_and_composition_pass();
 
     void deferred_geometry_pass();
-
-    SINGLETON(render_manager)
 };

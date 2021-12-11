@@ -2,7 +2,7 @@
 
 #include <SDL_events.h>
 #include <noclip.h>
-#include "../gamedefine.h"
+#include "../game_defines.h"
 
 noclip::console& get_console();
 

@@ -1,5 +1,5 @@
 #include "debug_drawer.h"
-#include "../gamedefine.h"
+#include "../game_defines.h"
 #include "console.h"
 #include "../renderer/mesh.h"
 #include "../renderer/light.h"

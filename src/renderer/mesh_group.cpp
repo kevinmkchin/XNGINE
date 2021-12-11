@@ -84,7 +84,7 @@ mesh_group_t mesh_group_t::assimp_load(const char* file_name)
     for(size_t i = 0; i < scene->mNumMeshes; ++i)
     {
         aiMesh* mesh_node = scene->mMeshes[i];
-        retval.meshes[i] = assimp_load_mesh_helper(i, mesh_node);
+        retval.meshes[i] = assimp_load_mesh_helper(mesh_node);
         retval.mesh_to_texture[i] = mesh_node->mMaterialIndex;
     }
 
@@ -116,7 +116,7 @@ mesh_group_t mesh_group_t::assimp_load(const char* file_name)
     return retval;
 }
 
-mesh_t mesh_group_t::assimp_load_mesh_helper(size_t mesh_index, aiMesh* mesh_node)
+mesh_t mesh_group_t::assimp_load_mesh_helper(aiMesh* mesh_node)
 {
     const u8 vb_entries_per_vertex = 8;
     std::vector<float> vb(mesh_node->mNumVertices * vb_entries_per_vertex);

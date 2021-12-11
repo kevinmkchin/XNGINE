@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../gamedefine.h"
+#include "../game_defines.h"
 #include "../core/kc_math.h"
 
 struct directional_light_t
