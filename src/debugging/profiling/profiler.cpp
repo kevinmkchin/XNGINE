@@ -2,7 +2,7 @@
 #include "profiler.h"
 #include "../../game_defines.h"
 #include "../console.h"
-#include <kc_truetypeassembler.h>
+#include <vertext.h>
 #include "../../renderer/texture.h"
 #include "../../renderer/mesh.h"
 #include "../../renderer/shader.h"
@@ -17,7 +17,7 @@ INTERNAL u16 PERF_DRAW_X = 4;
 INTERNAL u16 PERF_DRAW_Y = PERF_TEXT_SIZE + 3;
 
 // Font
-INTERNAL tta_font_t*   perf_font_handle;
+INTERNAL vtxt_font*   perf_font_handle;
 INTERNAL texture_t     perf_font_atlas;
 
 // Meshes
@@ -33,7 +33,7 @@ int profiler_get_level()
     return perf_profiler_level;
 }
 
-void profiler_initialize(tta_font_t* in_perf_font_handle, texture_t in_perf_font_atlas)
+void profiler_initialize(vtxt_font* in_perf_font_handle, texture_t in_perf_font_atlas)
 {
     perf_font_handle = in_perf_font_handle;
     perf_font_atlas = in_perf_font_atlas;
@@ -59,10 +59,10 @@ void profiler_render(shader_t* ui_shader, shader_t* text_shader)
             + "ms   FPS: "
             + std::to_string((i16)(1.f / timer::delta_time))
             + "hz";
-        kctta_clear_buffer();
-        kctta_move_cursor(PERF_DRAW_X, PERF_DRAW_Y);
-        kctta_append_line(perf_frametime_string.c_str(), perf_font_handle, PERF_TEXT_SIZE);
-        tta_vertex_buffer_t vb = kctta_grab_buffer();
+        vtxt_clear_buffer();
+        vtxt_move_cursor(PERF_DRAW_X, PERF_DRAW_Y);
+        vtxt_append_line(perf_frametime_string.c_str(), perf_font_handle, PERF_TEXT_SIZE);
+        vtxt_vertex_buffer vb = vtxt_grab_buffer();
         perf_frametime_vao.gl_rebind_buffer_objects(vb.vertex_buffer, vb.index_buffer,
                                                     vb.vertices_array_count, vb.indices_array_count);
 

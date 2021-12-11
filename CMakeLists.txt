@@ -25,7 +25,8 @@ add_executable(${PROJECT_NAME}
         src/renderer/shader.cpp
         src/renderer/skybox_renderer.cpp
         src/game/game_object.cpp
-        src/game_statics.cpp)
+        src/game_statics.cpp
+        lib/vertext/vertext.h)
 # add WIN32 after ${PROJECT_NAME} if compile for SUBSYSTEM:WINDOWS
 
 # Compile time preprocessor definitions

@@ -8,9 +8,9 @@ noclip::console& get_console();
 
 struct texture_t;
 struct shader_t;
-struct tta_font_t;
+struct vtxt_font;
 
-void console_initialize(tta_font_t* in_console_font_handle, texture_t in_console_font_atlas);
+void console_initialize(vtxt_font* in_console_font_handle, texture_t in_console_font_atlas);
 void console_toggle();
 void console_update();
 void console_render(shader_t* ui_shader, shader_t* text_shader);

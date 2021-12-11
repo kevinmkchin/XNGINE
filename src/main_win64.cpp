@@ -56,15 +56,15 @@ BUILD MODES
 #include <stb_truetype.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-#define KC_TRUETYPEASSEMBLER_IMPLEMENTATION
-#include "kc_truetypeassembler.h"
+#define VERTEXT_IMPLEMENTATION
+#include <vertext.h>
 #include "game_statics.h"
 
 // Fonts
-tta_font_t g_font_handle_c64;
+vtxt_font g_font_handle_c64;
 texture_t g_font_atlas_c64;
 
-inline void win64_load_font(tta_font_t* font_handle,
+inline void win64_load_font(vtxt_font* font_handle,
                             texture_t& font_atlas,
                             const char* font_path,
                             u8 font_size)
@@ -73,7 +73,7 @@ inline void win64_load_font(tta_font_t* font_handle,
     read_file_binary(fontfile, font_path);
         if(fontfile.memory)
         {
-            kctta_init_font(font_handle, (u8*) fontfile.memory, font_size);
+            vtxt_init_font(font_handle, (u8*) fontfile.memory, font_size);
         }
     free_file_binary(fontfile);
     texture_t::gl_create_from_bitmap(font_atlas,
@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     game_statics::the_input->initialize(); // e.g. Qt, SDL
 
     stbi_set_flip_vertically_on_load(true);
-    kctta_setflags(KCTTA_CREATE_INDEX_BUFFER);
+    vtxt_setflags(VTXT_CREATE_INDEX_BUFFER);
     win64_load_font(&g_font_handle_c64, g_font_atlas_c64, "data/fonts/SourceCodePro.ttf", 20); //CONSOLE_TEXT_SIZE
     console_initialize(&g_font_handle_c64, g_font_atlas_c64);
     profiler_initialize(&g_font_handle_c64, g_font_atlas_c64);
