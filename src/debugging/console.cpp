@@ -6,7 +6,7 @@
 
 #include "console.h"
 #include "../core/kc_math.h"
-#include "../kc_truetypeassembler.h"
+#include <kc_truetypeassembler.h>
 #include "../renderer/texture.h"
 #include "../renderer/mesh.h"
 #include "../renderer/shader.h"

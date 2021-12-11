@@ -2,7 +2,7 @@
 #include "profiler.h"
 #include "../../game_defines.h"
 #include "../console.h"
-#include "../../kc_truetypeassembler.h"
+#include <kc_truetypeassembler.h>
 #include "../../renderer/texture.h"
 #include "../../renderer/mesh.h"
 #include "../../renderer/shader.h"
