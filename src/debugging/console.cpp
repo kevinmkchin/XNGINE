@@ -6,7 +6,7 @@
 
 #include "console.h"
 #include "../core/kc_math.h"
-#include <kc_truetypeassembler.h>
+#include <vertext.h>
 #include "../renderer/texture.h"
 #include "../renderer/mesh.h"
 #include "../renderer/shader.h"
@@ -87,7 +87,7 @@ INTERNAL u16      console_messages_write_cursor = 0;
 INTERNAL bool        console_b_messages_dirty = false;
 
 // Text visuals
-INTERNAL tta_font_t*   console_font_handle;
+INTERNAL vtxt_font*   console_font_handle;
 INTERNAL texture_t     console_font_atlas;
 // Input text & Messages VAOs
 INTERNAL mesh_t        console_inputtext_vao; // console_inputtext_vao gets added to console_messages_vaos if user "returns" command
@@ -95,16 +95,16 @@ INTERNAL mesh_t        console_messages_vaos[CONSOLE_ROWS_MAX] = {}; // one vao 
 
 // TODO buffer to hold previous commands (max 20 commands)
 
-void console_initialize(tta_font_t* in_console_font_handle, texture_t in_console_font_atlas)
+void console_initialize(vtxt_font* in_console_font_handle, texture_t in_console_font_atlas)
 {
     console_font_handle = in_console_font_handle;
     console_font_atlas = in_console_font_atlas;
 
     // INIT TEXT mesh_t OBJECTS
-    kctta_clear_buffer();
-    kctta_move_cursor(CONSOLE_INPUT_DRAW_X, CONSOLE_INPUT_DRAW_Y);
-    kctta_append_glyph('>', console_font_handle, CONSOLE_TEXT_SIZE);
-    tta_vertex_buffer_t vb = kctta_grab_buffer();
+    vtxt_clear_buffer();
+    vtxt_move_cursor(CONSOLE_INPUT_DRAW_X, CONSOLE_INPUT_DRAW_Y);
+    vtxt_append_glyph('>', console_font_handle, CONSOLE_TEXT_SIZE);
+    vtxt_vertex_buffer vb = vtxt_grab_buffer();
     mesh_t::gl_create_mesh(console_inputtext_vao, vb.vertex_buffer, vb.index_buffer,
                            vb.vertices_array_count, vb.indices_array_count,
                            2, 2, 0, GL_DYNAMIC_DRAW);
@@ -261,8 +261,8 @@ void console_update_messages()
             }
             // rebind vao
             {
-                kctta_clear_buffer();
-                kctta_move_cursor(CONSOLE_INPUT_DRAW_X, CONSOLE_INPUT_DRAW_Y);
+                vtxt_clear_buffer();
+                vtxt_move_cursor(CONSOLE_INPUT_DRAW_X, CONSOLE_INPUT_DRAW_Y);
                 for(int i = 0; i < line_len; ++i)
                 {
                     int j = msg_iterator + i + 1;
@@ -273,14 +273,14 @@ void console_update_messages()
                     char c = console_messages[j];
                     if(c != '\n')
                     {
-                        kctta_append_glyph(c, console_font_handle, CONSOLE_TEXT_SIZE);
+                        vtxt_append_glyph(c, console_font_handle, CONSOLE_TEXT_SIZE);
                     }
                     else
                     {
-                        kctta_new_line(CONSOLE_INPUT_DRAW_X, console_font_handle);
+                        vtxt_new_line(CONSOLE_INPUT_DRAW_X, console_font_handle);
                     }
                 }
-                tta_vertex_buffer_t vb = kctta_grab_buffer();
+                vtxt_vertex_buffer vb = vtxt_grab_buffer();
                 console_messages_vaos[row].gl_rebind_buffer_objects(vb.vertex_buffer, vb.index_buffer,
                                                                     vb.vertices_array_count, vb.indices_array_count);
             }
@@ -304,11 +304,11 @@ void console_update()
             if(console_b_input_buffer_dirty)
             {
                 // update input vao
-                kctta_clear_buffer();
-                kctta_move_cursor(CONSOLE_INPUT_DRAW_X, CONSOLE_INPUT_DRAW_Y);
+                vtxt_clear_buffer();
+                vtxt_move_cursor(CONSOLE_INPUT_DRAW_X, CONSOLE_INPUT_DRAW_Y);
                 std::string input_text = ">" + std::string(console_input_buffer);
-                kctta_append_line(input_text.c_str(), console_font_handle, CONSOLE_TEXT_SIZE);
-                tta_vertex_buffer_t vb = kctta_grab_buffer();
+                vtxt_append_line(input_text.c_str(), console_font_handle, CONSOLE_TEXT_SIZE);
+                vtxt_vertex_buffer vb = vtxt_grab_buffer();
                 console_inputtext_vao.gl_rebind_buffer_objects(vb.vertex_buffer, vb.index_buffer,
                                                                vb.vertices_array_count, vb.indices_array_count);
                 console_b_input_buffer_dirty = false;
