@@ -1,3 +1,6 @@
 [submodule "lib/noclip"]
 	path = lib/noclip
 	url = https://github.com/kevinmkchin/noclip.git
+[submodule "lib/vertext"]
+	path = lib/vertext
+	url = https://github.com/kevinmkchin/vertext.git

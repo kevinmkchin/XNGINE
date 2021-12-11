@@ -41,6 +41,7 @@ include_directories(${PROJECT_NAME}
     PUBLIC lib/ASSIMP/include
     PUBLIC lib/stb
     PUBLIC lib/noclip
+    PUBLIC lib/vertext
 )
 
 # Additional Library/Dependency Directories
