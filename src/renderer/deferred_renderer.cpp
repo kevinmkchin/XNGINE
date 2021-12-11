@@ -1,14 +1,13 @@
 #include <GL/glew.h>
 
-#include "render_manager.h"
+#include "deferred_renderer.h"
 #include "../game/game_state.h"
 #include "../debugging/console.h"
 #include "../debugging/profiling/profiler.h"
 #include "../debugging/debug_drawer.h"
 #include "../core/input.h"
+#include "../game_statics.h"
 #include <stb_sprintf.h>
-
-SINGLETON_INIT(render_manager)
 
 static const char* deferred_geometry_vs_path = "shaders/deferred/deferred_geometry_pass.vert";
 static const char* deferred_geometry_fs_path = "shaders/deferred/deferred_geometry_pass.frag";
@@ -26,7 +25,7 @@ static const char* simple_fs_path = "shaders/simple.frag";
 // Temporary
 bool g_b_wireframe = false;
 
-void render_manager::initialize()
+void deferred_renderer::initialize()
 {
     // Initialize GLEW
     glewExperimental = GL_TRUE; // Enable us to access modern opengl extension features
@@ -55,14 +54,14 @@ void render_manager::initialize()
     m_skybox_renderer.init();
 }
 
-void render_manager::render()
+void deferred_renderer::render()
 {
     render_pass_directional_shadow_map();
     render_pass_omnidirectional_shadow_map();
     render_pass_main();
 }
 
-void render_manager::render_pass_directional_shadow_map()
+void deferred_renderer::render_pass_directional_shadow_map()
 {
     shader_t::gl_use_shader(shader_directional_shadow_map);
 
@@ -80,7 +79,7 @@ void render_manager::render_pass_directional_shadow_map()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void render_manager::render_pass_omnidirectional_shadow_map()
+void deferred_renderer::render_pass_omnidirectional_shadow_map()
 {
     shader_t::gl_use_shader(shader_omni_shadow_map);
     for(auto & omni_shadow_map : omni_shadow_maps)
@@ -100,7 +99,7 @@ void render_manager::render_pass_omnidirectional_shadow_map()
     }
 }
 
-void render_manager::render_pass_main()
+void deferred_renderer::render_pass_main()
 {
     camera_t& camera = gs->m_camera;
 
@@ -141,7 +140,7 @@ void render_manager::render_pass_main()
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 #if INTERNAL_BUILD
-    if(input::get_instance()->g_keystate[SDL_SCANCODE_F3])
+    if(game_statics::the_input->g_keystate[SDL_SCANCODE_F3])
     {
         local_persist mesh_t quad;
         local_persist bool meshmade = false;
@@ -178,7 +177,7 @@ void render_manager::render_pass_main()
     glEnable(GL_DEPTH_TEST);
 }
 
-void render_manager::deferred_geometry_pass()
+void deferred_renderer::deferred_geometry_pass()
 {
     camera_t& camera = gs->m_camera;
 
@@ -195,7 +194,7 @@ void render_manager::deferred_geometry_pass()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void render_manager::deferred_lighting_and_composition_pass()
+void deferred_renderer::deferred_lighting_and_composition_pass()
 {
     camera_t& camera = gs->m_camera;
 
@@ -268,7 +267,7 @@ void render_manager::deferred_lighting_and_composition_pass()
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
-void render_manager::deferred_render_to_quad_pass()
+void deferred_renderer::deferred_render_to_quad_pass()
 {
     shader_t::gl_use_shader(shader_deferred_render_to_quad_pass);
     {
@@ -298,7 +297,7 @@ void render_manager::deferred_render_to_quad_pass()
     glUseProgram(0);
 }
 
-void render_manager::copy_depth_from_gbuffer_to_defaultbuffer() const
+void deferred_renderer::copy_depth_from_gbuffer_to_defaultbuffer() const
 {
     glBindFramebuffer(GL_READ_FRAMEBUFFER, g_buffer_FBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -306,12 +305,12 @@ void render_manager::copy_depth_from_gbuffer_to_defaultbuffer() const
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void render_manager::render_scene(shader_t& shader) const
+void deferred_renderer::render_scene(shader_t& shader) const
 {
     gs->render_scene(&shader);
 }
 
-void render_manager::load_shaders()
+void deferred_renderer::load_shaders()
 {
     shader_t::gl_load_shader_program_from_file(shader_deferred_geometry_pass, deferred_geometry_vs_path, deferred_geometry_fs_path);
     shader_t::gl_load_compute_shader_program_from_file(shader_tiled_deferred_lighting, deferred_tiled_cs_path);
@@ -326,7 +325,7 @@ void render_manager::load_shaders()
     shader_t::gl_load_shader_program_from_file(shader_simple, simple_vs_path, simple_fs_path);
 }
 
-void render_manager::clean_up()
+void deferred_renderer::clean_up()
 {
     shader_t::gl_delete_shader(shader_deferred_geometry_pass);
     shader_t::gl_delete_shader(shader_tiled_deferred_lighting);
@@ -341,13 +340,13 @@ void render_manager::clean_up()
     shader_t::gl_delete_shader(shader_simple);
 }
 
-vec2i render_manager::get_buffer_size()
+vec2i deferred_renderer::get_buffer_size()
 {
     vec2i retval = { back_buffer_width, back_buffer_height };
     return retval;
 }
 
-void render_manager::update_buffer_size(i32 new_width, i32 new_height)
+void deferred_renderer::update_buffer_size(i32 new_width, i32 new_height)
 {
     back_buffer_width = new_width;
     back_buffer_height = new_height;
@@ -362,7 +361,7 @@ void render_manager::update_buffer_size(i32 new_width, i32 new_height)
     }
 }
 
-void render_manager::temp_create_shadow_maps()
+void deferred_renderer::temp_create_shadow_maps()
 {
 
 // direct
@@ -448,7 +447,7 @@ void render_manager::temp_create_shadow_maps()
     }
 }
 
-void render_manager::temp_create_geometry_buffer()
+void deferred_renderer::temp_create_geometry_buffer()
 {
     glGenFramebuffers(1, &g_buffer_FBO);
     glBindFramebuffer(GL_FRAMEBUFFER, g_buffer_FBO);
@@ -495,7 +494,7 @@ void render_manager::temp_create_geometry_buffer()
     flag_g_buffer_created = true;
 }
 
-void render_manager::temp_update_geometry_buffer_size()
+void deferred_renderer::temp_update_geometry_buffer_size()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, g_buffer_FBO);
     glBindTexture(GL_TEXTURE_2D, g_position_texture);

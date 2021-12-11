@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../gamedefine.h"
+#include "../game_defines.h"
 
 struct display
 {
@@ -16,8 +16,4 @@ struct display
     void vsync(int vsync);
 
     void display_size_changed();
-
-private:
-    
-    SINGLETON(display);
 };

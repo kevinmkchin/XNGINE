@@ -1,5 +1,4 @@
-#ifndef __GAME_DEFINE__
-#define __GAME_DEFINE__
+#pragma once
 
 #include <cstdint>
 #pragma warning(disable:4996) // disable C Run-Time library deprecation warnings
@@ -52,42 +51,6 @@ typedef i32           bool32;
 #define megabytes(value) (kilobytes((unsigned long long int)value)*1024)
 #define gigabytes(value) (megabytes((unsigned long long int)value)*1024)
 
-/** Singletons
-    TODO: don't "new" in get_instance - have a separate function for allocating singleton
-    TODO: maybe stop using these #defines at some point
-    A.h:
-    struct A
-    {
-        void foo();
-        int bar = 1;
-        SINGLETON(A); // at the end of class/struct declaration
-    };
-
-    A.cpp:
-    ...
-    SINGLETON_INIT(window_manager) // can go anywhere in source file
-    ...
-*/
-#define SINGLETON(classname) \
-    public: \
-        static classname* get_instance() \
-        { \
-            if(singleton_ == nullptr) \
-            { \
-                singleton_ = new classname(); \
-            } \
-            return singleton_; \
-        } \
-        classname(classname &other) = delete; \
-        void operator=(const classname &) = delete; \
-    private: \
-        classname() = default; \
-        static classname* singleton_;
-
-#define SINGLETON_INIT(classname) \
-    classname* classname::singleton_ = nullptr;
-
-
 ////////////////////////////////////////////////////////////////////////////////////
 /** GAME SPECIFIC **/
 ////////////////////////////////////////////////////////////////////////////////////
@@ -100,5 +63,3 @@ typedef i32           bool32;
 //    UPDATEACTIVE = 1 << 0,
 //    COLLIDABLE   = 1 << 1,
 //};
-
-#endif //__GAME_DEFINE__

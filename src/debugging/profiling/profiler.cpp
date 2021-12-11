@@ -1,6 +1,6 @@
 #include <string>
 #include "profiler.h"
-#include "../../gamedefine.h"
+#include "../../game_defines.h"
 #include "../console.h"
 #include "../../kc_truetypeassembler.h"
 #include "../../renderer/texture.h"
@@ -8,7 +8,8 @@
 #include "../../renderer/shader.h"
 #include "../../core/timer.h"
 #include "../../core/kc_math.h"
-#include "../../renderer/render_manager.h"
+#include "../../renderer/deferred_renderer.h"
+#include "../../game_statics.h"
 
 INTERNAL int    perf_profiler_level = 0;
 INTERNAL u8  PERF_TEXT_SIZE = 17;
@@ -66,7 +67,7 @@ void profiler_render(shader_t* ui_shader, shader_t* text_shader)
                                                     vb.vertices_array_count, vb.indices_array_count);
 
         mat4 perf_frametime_transform = identity_mat4();
-        mat4& matrix_projection_ortho = render_manager::get_instance()->matrix_projection_ortho;
+        mat4& matrix_projection_ortho = game_statics::the_renderer->matrix_projection_ortho;
 
         shader_t::gl_use_shader(*text_shader);
             text_shader->gl_bind_matrix4fv("matrix_proj_orthographic", 1, matrix_projection_ortho.ptr());

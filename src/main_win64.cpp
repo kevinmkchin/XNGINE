@@ -2,7 +2,7 @@
 
 TODO:
     - Memory management / custom memory allocator / replace all mallocs and callocs
-    - Improve Game state and RenderManager relationship (esp w the lights)
+    - Improve Game state and Deferred Renderer relationship (esp w the lights)
     - Multiple demo scenes
     - Primitive polygon meshes and objects - basic Cube, Sphere, Cone, Cuboid, etc.
     ~~~
@@ -39,14 +39,14 @@ BUILD MODES
         1 - Slow code fine
 
 */
-#include "gamedefine.h"
+#include "game_defines.h"
 #include "core/timer.h"
 #include "debugging/console.h"
 #include "debugging/profiling/profiler.h"
 #include "debugging/debug_drawer.h"
 #include "core/display.h"
 #include "core/input.h"
-#include "renderer/render_manager.h"
+#include "renderer/deferred_renderer.h"
 #include "game/game_state.h"
 #include "core/file_system.h"
 
@@ -58,6 +58,7 @@ BUILD MODES
 #include <stb_image.h>
 #define KC_TRUETYPEASSEMBLER_IMPLEMENTATION
 #include "kc_truetypeassembler.h"
+#include "game_statics.h"
 
 // Fonts
 tta_font_t g_font_handle_c64;
@@ -87,15 +88,17 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
 {
     game_state i_game_state;
 
-    display* i_window_manager = display::get_instance();
-    render_manager* i_render_manager = render_manager::get_instance();
-    input* i_input_manager = input::get_instance();
-    i_render_manager->gs = &i_game_state;
-    i_input_manager->gs = &i_game_state;
+    game_statics::the_renderer = new deferred_renderer();
+    game_statics::the_input = new input();
+    game_statics::the_display = new display();
+    game_statics::gameState = &i_game_state;
 
-    i_window_manager->initialize(); // e.g. Qt, SDL
-    i_render_manager->initialize(); // OpenGL
-    i_input_manager->initialize(); // e.g. Qt, SDL
+    game_statics::the_renderer->gs = &i_game_state;
+    game_statics::the_input->gs = &i_game_state;
+
+    game_statics::the_display->initialize(); // e.g. Qt, SDL
+    game_statics::the_renderer->initialize(); // OpenGL
+    game_statics::the_input->initialize(); // e.g. Qt, SDL
 
     stbi_set_flip_vertically_on_load(true);
     kctta_setflags(KCTTA_CREATE_INDEX_BUFFER);
@@ -104,18 +107,18 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
     profiler_initialize(&g_font_handle_c64, g_font_atlas_c64);
     debug_initialize();
 
-    i_render_manager->load_shaders();
+    game_statics::the_renderer->load_shaders();
 
     i_game_state.temp_initialize_Sponza_Pointlight();
-    i_render_manager->temp_create_shadow_maps();
-    i_render_manager->temp_create_geometry_buffer();
+    game_statics::the_renderer->temp_create_shadow_maps();
+    game_statics::the_renderer->temp_create_geometry_buffer();
 
     // Game Loop
     i64 perf_counter_frequency = timer::counter_frequency();
     i64 last_tick = timer::get_ticks(); // cpu cycles count of last tick
     while (i_game_state.b_is_game_running)
     {
-        i_input_manager->process_events();
+        game_statics::the_input->process_events();
 
         if (i_game_state.b_is_game_running == false) { break; }
         i64 this_tick = timer::get_ticks();
@@ -130,12 +133,12 @@ int main(int argc, char* argv[]) // Our main entry point MUST be in this form wh
             i_game_state.update_scene();
         }
 
-        i_render_manager->render();
-        i_window_manager->swap_buffers();
+        game_statics::the_renderer->render();
+        game_statics::the_display->swap_buffers();
     }
 
-    i_render_manager->clean_up();
-    i_window_manager->clean_up();
+    game_statics::the_renderer->clean_up();
+    game_statics::the_display->clean_up();
 
     return 0;
 }

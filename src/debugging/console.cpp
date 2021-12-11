@@ -10,9 +10,10 @@
 #include "../renderer/texture.h"
 #include "../renderer/mesh.h"
 #include "../renderer/shader.h"
-#include "../renderer/render_manager.h"
+#include "../renderer/deferred_renderer.h"
 #include "../core/timer.h"
 #include "../game/game_state.h"
+#include "../game_statics.h"
 
 /**
 
@@ -117,7 +118,7 @@ void console_initialize(tta_font_t* in_console_font_handle, texture_t in_console
 
     // todo update console vertex buffer on window size change
     // INIT CONSOLE GUI
-    render_manager* i_render_manager = render_manager::get_instance();
+    deferred_renderer* i_render_manager = game_statics::the_renderer;
     vec2i buffer_dimensions = i_render_manager->get_buffer_size();
     console_background_vertex_buffer[8] = (float) buffer_dimensions.x;
     console_background_vertex_buffer[12] = (float) buffer_dimensions.x;
@@ -219,13 +220,13 @@ void console_toggle()
 
     if(console_state == CONSOLE_HIDDEN)
     {
-        render_manager::get_instance()->gs->b_is_update_running = false;
+        game_statics::gameState->b_is_update_running = false;
         SDL_SetRelativeMouseMode(SDL_FALSE);
         console_state = CONSOLE_SHOWING;
     }
     else if(console_state == CONSOLE_SHOWN)
     {
-        render_manager::get_instance()->gs->b_is_update_running = true;
+        game_statics::gameState->b_is_update_running = true;
         SDL_SetRelativeMouseMode(SDL_TRUE);
         console_state = CONSOLE_HIDING;
     }
@@ -345,7 +346,7 @@ void console_render(shader_t* ui_shader, shader_t* text_shader)
         return;
     }
 
-    mat4& matrix_projection_ortho = render_manager::get_instance()->matrix_projection_ortho;
+    mat4& matrix_projection_ortho = game_statics::the_renderer->matrix_projection_ortho;
 
     float console_translation_y = console_y - (float) CONSOLE_HEIGHT;
     mat4 con_transform = identity_mat4();

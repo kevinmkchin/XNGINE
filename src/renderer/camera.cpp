@@ -1,15 +1,16 @@
 #include "camera.h"
 #include "../core/timer.h"
 #include "../core/input.h"
-#include "render_manager.h"
+#include "deferred_renderer.h"
 #include "../debugging/console.h"
+#include "../game_statics.h"
 
 void camera_t::update_camera()
 {
     float dt = timer::delta_time;
 
-    i32 g_mouse_delta_x = input::get_instance()->g_mouse_delta_x;
-    i32 g_mouse_delta_y = input::get_instance()->g_mouse_delta_y;
+    i32 g_mouse_delta_x = game_statics::the_input->g_mouse_delta_x;
+    i32 g_mouse_delta_y = game_statics::the_input->g_mouse_delta_y;
     if(kc_abs(g_mouse_delta_x) < 50.f && kc_abs(g_mouse_delta_y) < 50.f) // don't move if mouse delta is too big to be normal
     {
         rotation.y /*yaw*/ -= g_mouse_delta_x * turnspeed;
@@ -31,7 +32,7 @@ void camera_t::update_camera()
     calculated_right = normalize(cross(calculated_direction, world_up)); // right vector is cross product of direction and up direction of world
     calculated_up = normalize(cross(calculated_right, calculated_direction)); // up vector is cross product of right vector and direction
 
-    const u8* keystate = input::get_instance()->g_keystate;
+    const u8* keystate = game_statics::the_input->g_keystate;
     if(console_is_hidden())
     {
         // Check Inputs
@@ -65,7 +66,7 @@ void camera_t::update_camera()
 void camera_t::calculate_perspective_matrix()
 {
     float fov = 90.f;
-    vec2i display_buffer_size = render_manager::get_instance()->get_buffer_size();
+    vec2i display_buffer_size = game_statics::the_renderer->get_buffer_size();
     float aspect_ratio = (float)display_buffer_size.x / (float)display_buffer_size.y;
 
 #if 0

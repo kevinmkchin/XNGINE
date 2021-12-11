@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "../gamedefine.h"
+#include "../game_defines.h"
 #include "mesh.h"
 #include "texture.h"
 
@@ -21,6 +21,6 @@ struct mesh_group_t
     static mesh_group_t assimp_load(const char* file_name);
 
 private:
-    static mesh_t assimp_load_mesh_helper(size_t mesh_index, aiMesh* mesh_node);
+    static mesh_t assimp_load_mesh_helper(aiMesh* mesh_node);
 
 };

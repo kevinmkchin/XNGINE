@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../gamedefine.h"
+#include "../game_defines.h"
 #include <unordered_map>
 #include <GL/glew.h>
 

@@ -5,8 +5,7 @@
 #include "../debugging/profiling/profiler.h"
 #include "display.h"
 #include "../debugging/debug_drawer.h"
-
-SINGLETON_INIT(input)
+#include "../game_statics.h"
 
 void input::initialize()
 {
@@ -50,7 +49,7 @@ void input::process_events()
                     case SDL_WINDOWEVENT_RESIZED:
                     case SDL_WINDOWEVENT_SIZE_CHANGED:
                     {
-                        display::get_instance()->display_size_changed();
+                        game_statics::the_display->display_size_changed();
                     } break;
                 }
             } break;

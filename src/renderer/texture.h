@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <string>
-#include "../gamedefine.h"
+#include "../game_defines.h"
 #include "GL/glew.h"
 
 /** Handle for texture stored in GPU memory */

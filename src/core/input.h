@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../gamedefine.h"
+#include "../game_defines.h"
 
 struct game_state;
 
@@ -145,6 +145,4 @@ struct input {
     i32 g_curr_mouse_pos_y = INDEX_NONE;
     i32 g_mouse_delta_x = INDEX_NONE;
     i32 g_mouse_delta_y = INDEX_NONE;
-
-    SINGLETON(input)
 };

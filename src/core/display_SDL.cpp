@@ -4,9 +4,8 @@
 #include "display.h"
 #include "../debugging/console.h"
 #include "../game/game_state.h"
-#include "../renderer/render_manager.h"
-
-SINGLETON_INIT(display)
+#include "../renderer/deferred_renderer.h"
+#include "../game_statics.h"
 
 INTERNAL SDL_Window* window = nullptr;
 INTERNAL SDL_GLContext opengl_context = nullptr;
@@ -157,9 +156,9 @@ void display::display_size_changed()
     i32 buffer_width;
     i32 buffer_height;
     SDL_GL_GetDrawableSize(window, &buffer_width, &buffer_height);
-    render_manager::get_instance()->update_buffer_size(buffer_width, buffer_height);
+    game_statics::the_renderer->update_buffer_size(buffer_width, buffer_height);
 
-    render_manager::get_instance()->matrix_projection_ortho =
+    game_statics::the_renderer->matrix_projection_ortho =
             projection_matrix_orthographic_2d(0.0f, (float)buffer_width, (float)buffer_height, 0.0f);
-    render_manager::get_instance()->gs->m_camera.calculate_perspective_matrix();
+    game_statics::gameState->m_camera.calculate_perspective_matrix();
 }

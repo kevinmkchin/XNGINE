@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../gamedefine.h"
+#include "../game_defines.h"
 #include "GL/glew.h"
 
 /** Stores mesh { VAO, VBO, IBO } info. Handle for VAO on GPU memory
