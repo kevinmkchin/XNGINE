@@ -1,5 +1,5 @@
-# XNGINE - 3D Game Engine
-3D graphics game engine written in C++ with OpenGL. [GLEW](http://glew.sourceforge.net/) for OpenGL interface. [SDL](https://www.libsdl.org/) for window creation and input. [Open Asset Importer](https://www.assimp.org/) for importing 3D models.
+# XNGINE - 3D Graphics Engine
+3D graphics engine written in C++ with OpenGL. [GLEW](http://glew.sourceforge.net/) for OpenGL interface. [SDL](https://www.libsdl.org/) for window creation and input. [Open Asset Importer](https://www.assimp.org/) for importing 3D models.
 
 ![1 - vokselia](https://user-images.githubusercontent.com/44921110/126013500-dd3069ee-5848-4e1d-9d52-fef2098c2e98.png)
 
